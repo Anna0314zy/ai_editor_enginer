@@ -1,358 +1,275 @@
-好，这一步我直接给你一套 **“Qoder 专用：12 步完整生成脚本”**。
-每一步都带**架构约束（不会跑偏）+ 可直接复制的 Prompt**。你按顺序喂给 Qoder，就能从 0 → MVP 编辑器（含 Command / Timeline / Snap / Plugin / 协同）。
+# 完整版通顺中文翻译（前端架构专业术语，贴合幻灯片编辑器）
+好，现在我直接给你一套**Qoder专用：14步完整生成脚本**
+每一步都附带**架构约束（防止AI跑偏）+ 可直接复制使用的提示词**。
+你按顺序发给Qoder，就能从零搭建出**MVP编辑器完整版**，包含指令系统、时间轴、吸附对齐、插件、多人协同全部能力。
 
 ---
 
-# 🚀 使用方式（先看这个）
+## 🚀 使用须知（先看懂这个）
+- 每一步**完整复制提示词**发给Qoder
+- 生成代码后运行简单校验，没问题再进行下一步
+- 代码偏离规范时，用我给的固定纠偏话术让它重写
 
-* 每一步都**完整复制 Prompt**给 Qoder
-* 生成后：运行、简单验证，再进入下一步
-* 若有偏差：用我给的“纠偏句式”让它重写
-
-**通用纠偏句式：**
-
-```text
-你违反了架构规则：
-- 不允许在 React 组件里直接修改数据
-- 必须通过 engine.execute(command)
-请按规则重写
+**通用纠偏话术：**
+```
+你违反架构规范：
+- 禁止在React组件内直接修改数据
+- 所有数据变更必须通过 engine.execute(command) 执行
+请按照规则重新编写
 ```
 
 ---
 
-# 🧱 全局架构约束（每一步都要带上）
+## 🧱 全局架构约束（每一条提示词前面都必须带上）
+可以复制保存到剪贴板，所有步骤开头都粘贴这段
+```
+上下文：
+我们正在开发一款幻灯片设计编辑器引擎
 
-（你可以存在剪贴板，所有 Prompt 前面都加上）
-
-```text
-Context:
-We are building a Slides Editor (design tool engine).
-
-Architecture Rules:
-1. All state changes MUST go through engine.execute(command)
-2. Scene Graph is the single source of truth
-3. Editor state must be separated from scene data
-4. Engine must be framework-agnostic (no React inside engine)
-5. Rendering must be pure (data → UI)
-6. Animations must be driven by Timeline (not useEffect)
-7. All operations must support undo/redo via Command pattern
-8. Do not introduce unnecessary libraries
-9. Code must be modular and extensible
+架构规范：
+1. 所有状态变更，必须通过 engine.execute(command) 执行
+2. 场景图是唯一可信数据源
+3. 编辑器状态与场景业务数据严格分离
+4. 引擎不绑定任何框架，引擎内部不包含React代码
+5. 渲染逻辑纯函数化：数据驱动视图
+6. 动画由时间轴驱动，禁止使用useEffect控制动画
+7. 所有操作通过命令模式，支持撤销/重做
+8. 不引入多余第三方依赖库
+9. 代码模块化、高可扩展
 ```
 
 ---
 
-# 🟢 Step 1：初始化项目
+# 🟢 步骤1：项目初始化
+```
+[粘贴全局架构约束]
 
-```text
-[带上全局架构约束]
+任务：
+搭建 Vite + React18 + TypeScript 项目
 
-Task:
-Initialize a React + TypeScript (Vite) project.
+要求：
+- React 18 版本
+- TypeScript 严格模式
+- 创建目录结构：
+src/engine、src/renderer、src/components、src/store、src/types
+- 编写基础 App.tsx 与画布组件
+- 不使用额外第三方库
+```
 
-Requirements:
-- Use React 18
-- TypeScript strict mode
-- Create folders:
-  src/engine, src/renderer, src/components, src/store, src/types
-- Provide basic App.tsx and Canvas component
-- No extra libraries
+# 🟢 步骤2：场景图核心类型定义
+```
+[粘贴全局架构约束]
+
+任务：
+定义场景图数据类型
+
+要求：
+- 包含文档、页面、元素、动画、关键帧类型
+- 元素使用 Record<string, Element> 格式存储
+- 层级关系只用ID引用，不嵌套对象
+- 提供模拟测试数据
+```
+
+# 🟢 步骤3：场景Scene类实现
+```
+[粘贴全局架构约束]
+
+任务：
+编写Scene场景类
+
+要求：
+- 实现 添加元素、更新元素、删除元素、获取元素方法
+- 实现获取当前页面所有元素方法
+- 纯数据操作，无副作用
+- 不依赖React框架
+```
+
+# 🟢 步骤4：引擎Engine骨架
+```
+上下文：
+我们正在开发一款幻灯片设计编辑器引擎
+
+架构规范：
+1. 所有状态变更，必须通过 engine.execute(command) 执行
+2. 场景图是唯一可信数据源
+3. 编辑器状态与场景业务数据严格分离
+4. 引擎不绑定任何框架，引擎内部不包含React代码
+5. 渲染逻辑纯函数化：数据驱动视图
+6. 动画由时间轴驱动，禁止使用useEffect控制动画
+7. 所有操作通过命令模式，支持撤销/重做
+8. 不引入多余第三方依赖库
+9. 代码模块化、高可扩展
+
+任务：
+实现引擎核心骨架类
+
+要求：
+- 内置场景、编辑器状态、历史记录、时间轴实例
+- 实现执行命令、撤销、重做方法
+- 提供 createEngine 工厂函数创建引擎实例
+```
+
+# 🟡 步骤5：命令系统（核心关键）
+```
+[粘贴全局架构约束]
+
+任务：
+实现命令模式架构
+
+要求：
+- 统一Command类型，包含执行、撤销方法
+- 实现三类基础命令：
+  添加元素、移动元素、删除元素
+- 命令参数必须携带变更前、变更后数据
+```
+
+# 🟡 步骤6：历史栈（撤销重做管理）
+```
+[粘贴全局架构约束]
+
+任务：
+实现History历史记录类
+
+要求：
+- 维护历史前进栈、后退栈
+- 实现入栈、撤销、重做逻辑
+- 栈顺序逻辑严谨正确
+```
+
+# 🟡 步骤7：渲染器Renderer
+```
+[粘贴全局架构约束]
+
+任务：
+实现画布渲染器
+
+要求：
+- 封装元素渲染方法 renderElement
+- 支持图形、文字、图片三类元素
+- 应用位移、宽高、旋转变换属性
+- 纯函数渲染，不修改原始数据
+```
+
+# 🟠 步骤8：画布拖拽交互
+```
+[粘贴全局架构约束]
+
+任务：
+接入拖拽、缩放、旋转交互（类moveable效果）
+
+要求：
+- 拖拽结束后，调用引擎执行移动元素命令
+- 禁止直接修改状态数据
+- 全程以引擎作为唯一数据源
+```
+（此步骤允许使用类似react-moveable相关写法）
+
+# 🔵 步骤9：时间轴动画引擎
+```
+[粘贴全局架构约束]
+
+任务：
+实现Timeline时间轴动画类
+
+要求：
+- 管理当前播放时间、播放、暂停、跳转进度
+- 根据元素ID获取对应动画状态
+- 关键帧插值计算
+- 使用 requestAnimationFrame 驱动帧动画
+```
+
+# 🔴 步骤10：MVP整体整合
+```
+[粘贴全局架构约束]
+
+任务：
+整合引擎、渲染、页面交互全流程
+
+要求：
+- 完整可用App.tsx
+- 支持快捷键 Ctrl+Z 撤销、Ctrl+Y 重做
+- 时间轴控制画布动画
+- 全程不直接修改状态
+```
+
+# 🧩 步骤11：插件扩展系统
+```
+[粘贴全局架构约束]
+
+任务：
+实现插件注册管理系统
+
+要求：
+- 引擎支持 engine.use(插件) 注册
+- 可注册：自定义组件、侧边面板、自定义命令、快捷键
+- 封装插件上下文对象
+- 示例插件：注册视频元素、新增面板、绑定删除快捷键
+```
+
+# 🌐 步骤12：多人协同编辑（CRDT无冲突协同）
+```
+[粘贴全局架构约束]
+
+任务：
+基于Yjs实现多人实时协同编辑
+
+要求：
+- 使用 Y.Doc 文档结构
+- 元素数据存储在Y.Map映射结构
+- 同步新增、修改、删除操作
+- 兼容原有引擎命令体系
+- 使用WebSocket同步数据
+```
+
+# 🧠 步骤13：元素吸附对齐引擎SnapEngine
+```
+[粘贴全局架构约束]
+
+任务：
+实现智能吸附对齐引擎
+
+要求：
+- 元素之间左右、居中、上下对齐
+- 支持画布中心对齐
+- 吸附阈值5像素
+- 返回横竖辅助参考线
+- 算法时间复杂度优化为O(n)
+- 不依赖DOM操作
+```
+
+# ⚡ 步骤14：Figma级等距间距吸附（强烈推荐）
+```
+[粘贴全局架构约束]
+
+任务：
+扩展吸附引擎，支持元素等距间距对齐
+
+要求：
+- 识别3个及以上元素之间均等间距
+- 展示间距辅助线
+- 优先居中对齐，其次边缘对齐
+- 支持多条辅助线同时显示
 ```
 
 ---
 
-# 🟢 Step 2：Scene Graph（核心数据）
+# 🔥 必学AI控场技巧
 
-```text
-[带上全局架构约束]
-
-Task:
-Define Scene Graph types.
-
-Requirements:
-- Document, Slide, Element, Animation, Keyframe
-- elements stored as Record<string, Element>
-- children use id references (no nested objects)
-- Provide mock data
+## ❗ AI写出 setState 这类代码时
+直接发送：
+```
+你违反架构规范：
+所有状态变更必须通过 engine.execute(command)
+请重新编写
 ```
 
----
-
-# 🟢 Step 3：Scene 类
-
-```text
-[带上全局架构约束]
-
-Task:
-Implement Scene class.
-
-Requirements:
-- addElement / updateElement / deleteElement / getElement
-- getSlideElements
-- pure data operations
-- no React dependency
+## ❗ 引擎逻辑写进React组件时
+```
+引擎不允许依赖React
+请将逻辑重构到引擎层
 ```
 
----
-
-# 🟢 Step 4：Engine 骨架
-
-```text
-[带上全局架构约束]
-
-Task:
-Implement Engine class.
-
-Requirements:
-- scene, editorState, history, timeline
-- methods: execute, undo, redo
-- createEngine() factory
+## ❗ 大量滥用any类型时
 ```
-
----
-
-# 🟡 Step 5：Command 系统（关键）
-
-```text
-[带上全局架构约束]
-
-Task:
-Implement Command system.
-
-Requirements:
-- Command type with execute/undo
-- Implement:
-  AddElementCommand
-  MoveElementCommand
-  DeleteElementCommand
-- payload must include prev/next
+请完善类型定义，减少any类型使用
 ```
-
----
-
-# 🟡 Step 6：History（撤销重做）
-
-```text
-[带上全局架构约束]
-
-Task:
-Implement History class.
-
-Requirements:
-- past / future
-- push / undo / redo
-- correct stack behavior
-```
-
----
-
-# 🟡 Step 7：Renderer（纯渲染）
-
-```text
-[带上全局架构约束]
-
-Task:
-Implement renderer.
-
-Requirements:
-- renderElement(element, engine)
-- support shape / text / image
-- apply transform (x, y, width, height, rotation)
-- pure function (no state mutation)
-```
-
----
-
-# 🟠 Step 8：拖拽（集成交互）
-
-```text
-[带上全局架构约束]
-
-Task:
-Integrate drag/resize/rotate using moveable-like behavior.
-
-Requirements:
-- On drag end → call engine.execute(MoveElementCommand)
-- Do NOT directly mutate state
-- Keep engine as single source of truth
-```
-
-（这里允许它用类似 react-moveable 的方式写）
-
----
-
-# 🔵 Step 9：Timeline（动画引擎）
-
-```text
-[带上全局架构约束]
-
-Task:
-Implement Timeline class.
-
-Requirements:
-- currentTime, play, pause, seek
-- getElementState(element)
-- keyframe interpolation
-- use requestAnimationFrame
-```
-
----
-
-# 🔴 Step 10：整合（MVP）
-
-```text
-[带上全局架构约束]
-
-Task:
-Integrate engine + renderer + interaction.
-
-Requirements:
-- App.tsx complete
-- support undo/redo (ctrl+z / ctrl+y)
-- timeline controls animation
-- no direct state mutation
-```
-
----
-
-# 🧩 Step 11：插件系统（平台能力）
-
-```text
-[带上全局架构约束]
-
-Task:
-Implement plugin system.
-
-Requirements:
-- engine.use(plugin)
-- registry:
-  components / panels / commands / shortcuts
-- PluginContext
-- Example plugin:
-  - register Video component
-  - register panel
-  - register delete shortcut
-```
-
----
-
-# 🌐 Step 12：协同编辑（CRDT）
-
-```text
-[带上全局架构约束]
-
-Task:
-Add collaborative editing using Yjs.
-
-Requirements:
-- use Y.Doc
-- elements stored in Y.Map
-- sync add/update/delete
-- integrate with Engine (commands still work)
-- use websocket provider
-```
-
-（这里用 Yjs）
-
----
-
-# 🧠 Step 13：SnapEngine（吸附系统）
-
-```text
-[带上全局架构约束]
-
-Task:
-Implement SnapEngine.
-
-Requirements:
-- element-to-element alignment (left/center/right/top/middle/bottom)
-- canvas center alignment
-- threshold = 5px
-- return guides (vertical/horizontal)
-- optimize to O(n)
-- no DOM usage
-```
-
----
-
-# ⚡ Step 14（可选但强烈推荐）：等距吸附（Figma级）
-
-```text
-[带上全局架构约束]
-
-Task:
-Extend SnapEngine to support spacing alignment.
-
-Requirements:
-- detect equal spacing between 3+ elements
-- show spacing guides
-- prefer center alignment over edge
-- multiple guide lines supported
-```
-
----
-
-# 🔥 最后一部分：你必须掌握的“控 AI 技巧”
-
----
-
-## ❗ 如果 AI 开始写这种代码：
-
-```ts
-setState(...)
-```
-
-👉 立刻说：
-
-```text
-你违反了架构规则：
-所有状态必须通过 engine.execute(command)
-请重写
-```
-
----
-
-## ❗ 如果它把逻辑写进组件：
-
-```text
-Engine must not depend on React
-请重构到 engine 层
-```
-
----
-
-## ❗ 如果它乱用 any：
-
-```text
-请提升类型安全，减少 any 使用
-```
-
----
-
-# 🧠 最终你会得到什么？
-
-走完这套：
-
-👉 不是 demo
-👉 是一个完整的：
-
-* 编辑器引擎（Scene + Command）
-* 动画系统（Timeline）
-* 空间智能（Snap）
-* 平台能力（Plugin）
-* 协同能力（CRDT）
-
----
-
-# 🚀 一句话总结
-
-👉 这 12+ 步本质是：
-
-**把 AI 从“写页面”驯化成“写架构”**
-
----
-
-如果你下一步要，我可以帮你：
-
-👉 把其中**最难的三块（Command / Timeline / Snap）做成“标准答案代码”**
-你可以直接对照校验 AI 写的是否合格。
