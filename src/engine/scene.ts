@@ -1,4 +1,4 @@
-import type { Document, Element, Slide } from '../types';
+import type { Document, Element, Slide, AnimationConfig } from '../types';
 
 export class Scene {
   private document: Document;
@@ -9,6 +9,56 @@ export class Scene {
 
   getDocument(): Document {
     return this.document;
+  }
+
+  // ============================================================================
+  // Animation CRUD
+  // ============================================================================
+
+  addAnimation(slideId: string, config: AnimationConfig): void {
+    const slide = this.document.slides[slideId];
+    if (!slide) return;
+
+    this.document.animations[config.id] = config;
+    if (!slide.animationIds.includes(config.id)) {
+      slide.animationIds.push(config.id);
+    }
+  }
+
+  removeAnimation(configId: string): void {
+    const config = this.document.animations[configId];
+    if (!config) return;
+
+    delete this.document.animations[configId];
+
+    for (const slide of Object.values(this.document.slides)) {
+      slide.animationIds = slide.animationIds.filter((id) => id !== configId);
+    }
+  }
+
+  updateAnimation(configId: string, updates: Partial<AnimationConfig>): void {
+    const config = this.document.animations[configId];
+    if (!config) return;
+    Object.assign(config, updates);
+  }
+
+  getAnimation(configId: string): AnimationConfig | undefined {
+    return this.document.animations[configId];
+  }
+
+  getSlideAnimations(slideId: string): AnimationConfig[] {
+    const slide = this.document.slides[slideId];
+    if (!slide) return [];
+
+    return slide.animationIds
+      .map((id) => this.document.animations[id])
+      .filter((c): c is AnimationConfig => c !== undefined);
+  }
+
+  reorderAnimations(slideId: string, orderedIds: string[]): void {
+    const slide = this.document.slides[slideId];
+    if (!slide) return;
+    slide.animationIds = orderedIds;
   }
 
   addElement(slideId: string, element: Element): void {
@@ -131,10 +181,12 @@ function createEmptyDocument(): Document {
         id: defaultSlideId,
         name: 'Slide 1',
         elementIds: [],
+        animationIds: [],
         order: 0,
         background: '#ffffff',
       },
     },
+    animations: {},
     currentSlideId: defaultSlideId,
     slideOrder: [defaultSlideId],
   };

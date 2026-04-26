@@ -1,10 +1,8 @@
-import type { Animation } from '../types';
-
 export class Timeline {
   private currentTime = 0;
   private duration = 5000;
   private playing = false;
-  private animations: Animation[] = [];
+  // private animations: Animation[] = [];
   private rafId: number | null = null;
   private lastTimestamp = 0;
 
@@ -20,9 +18,9 @@ export class Timeline {
     return this.playing;
   }
 
-  setAnimations(animations: Animation[]): void {
-    this.animations = animations;
-  }
+  // setAnimations(animations: Animation[]): void {
+  //   this.animations = animations;
+  // }
 
   play(): void {
     if (this.playing) {

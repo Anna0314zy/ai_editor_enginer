@@ -1,3 +1,6 @@
+export * from './animation';
+import type { AnimationConfig } from './animation';
+
 // Shared TypeScript types for the entire project
 
 // ============================================================================
@@ -58,6 +61,7 @@ export interface Slide {
   id: string;
   name: string;
   elementIds: string[];
+  animationIds: string[]; // array order = playback order
   order: number;
   background: string;
 }
@@ -67,8 +71,26 @@ export interface Document {
   name: string;
   elements: Record<string, Element>;
   slides: Record<string, Slide>;
+  animations: Record<string, AnimationConfig>; // NEW — data store, keyed by id
   currentSlideId: string;
   slideOrder: string[];
+}
+
+// ============================================================================
+// Snap & Guide Types
+// ============================================================================
+
+export interface Guide {
+  type: 'horizontal' | 'vertical';
+  kind: 'edge' | 'center' | 'spacing';
+  position: number;
+  sourceId: string;
+}
+
+export interface SnapResult {
+  x: number;
+  y: number;
+  guides: Guide[];
 }
 
 // ============================================================================
@@ -176,7 +198,7 @@ export function createMockDocument(): Document {
     visible: true,
     parentId: null,
     childrenIds: [],
-    src: 'https://via.placeholder.com/300x200',
+    src: 'https://picsum.photos/id/10/300/200',
     objectFit: 'cover',
   };
 
@@ -184,6 +206,7 @@ export function createMockDocument(): Document {
     id: 'slide-1',
     name: 'Slide 1',
     elementIds: [shapeEl.id, textEl.id, imageEl.id],
+    animationIds: [],
     order: 0,
     background: '#f8fafc',
   };
@@ -199,6 +222,7 @@ export function createMockDocument(): Document {
     slides: {
       [slide1.id]: slide1,
     },
+    animations: {},
     currentSlideId: slide1.id,
     slideOrder: [slide1.id],
   };

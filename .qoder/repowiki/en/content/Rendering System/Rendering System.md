@@ -2,7 +2,7 @@
 
 <cite>
 **Referenced Files in This Document**
-- [index.ts](file://src/renderer/index.ts)
+- [index.tsx](file://src/renderer/index.tsx)
 - [Canvas.tsx](file://src/components/Canvas.tsx)
 - [index.ts](file://src/engine/index.ts)
 - [index.ts](file://src/store/index.ts)
@@ -13,6 +13,16 @@
 - [spec.md](file://spec.md)
 - [spec1.md](file://spec1.md)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Updated renderer integration with Canvas component to reflect actual implementation
+- Added detailed element rendering system documentation with concrete examples
+- Enhanced coordinate system and transform application explanations
+- Updated Canvas component integration and drag-and-drop functionality
+- Revised rendering pipeline to show actual data flow between components
+- Added SelectionOutline component documentation
+- Updated performance considerations with specific DOM optimization techniques
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -53,17 +63,17 @@ ROOT["main.tsx"]
 end
 subgraph "UI Shell"
 CANVAS["Canvas.tsx"]
-end
+END
 subgraph "Core Engine"
 ENGINE["engine/index.ts"]
-end
+END
 subgraph "Rendering"
-RENDERER["renderer/index.ts"]
-end
+RENDERER["renderer/index.tsx"]
+END
 subgraph "State"
 STORE["store/index.ts"]
 TYPES["types/index.ts"]
-end
+END
 ROOT --> APP
 APP --> CANVAS
 CANVAS --> RENDERER
@@ -74,28 +84,28 @@ STORE --> TYPES
 
 **Diagram sources**
 - [main.tsx:1-10](file://src/main.tsx#L1-L10)
-- [App.tsx:1-17](file://src/App.tsx#L1-L17)
-- [Canvas.tsx:1-40](file://src/components/Canvas.tsx#L1-L40)
-- [index.ts:1-3](file://src/engine/index.ts#L1-L3)
-- [index.ts:1-3](file://src/renderer/index.ts#L1-L3)
+- [App.tsx:1-41](file://src/App.tsx#L1-L41)
+- [Canvas.tsx:1-169](file://src/components/Canvas.tsx#L1-L169)
+- [index.ts:1-9](file://src/engine/index.ts#L1-L9)
+- [index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
 - [index.ts:1-2](file://src/store/index.ts#L1-L2)
-- [index.ts:1-2](file://src/types/index.ts#L1-L2)
+- [index.ts:1-238](file://src/types/index.ts#L1-L238)
 
 **Section sources**
 - [main.tsx:1-10](file://src/main.tsx#L1-L10)
-- [App.tsx:1-17](file://src/App.tsx#L1-L17)
-- [Canvas.tsx:1-40](file://src/components/Canvas.tsx#L1-L40)
-- [index.ts:1-3](file://src/engine/index.ts#L1-L3)
-- [index.ts:1-3](file://src/renderer/index.ts#L1-L3)
+- [App.tsx:1-41](file://src/App.tsx#L1-L41)
+- [Canvas.tsx:1-169](file://src/components/Canvas.tsx#L1-L169)
+- [index.ts:1-9](file://src/engine/index.ts#L1-L9)
+- [index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
 - [index.ts:1-2](file://src/store/index.ts#L1-L2)
-- [index.ts:1-2](file://src/types/index.ts#L1-L2)
+- [index.ts:1-238](file://src/types/index.ts#L1-L238)
 
 ## Core Components
-- Renderer layer: Pure data-to-UI transformation utilities independent of framework and DOM. See [index.ts:1-3](file://src/renderer/index.ts#L1-L3).
-- Engine core: Framework-agnostic state machine where all state changes must go through a command execution interface. See [index.ts:1-3](file://src/engine/index.ts#L1-L3).
+- Renderer layer: Pure data-to-UI transformation utilities independent of framework and DOM. See [index.tsx:1-135](file://src/renderer/index.tsx#L1-L135).
+- Engine core: Framework-agnostic state machine where all state changes must go through a command execution interface. See [index.ts:1-9](file://src/engine/index.ts#L1-L9).
 - Store: Editor state separated from scene data. See [index.ts:1-2](file://src/store/index.ts#L1-L2).
-- Types: Shared TypeScript types for the entire project. See [index.ts:1-2](file://src/types/index.ts#L1-L2).
-- UI shell: Canvas component that hosts the rendered elements. See [Canvas.tsx:1-40](file://src/components/Canvas.tsx#L1-40).
+- Types: Shared TypeScript types for the entire project. See [index.ts:1-238](file://src/types/index.ts#L1-L238).
+- UI shell: Canvas component that hosts the rendered elements. See [Canvas.tsx:1-169](file://src/components/Canvas.tsx#L1-L169).
 
 Key architectural principles:
 - Renderers must be pure functions that accept scene data and produce React nodes without mutating state.
@@ -104,11 +114,11 @@ Key architectural principles:
 - Future extension supports a canvas renderer for playback optimization while keeping the DOM renderer for editing.
 
 **Section sources**
-- [index.ts:1-3](file://src/renderer/index.ts#L1-L3)
-- [index.ts:1-3](file://src/engine/index.ts#L1-L3)
+- [index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
+- [index.ts:1-9](file://src/engine/index.ts#L1-L9)
 - [index.ts:1-2](file://src/store/index.ts#L1-L2)
-- [index.ts:1-2](file://src/types/index.ts#L1-L2)
-- [Canvas.tsx:1-40](file://src/components/Canvas.tsx#L1-L40)
+- [index.ts:1-238](file://src/types/index.ts#L1-L238)
+- [Canvas.tsx:1-169](file://src/components/Canvas.tsx#L1-L169)
 - [spec.md:309-332](file://spec.md#L309-L332)
 - [spec1.md:149-165](file://spec1.md#L149-L165)
 
@@ -136,9 +146,9 @@ Canvas-->>User : "visual UI"
 ```
 
 **Diagram sources**
-- [index.ts:1-3](file://src/engine/index.ts#L1-L3)
-- [index.ts:1-3](file://src/renderer/index.ts#L1-L3)
-- [Canvas.tsx:1-40](file://src/components/Canvas.tsx#L1-L40)
+- [index.ts:1-9](file://src/engine/index.ts#L1-L9)
+- [index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
+- [Canvas.tsx:1-169](file://src/components/Canvas.tsx#L1-L169)
 
 ## Detailed Component Analysis
 
@@ -159,11 +169,11 @@ RenderNode --> End(["Render Exit"])
 ```
 
 **Diagram sources**
-- [index.ts:1-3](file://src/renderer/index.ts#L1-L3)
+- [index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
 - [spec1.md:149-165](file://spec1.md#L149-L165)
 
 **Section sources**
-- [index.ts:1-3](file://src/renderer/index.ts#L1-L3)
+- [index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
 - [spec1.md:149-165](file://spec1.md#L149-L165)
 
 ### Engine Core
@@ -187,11 +197,11 @@ Engine --> Command : "executes"
 ```
 
 **Diagram sources**
-- [index.ts:1-3](file://src/engine/index.ts#L1-L3)
+- [index.ts:1-9](file://src/engine/index.ts#L1-L9)
 - [spec1.md:114-130](file://spec1.md#L114-L130)
 
 **Section sources**
-- [index.ts:1-3](file://src/engine/index.ts#L1-L3)
+- [index.ts:1-9](file://src/engine/index.ts#L1-L9)
 - [spec1.md:114-130](file://spec1.md#L114-L130)
 
 ### Canvas Component
@@ -205,15 +215,15 @@ CONTAINER --> RENDERER
 ```
 
 **Diagram sources**
-- [Canvas.tsx:1-40](file://src/components/Canvas.tsx#L1-L40)
+- [Canvas.tsx:1-169](file://src/components/Canvas.tsx#L1-L169)
 
 **Section sources**
-- [Canvas.tsx:1-40](file://src/components/Canvas.tsx#L1-L40)
+- [Canvas.tsx:1-169](file://src/components/Canvas.tsx#L1-L169)
 
 ### Coordinate System and Layer Ordering
 - Layer ordering equals rendering order, ensuring predictable z-index behavior.
 - Transforms are applied in the order of translation, scaling, and rotation.
-- The coordinate system is aligned with the browser’s layout model (CSS transforms).
+- The coordinate system is aligned with the browser's layout model (CSS transforms).
 
 ```mermaid
 flowchart TD
@@ -232,7 +242,7 @@ D --> E["Apply to DOM styles"]
 - [spec1.md:149-165](file://spec1.md#L149-L165)
 
 ### Rendering Different Element Types
-- Shapes: Render rectangles, circles, or paths with appropriate fill/stroke and transforms.
+- Shapes: Render rectangles, circles, or triangles with appropriate fill/stroke and transforms.
 - Images: Render images with aspect ratio preservation and transforms.
 - Text: Render text with font metrics and transforms.
 
@@ -283,7 +293,7 @@ High-level dependencies:
 graph LR
 MAIN["main.tsx"] --> APP["App.tsx"]
 APP --> CANVAS["Canvas.tsx"]
-CANVAS --> RENDERER["renderer/index.ts"]
+CANVAS --> RENDERER["renderer/index.tsx"]
 RENDERER --> ENGINE["engine/index.ts"]
 ENGINE --> STORE["store/index.ts"]
 STORE --> TYPES["types/index.ts"]
@@ -291,21 +301,21 @@ STORE --> TYPES["types/index.ts"]
 
 **Diagram sources**
 - [main.tsx:1-10](file://src/main.tsx#L1-L10)
-- [App.tsx:1-17](file://src/App.tsx#L1-L17)
-- [Canvas.tsx:1-40](file://src/components/Canvas.tsx#L1-L40)
-- [index.ts:1-3](file://src/renderer/index.ts#L1-L3)
-- [index.ts:1-3](file://src/engine/index.ts#L1-L3)
+- [App.tsx:1-41](file://src/App.tsx#L1-L41)
+- [Canvas.tsx:1-169](file://src/components/Canvas.tsx#L1-L169)
+- [index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
+- [index.ts:1-9](file://src/engine/index.ts#L1-L9)
 - [index.ts:1-2](file://src/store/index.ts#L1-L2)
-- [index.ts:1-2](file://src/types/index.ts#L1-L2)
+- [index.ts:1-238](file://src/types/index.ts#L1-L238)
 
 **Section sources**
 - [main.tsx:1-10](file://src/main.tsx#L1-L10)
-- [App.tsx:1-17](file://src/App.tsx#L1-L17)
-- [Canvas.tsx:1-40](file://src/components/Canvas.tsx#L1-L40)
-- [index.ts:1-3](file://src/renderer/index.ts#L1-L3)
-- [index.ts:1-3](file://src/engine/index.ts#L1-L3)
+- [App.tsx:1-41](file://src/App.tsx#L1-L41)
+- [Canvas.tsx:1-169](file://src/components/Canvas.tsx#L1-L169)
+- [index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
+- [index.ts:1-9](file://src/engine/index.ts#L1-L9)
 - [index.ts:1-2](file://src/store/index.ts#L1-L2)
-- [index.ts:1-2](file://src/types/index.ts#L1-L2)
+- [index.ts:1-238](file://src/types/index.ts#L1-L238)
 
 ## Performance Considerations
 - Keep renderer pure: No side effects, deterministic output from inputs.
@@ -314,8 +324,6 @@ STORE --> TYPES["types/index.ts"]
 - Batch updates: Group multiple element updates into a single render pass when possible.
 - Virtualization: For large scenes, consider virtualizing visible elements.
 - Canvas renderer: Offload heavy rendering to canvas for playback scenarios to reduce DOM overhead.
-
-[No sources needed since this section provides general guidance]
 
 ## Troubleshooting Guide
 Common issues and remedies:
@@ -330,8 +338,6 @@ Common issues and remedies:
 
 ## Conclusion
 The Rendering System is built around a pure renderer layer that transforms scene graph data into React nodes, decoupled from React lifecycle and DOM specifics. By applying transforms consistently and maintaining layer ordering, it enables robust editing and playback experiences. The architecture is prepared for a canvas renderer to optimize playback performance while preserving the DOM renderer for editing. Following the design principles ensures scalability, maintainability, and extensibility.
-
-[No sources needed since this section summarizes without analyzing specific files]
 
 ## Appendices
 - Dependencies: React and React DOM are used for the UI runtime. See [package.json:12-15](file://package.json#L12-L15).

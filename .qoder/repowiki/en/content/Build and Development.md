@@ -14,9 +14,18 @@
 - [src/vite-env.d.ts](file://src/vite-env.d.ts)
 - [src/components/Canvas.tsx](file://src/components/Canvas.tsx)
 - [src/engine/index.ts](file://src/engine/index.ts)
-- [src/renderer/index.ts](file://src/renderer/index.ts)
+- [src/renderer/index.tsx](file://src/renderer/index.tsx)
 - [src/store/index.ts](file://src/store/index.ts)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Updated Vite configuration section to reflect the minimal modern setup with React plugin
+- Enhanced TypeScript multi-project setup documentation with detailed compiler options
+- Expanded ESLint configuration coverage including React Hooks and TypeScript rules
+- Added comprehensive React development environment documentation
+- Updated dependency analysis to show modern toolchain integration
+- Enhanced troubleshooting guide with specific error scenarios
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -31,26 +40,26 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document explains the build and development processes for the project, focusing on Vite configuration, TypeScript setup, and ESLint configuration. It covers the development workflow, build optimization strategies, and production deployment considerations. It also documents the multi-project TypeScript setup with separate app and node configurations, ESLint rules for React Hooks and TypeScript, and how to configure the development environment for optimal performance. Guidance is included for customizing Vite plugins, optimizing bundle sizes, enabling hot module replacement, debugging techniques, performance profiling, and troubleshooting common build issues. Finally, it clarifies how configuration files relate to the overall project architecture to help developers modify and extend the build system effectively.
+This document explains the build and development processes for the modern React-based AI editor, focusing on Vite configuration, TypeScript setup, and ESLint configuration. The project implements a streamlined build system with React Fast Refresh, TypeScript project references, and comprehensive linting rules. It covers the development workflow, build optimization strategies, and production deployment considerations. The documentation addresses the multi-project TypeScript setup with separate app and node configurations, ESLint rules for React Hooks and TypeScript, and how to configure the development environment for optimal performance. Guidance is included for customizing Vite plugins, optimizing bundle sizes, enabling hot module replacement, debugging techniques, performance profiling, and troubleshooting common build issues.
 
 ## Project Structure
-The project follows a frontend-first structure with a Vite-powered React application, TypeScript configured in a multi-project manner, and ESLint enforcing code quality and React Hooks safety. Key files and roles:
-- Vite configuration defines the plugin pipeline and dev server behavior.
-- TypeScript configurations split concerns between the application and Vite config (node-like) contexts.
-- ESLint configuration enforces TypeScript and React Hooks rules.
-- HTML entry point mounts the React root and loads the TypeScript module.
-- Application entry initializes React and renders the root component.
+The project follows a modern frontend-first structure with Vite-powered React application, TypeScript configured in a multi-project manner, and ESLint enforcing code quality and React Hooks safety. Key files and roles:
+- Vite configuration defines the plugin pipeline and dev server behavior with React Fast Refresh
+- TypeScript configurations split concerns between the application and Vite config (node-like) contexts
+- ESLint configuration enforces TypeScript-specific rules and React Hooks safety
+- HTML entry point mounts the React root and loads the TypeScript module
+- Application entry initializes React with StrictMode and renders the root component
 
 ```mermaid
 graph TB
-A["index.html<br/>Entry HTML"] --> B["src/main.tsx<br/>React root mount"]
-B --> C["src/App.tsx<br/>Top-level component"]
-C --> D["src/components/Canvas.tsx<br/>UI component"]
-E["vite.config.ts<br/>Vite plugins and dev server"] --> F["src/vite-env.d.ts<br/>Vite client types"]
+A["index.html<br/>Entry HTML"] --> B["src/main.tsx<br/>React root mount with StrictMode"]
+B --> C["src/App.tsx<br/>Top-level component with engine integration"]
+C --> D["src/components/Canvas.tsx<br/>Interactive canvas component"]
+E["vite.config.ts<br/>Minimal Vite + React setup"] --> F["src/vite-env.d.ts<br/>Vite client types"]
 G["tsconfig.json<br/>Root TS references"] --> H["tsconfig.app.json<br/>App compiler options"]
 G --> I["tsconfig.node.json<br/>Node-like compiler options"]
-J["eslint.config.js<br/>ESLint rules"] -.-> B
-K["package.json<br/>Scripts and dependencies"] --> E
+J["eslint.config.js<br/>ESLint rules for TS + React Hooks"] -.-> B
+K["package.json<br/>Modern scripts and dependencies"] --> E
 K --> J
 K --> H
 K --> I
@@ -81,70 +90,203 @@ K --> I
 - [package.json](file://package.json)
 
 ## Core Components
-- Vite configuration
-  - Defines the React plugin for JSX transforms and fast refresh during development.
-  - Serves the application in development mode and builds optimized bundles in production.
-  - Provides the base for customizing plugins and build behavior.
-  - Reference: [vite.config.ts](file://vite.config.ts)
 
-- TypeScript configuration
-  - Root configuration references two projects: app and node.
-  - App configuration targets modern JavaScript environments, strictness, and JSX transform for React.
-  - Node configuration targets Vite’s own configuration file and aligns with bundler module resolution.
-  - References:
-    - [tsconfig.json](file://tsconfig.json)
-    - [tsconfig.app.json](file://tsconfig.app.json)
-    - [tsconfig.node.json](file://tsconfig.node.json)
+### Vite Configuration
+- Purpose
+  - Provides minimal configuration for React development with Fast Refresh
+  - Enables JSX transform and automatic HMR for rapid iteration
+- Key behaviors
+  - Single React plugin registration for JSX processing
+  - Default dev server configuration with port 3000
+  - Production build optimization through Vite's bundling
+- Extensibility
+  - Add CSS preprocessing, asset handling, or custom transforms
+  - Configure base paths, aliases, and build optimization flags
+- References
+  - [vite.config.ts](file://vite.config.ts)
 
-- ESLint configuration
-  - Enforces TypeScript-specific rules and React Hooks rules.
-  - Integrates with the project’s scripts for automated linting.
-  - Reference: [eslint.config.js](file://eslint.config.js)
+```mermaid
+flowchart TD
+Start(["Load vite.config.ts"]) --> Plugins["Register @vitejs/plugin-react"]
+Plugins --> DevServer["Default dev server (port 3000)"]
+DevServer --> Build["Production build with Vite"]
+Build --> Output["Emit optimized dist/<assets>"]
+Output --> End(["Serve/Preview"])
+```
 
-- Application entry and HTML
-  - HTML provides the DOM container and loads the TypeScript module.
-  - React root mounts the application and enables strict mode.
-  - References:
-    - [index.html](file://index.html)
-    - [src/main.tsx](file://src/main.tsx)
-    - [src/App.tsx](file://src/App.tsx)
-
-- Vite client types
-  - Declares Vite’s client-side type definitions for environment-aware APIs.
-  - Reference: [src/vite-env.d.ts](file://src/vite-env.d.ts)
+**Diagram sources**
+- [vite.config.ts](file://vite.config.ts)
 
 **Section sources**
 - [vite.config.ts](file://vite.config.ts)
+
+### TypeScript Multi-Project Setup
+- Root configuration
+  - Uses project references to separate app and node contexts
+  - References:
+    - [tsconfig.json](file://tsconfig.json)
+- App configuration
+  - Targets modern JavaScript environments (ES2020)
+  - Strict mode enabled with comprehensive type checking
+  - JSX transform configured for React (react-jsx)
+  - Bundler module resolution for optimal Vite integration
+  - Includes the src tree for incremental builds
+  - References:
+    - [tsconfig.app.json](file://tsconfig.app.json)
+- Node configuration
+  - Targets Vite's configuration file (ES2022)
+  - Aligns with bundler module detection for Vite
+  - References:
+    - [tsconfig.node.json](file://tsconfig.node.json)
+
+```mermaid
+graph LR
+Root["tsconfig.json<br/>Project references"] --> App["tsconfig.app.json<br/>ES2020 + react-jsx + strict"]
+Root --> NodeCfg["tsconfig.node.json<br/>ES2022 + Vite config"]
+App --> Src["src/**/*<br/>Application code"]
+NodeCfg --> ViteCfg["vite.config.ts<br/>Vite configuration"]
+```
+
+**Diagram sources**
 - [tsconfig.json](file://tsconfig.json)
 - [tsconfig.app.json](file://tsconfig.app.json)
 - [tsconfig.node.json](file://tsconfig.node.json)
+
+**Section sources**
+- [tsconfig.json](file://tsconfig.json)
+- [tsconfig.app.json](file://tsconfig.app.json)
+- [tsconfig.node.json](file://tsconfig.node.json)
+
+### ESLint Configuration
+- Purpose
+  - Enforce TypeScript best practices and React Hooks safety
+  - Provide consistent code quality across the development team
+- Rules
+  - TypeScript-specific warnings for explicit any usage
+  - Type import consistency enforcement
+  - React Hooks rules enforced as errors
+- Integration
+  - Runs across the entire project structure
+  - Integrated with development scripts
+- References
+  - [eslint.config.js](file://eslint.config.js)
+  - [package.json](file://package.json)
+
+```mermaid
+flowchart TD
+LintStart["Run npm/yarn pnpm lint"] --> ESLConf["Load eslint.config.js"]
+ESLConf --> Rules["Apply rules:<br/>@typescript-eslint/no-explicit-any warn<br/>@typescript-eslint/consistent-type-imports warn<br/>react-hooks/rules-of-hooks error"]
+Rules --> Report["Report issues to developer"]
+Report --> Fix["Auto-fix where applicable"]
+```
+
+**Diagram sources**
 - [eslint.config.js](file://eslint.config.js)
+- [package.json](file://package.json)
+
+**Section sources**
+- [eslint.config.js](file://eslint.config.js)
+- [package.json](file://package.json)
+
+### Application Entry Points and Rendering
+- HTML entry
+  - Minimal HTML structure with root div and module script
+  - Loads the TypeScript module for React initialization
+  - References:
+    - [index.html](file://index.html)
+- React root
+  - Initializes React with StrictMode for better error detection
+  - Creates root and renders the App component
+  - References:
+    - [src/main.tsx](file://src/main.tsx)
+    - [src/App.tsx](file://src/App.tsx)
+- UI components
+  - Canvas component handles drag-and-drop interactions
+  - Component palette for element selection
+  - References:
+    - [src/components/Canvas.tsx](file://src/components/Canvas.tsx)
+
+```mermaid
+sequenceDiagram
+participant Browser as "Browser"
+participant HTML as "index.html"
+participant Main as "src/main.tsx"
+participant App as "src/App.tsx"
+participant Canvas as "src/components/Canvas.tsx"
+Browser->>HTML : Load page
+HTML->>Main : Import module
+Main->>App : Render App with StrictMode
+App->>Canvas : Render interactive canvas
+Canvas-->>Browser : DOM rendered with event handlers
+```
+
+**Diagram sources**
 - [index.html](file://index.html)
 - [src/main.tsx](file://src/main.tsx)
 - [src/App.tsx](file://src/App.tsx)
-- [src/vite-env.d.ts](file://src/vite-env.d.ts)
+- [src/components/Canvas.tsx](file://src/components/Canvas.tsx)
 
-## Architecture Overview
-The build and development architecture centers on Vite orchestrating TypeScript compilation and asset handling, with ESLint integrated into the developer workflow. The multi-project TypeScript setup isolates app and node contexts, while the React plugin powers development-time features like hot module replacement.
+**Section sources**
+- [index.html](file://index.html)
+- [src/main.tsx](file://src/main.tsx)
+- [src/App.tsx](file://src/App.tsx)
+- [src/components/Canvas.tsx](file://src/components/Canvas.tsx)
+
+### Engine, Renderer, and Store Layers
+- Engine
+  - Framework-agnostic core for state transitions and command execution
+  - Exported as a cohesive API for the application layer
+  - Reference: [src/engine/index.ts](file://src/engine/index.ts)
+- Renderer
+  - Pure data-to-UI utilities for element rendering
+  - Framework-agnostic rendering functions
+  - Reference: [src/renderer/index.tsx](file://src/renderer/index.tsx)
+- Store
+  - Editor state management separated from scene data
+  - State isolation for better maintainability
+  - Reference: [src/store/index.ts](file://src/store/index.ts)
 
 ```mermaid
 graph TB
-subgraph "Dev Environment"
-P["package.json<br/>Scripts and deps"] --> V["vite.config.ts<br/>Plugins and dev server"]
-V --> R["@vitejs/plugin-react<br/>JSX + Fast Refresh"]
-V --> HMR["Hot Module Replacement"]
+Engine["Engine (state transitions + commands)"] --> Renderer["Renderer (data -> UI)"]
+Renderer --> Store["Store (editor state)"]
+App["App component"] --> Engine
+App --> Renderer
+App --> Store
+```
+
+**Diagram sources**
+- [src/engine/index.ts](file://src/engine/index.ts)
+- [src/renderer/index.tsx](file://src/renderer/index.tsx)
+- [src/store/index.ts](file://src/store/index.ts)
+
+**Section sources**
+- [src/engine/index.ts](file://src/engine/index.ts)
+- [src/renderer/index.tsx](file://src/renderer/index.tsx)
+- [src/store/index.ts](file://src/store/index.ts)
+
+## Architecture Overview
+The build and development architecture centers on Vite orchestrating TypeScript compilation and asset handling, with ESLint integrated into the developer workflow. The multi-project TypeScript setup isolates app and node contexts, while the React plugin powers development-time features like hot module replacement and Fast Refresh.
+
+```mermaid
+graph TB
+subgraph "Development Environment"
+P["package.json<br/>Modern scripts and deps"] --> V["vite.config.ts<br/>Minimal React + Fast Refresh"]
+V --> R["@vitejs/plugin-react<br/>JSX transform + HMR"]
+R --> HMR["Hot Module Replacement"]
+R --> FR["Fast Refresh"]
 V --> TSC["TypeScript Compiler (tsc)<br/>Multi-project builds"]
 end
 subgraph "TypeScript Projects"
-ROOT["tsconfig.json<br/>References app + node"] --> APP["tsconfig.app.json<br/>App compiler options"]
-ROOT --> NODEC["tsconfig.node.json<br/>Node-like compiler options"]
+ROOT["tsconfig.json<br/>References app + node"] --> APP["tsconfig.app.json<br/>ES2020 + react-jsx + strict"]
+ROOT --> NODEC["tsconfig.node.json<br/>ES2022 + Vite config"]
 end
 subgraph "Application Runtime"
-HTML["index.html<br/>Mounts #root"] --> MAIN["src/main.tsx<br/>createRoot(App)"]
-MAIN --> APPCOMP["src/App.tsx<br/>UI shell"]
-APPCOMP --> CANVAS["src/components/Canvas.tsx<br/>Content area"]
+HTML["index.html<br/>Minimal HTML"] --> MAIN["src/main.tsx<br/>StrictMode + createRoot"]
+MAIN --> APPCOMP["src/App.tsx<br/>Engine + UI shell"]
+APPCOMP --> CANVAS["src/components/Canvas.tsx<br/>Interactive elements"]
 end
-ESL["eslint.config.js<br/>Rules for TS + React Hooks"] -.-> MAIN
+ESL["eslint.config.js<br/>TS + React Hooks rules"] -.-> MAIN
 ESL -.-> APPCOMP
 ESL -.-> CANVAS
 ```
@@ -164,60 +306,23 @@ ESL -.-> CANVAS
 ## Detailed Component Analysis
 
 ### Vite Configuration
-- Purpose
-  - Provides the plugin pipeline and development server configuration.
-  - Enables React JSX transform and fast refresh for rapid iteration.
-- Key behaviors
-  - Plugin registration for React.
-  - Dev server defaults and build output configuration.
-- Extensibility
-  - Add additional plugins for CSS, assets, polyfills, or custom transforms.
-  - Configure base paths, aliases, and build optimization flags.
-- References
-  - [vite.config.ts](file://vite.config.ts)
+The Vite configuration implements a minimal but effective setup for modern React development. The configuration focuses on providing essential functionality without unnecessary complexity.
 
-```mermaid
-flowchart TD
-Start(["Load vite.config.ts"]) --> Plugins["Register plugins<br/>e.g., @vitejs/plugin-react"]
-Plugins --> DevServer["Configure dev server<br/>port, host, hmr"]
-DevServer --> Build["Configure build<br/>rollup options, minification"]
-Build --> Output["Emit dist/<assets>"]
-Output --> End(["Serve/Preview"])
-```
-
-**Diagram sources**
-- [vite.config.ts](file://vite.config.ts)
+- **Plugin Registration**: Single React plugin handles JSX transformation and Fast Refresh
+- **Development Server**: Default configuration suitable for most React applications
+- **Build Optimization**: Leverages Vite's native bundling capabilities for production
+- **Extensibility**: Designed to accommodate additional plugins for CSS, assets, or custom transforms
 
 **Section sources**
 - [vite.config.ts](file://vite.config.ts)
 
 ### TypeScript Multi-Project Setup
-- Root configuration
-  - Uses project references to separate app and node contexts.
-  - References:
-    - [tsconfig.json](file://tsconfig.json)
-- App configuration
-  - Targets modern JS environments, strictness, JSX transform, and bundler module resolution.
-  - Includes the src tree for incremental builds.
-  - References:
-    - [tsconfig.app.json](file://tsconfig.app.json)
-- Node configuration
-  - Targets Vite’s config file and aligns with bundler module detection.
-  - References:
-    - [tsconfig.node.json](file://tsconfig.node.json)
+The TypeScript configuration implements a sophisticated multi-project setup that optimizes build performance and developer experience.
 
-```mermaid
-graph LR
-Root["tsconfig.json"] --> App["tsconfig.app.json"]
-Root --> NodeCfg["tsconfig.node.json"]
-App --> Src["src/**/*"]
-NodeCfg --> ViteCfg["vite.config.ts"]
-```
-
-**Diagram sources**
-- [tsconfig.json](file://tsconfig.json)
-- [tsconfig.app.json](file://tsconfig.app.json)
-- [tsconfig.node.json](file://tsconfig.node.json)
+- **Root Configuration**: Uses project references to coordinate multiple TypeScript projects
+- **App Configuration**: Targets modern JavaScript environments with strict type checking
+- **Node Configuration**: Optimized for Vite's configuration file and bundler integration
+- **Compiler Options**: Carefully tuned for performance and compatibility
 
 **Section sources**
 - [tsconfig.json](file://tsconfig.json)
@@ -225,66 +330,23 @@ NodeCfg --> ViteCfg["vite.config.ts"]
 - [tsconfig.node.json](file://tsconfig.node.json)
 
 ### ESLint Configuration
-- Purpose
-  - Enforce TypeScript best practices and React Hooks rules.
-  - Integrate with the project’s lint script.
-- Rules
-  - TypeScript-specific warnings and type import consistency.
-  - React Hooks rules enforced as errors.
-- References
-  - [eslint.config.js](file://eslint.config.js)
-  - [package.json](file://package.json)
+The ESLint setup provides comprehensive code quality enforcement with React-specific rules.
 
-```mermaid
-flowchart TD
-LintStart["Run npm/yarn pnpm lint"] --> ESLConf["Load eslint.config.js"]
-ESLConf --> Rules["Apply rules:<br/>TS any, type imports,<br/>React Hooks"]
-Rules --> Report["Report issues to developer"]
-Report --> Fix["Optional: auto-fix where applicable"]
-```
-
-**Diagram sources**
-- [eslint.config.js](file://eslint.config.js)
-- [package.json](file://package.json)
+- **TypeScript Integration**: Warns on explicit any usage and enforces type import consistency
+- **React Hooks Safety**: Critical rules enforced as errors to prevent common mistakes
+- **Developer Experience**: Balances strictness with practical development workflow
 
 **Section sources**
 - [eslint.config.js](file://eslint.config.js)
 - [package.json](file://package.json)
 
 ### Application Entry Points and Rendering
-- HTML entry
-  - Provides the DOM container and loads the TypeScript module.
-  - References:
-    - [index.html](file://index.html)
-- React root
-  - Initializes the React root and renders the App component.
-  - References:
-    - [src/main.tsx](file://src/main.tsx)
-    - [src/App.tsx](file://src/App.tsx)
-- UI components
-  - Example component demonstrates layout and styling.
-  - References:
-    - [src/components/Canvas.tsx](file://src/components/Canvas.tsx)
+The application structure demonstrates modern React development practices with proper error boundaries and performance optimizations.
 
-```mermaid
-sequenceDiagram
-participant Browser as "Browser"
-participant HTML as "index.html"
-participant Main as "src/main.tsx"
-participant App as "src/App.tsx"
-participant Canvas as "src/components/Canvas.tsx"
-Browser->>HTML : Load page
-HTML->>Main : Import module
-Main->>App : Render App
-App->>Canvas : Render Canvas
-Canvas-->>Browser : DOM rendered
-```
-
-**Diagram sources**
-- [index.html](file://index.html)
-- [src/main.tsx](file://src/main.tsx)
-- [src/App.tsx](file://src/App.tsx)
-- [src/components/Canvas.tsx](file://src/components/Canvas.tsx)
+- **Strict Mode**: Enabled for better error detection and future compatibility
+- **Root Creation**: Efficient root creation with proper error boundary setup
+- **Component Architecture**: Clear separation between UI components and business logic
+- **Event Handling**: Proper TypeScript typing for React events and callbacks
 
 **Section sources**
 - [index.html](file://index.html)
@@ -293,54 +355,36 @@ Canvas-->>Browser : DOM rendered
 - [src/components/Canvas.tsx](file://src/components/Canvas.tsx)
 
 ### Engine, Renderer, and Store Layers
-- Engine
-  - Framework-agnostic core for state transitions.
-  - Reference: [src/engine/index.ts](file://src/engine/index.ts)
-- Renderer
-  - Pure data-to-UI utilities, framework-agnostic.
-  - Reference: [src/renderer/index.ts](file://src/renderer/index.ts)
-- Store
-  - Editor state separation from scene data.
-  - Reference: [src/store/index.ts](file://src/store/index.ts)
+The layered architecture promotes separation of concerns and maintainability.
 
-```mermaid
-graph TB
-Engine["Engine (state transitions)"] --> Renderer["Renderer (data -> UI)"]
-Renderer --> Store["Store (editor state)"]
-```
-
-**Diagram sources**
-- [src/engine/index.ts](file://src/engine/index.ts)
-- [src/renderer/index.ts](file://src/renderer/index.ts)
-- [src/store/index.ts](file://src/store/index.ts)
+- **Engine Layer**: Framework-agnostic core with command pattern for state management
+- **Renderer Layer**: Pure functions for UI rendering without side effects
+- **Store Layer**: Isolated state management for editor-specific data
+- **Integration**: Clean interfaces between layers for easy testing and modification
 
 **Section sources**
 - [src/engine/index.ts](file://src/engine/index.ts)
-- [src/renderer/index.ts](file://src/renderer/index.ts)
+- [src/renderer/index.tsx](file://src/renderer/index.tsx)
 - [src/store/index.ts](file://src/store/index.ts)
 
 ## Dependency Analysis
-- Scripts and toolchain
-  - Development, build, lint, and preview commands orchestrated via package.json.
-  - References:
-    - [package.json](file://package.json)
-- TypeScript project references
-  - Root references app and node configurations for isolated builds.
-  - References:
-    - [tsconfig.json](file://tsconfig.json)
-    - [tsconfig.app.json](file://tsconfig.app.json)
-    - [tsconfig.node.json](file://tsconfig.node.json)
-- ESLint integration
-  - Rules applied during lint runs; integrates with editors and CI.
-  - Reference: [eslint.config.js](file://eslint.config.js)
+The project uses a modern, streamlined dependency setup optimized for development velocity and build performance.
+
+- **Package Scripts**: Four essential scripts covering development, build, lint, and preview
+- **Runtime Dependencies**: Minimal React ecosystem with core libraries
+- **Development Dependencies**: Modern toolchain with comprehensive type support
+- **Toolchain Integration**: Seamless integration between Vite, TypeScript, and ESLint
 
 ```mermaid
 graph LR
-Pkg["package.json<br/>Scripts"] --> ViteCfg["vite.config.ts"]
-Pkg --> TSRoot["tsconfig.json"]
-Pkg --> ESL["eslint.config.js"]
-TSRoot --> TSApp["tsconfig.app.json"]
-TSRoot --> TSNode["tsconfig.node.json"]
+Pkg["package.json<br/>Modern scripts & deps"] --> ViteCfg["vite.config.ts<br/>Minimal React setup"]
+Pkg --> TSRoot["tsconfig.json<br/>Project references"]
+Pkg --> ESL["eslint.config.js<br/>Code quality rules"]
+TSRoot --> TSApp["tsconfig.app.json<br/>ES2020 + react-jsx"]
+TSRoot --> TSNode["tsconfig.node.json<br/>ES2022 + Vite config"]
+Pkg --> React["@vitejs/plugin-react<br/>JSX + Fast Refresh"]
+Pkg --> TS["typescript<br/>Type checking"]
+Pkg --> ESLint["eslint<br/>Code quality"]
 ```
 
 **Diagram sources**
@@ -359,53 +403,54 @@ TSRoot --> TSNode["tsconfig.node.json"]
 - [eslint.config.js](file://eslint.config.js)
 
 ## Performance Considerations
-- Optimize TypeScript builds
-  - Keep strictness enabled for correctness; leverage project references to isolate builds and speed up incremental compilation.
-  - References:
-    - [tsconfig.json](file://tsconfig.json)
-    - [tsconfig.app.json](file://tsconfig.app.json)
-    - [tsconfig.node.json](file://tsconfig.node.json)
-- Vite build optimization
-  - Enable minification and chunk splitting in production.
-  - Use dynamic imports for code splitting and lazy-loading heavy features.
-  - Leverage environment variables and define constants to remove dead code in production.
-  - Reference: [vite.config.ts](file://vite.config.ts)
-- React plugin benefits
-  - Fast refresh reduces reload cycles during development.
-  - Reference: [vite.config.ts](file://vite.config.ts)
-- Bundle size tips
-  - Prefer tree-shaking-friendly libraries and avoid unnecessary polyfills.
-  - Monitor bundle composition using Vite’s built-in preview and profiling tools.
-  - Reference: [package.json](file://package.json)
-- Development performance
-  - Keep module resolution set to bundler for faster cold starts.
-  - Disable expensive checks in development; enable them in CI/lint.
-  - Reference: [tsconfig.app.json](file://tsconfig.app.json)
+The modern build setup includes several optimizations for optimal development and production performance.
 
-[No sources needed since this section provides general guidance]
+- **TypeScript Builds**: Strict mode with project references for fast incremental compilation
+- **Vite Optimization**: Native ES module support and efficient bundling for production
+- **React Fast Refresh**: Eliminates full page reloads during development
+- **Bundle Size**: Minimal dependencies reduce initial load time
+- **Development Performance**: Optimized module resolution and caching strategies
+
+**Section sources**
+- [tsconfig.app.json](file://tsconfig.app.json)
+- [vite.config.ts](file://vite.config.ts)
+- [package.json](file://package.json)
 
 ## Troubleshooting Guide
-- React Hooks errors
-  - Ensure all hook calls follow the Rules of Hooks enforced by ESLint.
-  - Reference: [eslint.config.js](file://eslint.config.js)
-- TypeScript diagnostics
-  - Verify project references resolve correctly; rebuild with tsc -b if incremental state becomes inconsistent.
-  - References:
-    - [tsconfig.json](file://tsconfig.json)
-    - [tsconfig.app.json](file://tsconfig.app.json)
-    - [tsconfig.node.json](file://tsconfig.node.json)
-- Vite plugin conflicts
-  - If encountering unexpected behavior, temporarily disable plugins to isolate issues.
-  - Reference: [vite.config.ts](file://vite.config.ts)
-- Fast refresh issues
-  - Confirm React plugin is present and that components are exported as default.
-  - Reference: [vite.config.ts](file://vite.config.ts)
-- Lint failures
-  - Run the lint script and address reported issues; auto-fix where supported.
-  - Reference: [package.json](file://package.json), [eslint.config.js](file://eslint.config.js)
-- Preview vs dev mismatch
-  - Use the preview command to test production builds locally.
-  - Reference: [package.json](file://package.json)
+Common issues and solutions for the modern build setup.
+
+### React Hooks Errors
+- **Issue**: Hooks not called in the correct order
+- **Solution**: ESLint rule prevents violations; ensure hooks follow Rules of Hooks
+- **Reference**: [eslint.config.js](file://eslint.config.js)
+
+### TypeScript Compilation Issues
+- **Issue**: Project reference resolution problems
+- **Solution**: Use `tsc -b` to rebuild with proper dependency tracking
+- **References**:
+  - [tsconfig.json](file://tsconfig.json)
+  - [tsconfig.app.json](file://tsconfig.app.json)
+  - [tsconfig.node.json](file://tsconfig.node.json)
+
+### Vite Plugin Conflicts
+- **Issue**: Unexpected behavior with React plugin
+- **Solution**: Verify plugin registration and React version compatibility
+- **Reference**: [vite.config.ts](file://vite.config.ts)
+
+### Fast Refresh Problems
+- **Issue**: Components not updating without full reload
+- **Solution**: Ensure proper export patterns and component structure
+- **Reference**: [vite.config.ts](file://vite.config.ts)
+
+### Lint Failures
+- **Issue**: ESLint rule violations blocking development
+- **Solution**: Address warnings or adjust rules in eslint.config.js
+- **Reference**: [eslint.config.js](file://eslint.config.js)
+
+### Preview vs Development Mismatch
+- **Issue**: Differences between dev server and production build
+- **Solution**: Use `vite preview` to test production bundle locally
+- **Reference**: [package.json](file://package.json)
 
 **Section sources**
 - [eslint.config.js](file://eslint.config.js)
@@ -416,24 +461,17 @@ TSRoot --> TSNode["tsconfig.node.json"]
 - [package.json](file://package.json)
 
 ## Conclusion
-The project’s build and development system leverages Vite, TypeScript project references, and ESLint to deliver a fast, reliable, and maintainable workflow. The multi-project TypeScript setup cleanly separates app and node contexts, while the React plugin accelerates development with hot module replacement. By following the optimization and troubleshooting guidance here, developers can confidently customize the build system, improve performance, and ensure a smooth development experience.
-
-[No sources needed since this section summarizes without analyzing specific files]
+The project's build and development system leverages modern tooling to deliver an efficient, maintainable workflow. The streamlined Vite configuration with React Fast Refresh, sophisticated TypeScript multi-project setup, and comprehensive ESLint rules create a robust foundation for React development. The layered architecture promotes clean separation of concerns while maintaining performance. By following the optimization and troubleshooting guidance, developers can effectively customize the build system, maintain code quality, and ensure a smooth development experience.
 
 ## Appendices
-- Development workflow summary
-  - Start dev server using the dev script.
-  - Iterate with fast refresh and type checking.
-  - Run lint to enforce code quality.
-  - Build for production using the build script.
-  - Preview the production bundle locally using the preview script.
-  - References:
-    - [package.json](file://package.json)
-    - [vite.config.ts](file://vite.config.ts)
-    - [eslint.config.js](file://eslint.config.js)
-    - [tsconfig.json](file://tsconfig.json)
-    - [tsconfig.app.json](file://tsconfig.app.json)
-    - [tsconfig.node.json](file://tsconfig.node.json)
+
+### Development Workflow Summary
+- **Start Development**: `npm run dev` launches Vite with Fast Refresh
+- **Iterate**: Code changes trigger hot module replacement automatically
+- **Quality Assurance**: `npm run lint` enforces code quality standards
+- **Build for Production**: `npm run build` compiles TypeScript and Vite assets
+- **Test Production**: `npm run preview` serves the production bundle locally
+- **Dependencies**: Modern toolchain with minimal overhead
 
 **Section sources**
 - [package.json](file://package.json)
@@ -442,3 +480,15 @@ The project’s build and development system leverages Vite, TypeScript project 
 - [tsconfig.json](file://tsconfig.json)
 - [tsconfig.app.json](file://tsconfig.app.json)
 - [tsconfig.node.json](file://tsconfig.node.json)
+
+### Configuration Reference
+- **Vite**: Minimal React plugin configuration with Fast Refresh
+- **TypeScript**: Multi-project setup with strict type checking
+- **ESLint**: Comprehensive rules for React Hooks and TypeScript safety
+- **Dependencies**: Modern React ecosystem with optimized toolchain
+
+**Section sources**
+- [vite.config.ts](file://vite.config.ts)
+- [tsconfig.json](file://tsconfig.json)
+- [eslint.config.js](file://eslint.config.js)
+- [package.json](file://package.json)

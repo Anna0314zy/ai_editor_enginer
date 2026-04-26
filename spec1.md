@@ -154,15 +154,62 @@ src/engine、src/renderer、src/components、src/store、src/types
 ```
 [粘贴全局架构约束]
 
-任务：
-接入拖拽、缩放、旋转交互（类moveable效果）
 
-要求：
-- 拖拽结束后，调用引擎执行移动元素命令
-- 禁止直接修改状态数据
-- 全程以引擎作为唯一数据源
-```
-（此步骤允许使用类似react-moveable相关写法）
+[粘贴全局架构约束]
+
+任务：
+接入拖拽、缩放、旋转交互（使用 react-moveable）
+
+强约束：
+1. 禁止使用 moveable 的 snappable、guideline 功能
+2. moveable 只作为输入层，不处理对齐逻辑
+3. 拖拽过程中不得直接修改场景数据
+
+拖拽流程必须实现：
+
+onDrag(e):
+  1. 获取当前元素原始数据
+  2. 计算 nextRect（下一帧位置）
+  3. 调用 SnapEngine：
+     snapResult = snapEngine.calculate(nextRect, otherRects)
+
+  4. 根据 snapResult：
+     - 修正位置（实现吸附）
+     - 获取 guides（辅助线）
+
+  5. 将修正后的位置用于实时渲染（临时态）
+
+onDragEnd:
+  6. 调用 engine.execute(移动元素命令)
+
+输出要求：
+- MoveableLayer.tsx
+- 不允许在组件中写对齐算法
+- 所有对齐计算必须调用 SnapEngine
+
+# 步骤 8.5
+
+[粘贴全局架构约束]
+
+重要架构补充（必须严格遵守）：
+
+1. react-moveable 只负责用户交互输入（拖拽 / 缩放 / 旋转）
+2. 禁止使用 moveable 的 snappable / guideline 内置能力
+3. 对齐逻辑必须完全由 SnapEngine 计算
+4. 辅助线必须由 renderer 层根据 SnapEngine 输出渲染
+5. 拖拽过程中流程必须是：
+
+   moveable onDrag →
+   计算当前元素下一帧位置 →
+   调用 SnapEngine →
+   返回吸附结果 + guides →
+   修正元素位置 →
+   渲染辅助线 →
+   拖拽结束后提交 command
+
+6. SnapEngine 必须是纯函数，不依赖 React / DOM
+
+请确认理解后再继续实现后续步骤
 
 # 🔵 步骤9：时间轴动画引擎
 ```
@@ -225,17 +272,65 @@ src/engine、src/renderer、src/components、src/store、src/types
 ```
 [粘贴全局架构约束]
 
+[粘贴全局架构约束]
+
 任务：
-实现智能吸附对齐引擎
+实现 SnapEngine（对齐引擎）
 
 要求：
-- 元素之间左右、居中、上下对齐
-- 支持画布中心对齐
-- 吸附阈值5像素
-- 返回横竖辅助参考线
-- 算法时间复杂度优化为O(n)
-- 不依赖DOM操作
+
+输入：
+- 当前元素 rect
+- 其他元素 rect 列表
+- 画布尺寸
+
+输出：
+{
+  x: number  // 吸附后的x
+  y: number  // 吸附后的y
+  guides: Guide[] // 辅助线
+}
+
+Guide结构：
+{
+  type: 'horizontal' | 'vertical'
+  position: number
+  sourceId: string
+}
+
+功能：
+1. 左 / 右 / 顶 / 底 对齐
+2. 水平 / 垂直 居中对齐
+3. 画布中心对齐
+4. 吸附阈值 5px
+5. 返回所有命中的 guides（支持多条）
+6.实现画布边缘吸附
+
+约束：
+- 必须是纯函数
+- 时间复杂度 O(n)
+- 不依赖 DOM
+- 不修改输入数据
 ```
+Step 13.5（新增）
+
+[粘贴全局架构约束]
+
+任务：
+实现辅助线渲染系统 GuidesLayer
+
+要求：
+1. 根据 SnapEngine 返回的 guides 渲染
+2. 不参与计算，只负责展示
+3. 使用绝对定位绘制线条
+4. 支持多条线同时显示
+5. 拖拽过程中实时更新
+6. 拖拽结束自动清除
+
+输出：
+- GuidesLayer.tsx
+- Guide 类型定义
+
 
 # ⚡ 步骤14：Figma级等距间距吸附（强烈推荐）
 ```
