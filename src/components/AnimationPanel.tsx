@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import type { Engine } from '../engine';
 import {
   AddAnimationCommand,
@@ -203,14 +203,23 @@ export default function AnimationPanel({ engine, animationEngine, onRefresh }: A
   const handleAdd = useCallback(() => {
     if (!selectedId) return;
     const config = buildConfig();
-    const defaultStartType = animations.length === 0 ? 'click' : 'afterPrev';
+    // Default startType based on the current element's animations, not the whole slide
+    const elementAnimations = animations.filter((a) => a.elementId === selectedId);
+    const defaultStartType = elementAnimations.length === 0 ? 'click' : 'afterPrev';
     config.startType = defaultStartType;
     engine.execute(new AddAnimationCommand(engine.scene, slideId, config));
     animationEngine.register(config);
     onRefresh();
     // Keep form open for rapid multi-add, but reset some fields
     setName('');
-  }, [selectedId, buildConfig, animations.length, engine, slideId, animationEngine, onRefresh]);
+  }, [selectedId, buildConfig, animations, engine, slideId, animationEngine, onRefresh]);
+
+  // Reset form startType to 'click' when switching elements (unless editing)
+  useEffect(() => {
+    if (!editingId) {
+      setStartType('click');
+    }
+  }, [selectedId, editingId]);
 
   const handleUpdate = useCallback(() => {
     if (!editingId) return;

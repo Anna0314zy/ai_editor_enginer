@@ -6,6 +6,9 @@ import type { AnimationEngine } from './engine';
  * click = new Step
  * withPrev = join current Batch
  * afterPrev = new Batch in current Step
+ *
+ * If the first animation is not 'click', it is treated as starting a new Step
+ * so that no animations are silently dropped.
  */
 export function buildClickSteps(animations: AnimationConfig[]): ClickStep[] {
   const steps: ClickStep[] = [];
@@ -20,6 +23,11 @@ export function buildClickSteps(animations: AnimationConfig[]): ClickStep[] {
     } else if (anim.startType === 'withPrev') {
       if (currentBatch) {
         currentBatch.animations.push(anim);
+      } else {
+        // No previous batch — treat as starting a new step
+        currentBatch = { id: `batch-0`, animations: [anim] };
+        currentStep = { id: `step-${steps.length}`, batches: [currentBatch] };
+        steps.push(currentStep);
       }
     } else if (anim.startType === 'afterPrev') {
       if (currentStep) {
@@ -28,6 +36,11 @@ export function buildClickSteps(animations: AnimationConfig[]): ClickStep[] {
           animations: [anim],
         };
         currentStep.batches.push(currentBatch);
+      } else {
+        // No previous step — treat as starting a new step
+        currentBatch = { id: `batch-0`, animations: [anim] };
+        currentStep = { id: `step-${steps.length}`, batches: [currentBatch] };
+        steps.push(currentStep);
       }
     }
   }
@@ -97,6 +110,30 @@ export class AnimationScheduler {
   playFromStep(stepIndex: number): void {
     this.currentStepIndex = stepIndex - 1;
     this.playNextStep();
+  }
+
+  playPreviousStep(): boolean {
+    if (!this.canGoBack()) return false;
+
+    // Cancel all running animations
+    for (const controller of this.runningControllers.values()) {
+      if (controller) controller.cancel();
+    }
+    this.runningControllers.clear();
+
+    // Move back one step
+    this.currentStepIndex--;
+
+    // Replay the step we landed on (if any)
+    if (this.currentStepIndex >= 0) {
+      this.executeStep(this.steps[this.currentStepIndex]);
+    }
+
+    return true;
+  }
+
+  canGoBack(): boolean {
+    return this.currentStepIndex >= 0;
   }
 
   reset(): void {

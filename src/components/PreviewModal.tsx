@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import type { Engine } from '../engine';
 import type { AnimationEngine } from '../animation';
 import { AnimationScheduler } from '../animation';
@@ -18,17 +18,47 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
 
   const scheduler = useMemo(() => new AnimationScheduler(animationEngine), [animationEngine]);
 
+  // Track step progress for UI re-rendering
+  const [stepInfo, setStepInfo] = useState({ current: 0, total: 0 });
+
+  const syncStepInfo = useCallback(() => {
+    setStepInfo({
+      current: scheduler.getCurrentStepIndex() + 1,
+      total: scheduler.getStepCount(),
+    });
+  }, [scheduler]);
+
   useEffect(() => {
     const anims = engine.scene.getSlideAnimations(currentSlideId).filter((a) => a.enable);
     scheduler.load(anims);
+    setStepInfo({ current: 0, total: scheduler.getStepCount() });
     return () => scheduler.reset();
   }, [currentSlideId, engine, scheduler]);
 
-  const handleCanvasClick = useCallback((): void => {
+  const handleAdvance = useCallback((): void => {
     if (scheduler.canAdvance()) {
       scheduler.playNextStep();
+      syncStepInfo();
     }
-  }, [scheduler]);
+  }, [scheduler, syncStepInfo]);
+
+  const handlePrevious = useCallback((): void => {
+    if (scheduler.canGoBack()) {
+      scheduler.playPreviousStep();
+      syncStepInfo();
+    }
+  }, [scheduler, syncStepInfo]);
+
+  const handleReset = useCallback((): void => {
+    scheduler.reset();
+    const anims = engine.scene.getSlideAnimations(currentSlideId).filter((a) => a.enable);
+    scheduler.load(anims);
+    syncStepInfo();
+  }, [scheduler, engine, currentSlideId, syncStepInfo]);
+
+  const handleCanvasClick = useCallback((): void => {
+    handleAdvance();
+  }, [handleAdvance]);
 
   useEffect(() => {
     animationEngine.setScopeRoot(slideRef.current);
@@ -45,9 +75,7 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
       }
       if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
-        if (scheduler.canAdvance()) {
-          scheduler.playNextStep();
-        }
+        handleAdvance();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -60,10 +88,9 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
       }
       animationEngine.setScopeRoot(null);
     };
-  }, [currentSlideId, animationEngine, engine, onClose, scheduler]);
+  }, [currentSlideId, animationEngine, engine, onClose, handleAdvance]);
 
-  const stepCount = scheduler.getStepCount();
-  const currentStep = scheduler.getCurrentStepIndex() + 1;
+  const { current: currentStep, total: stepCount } = stepInfo;
 
   return (
     <div
@@ -118,7 +145,11 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
           fontWeight: 500,
         }}
       >
-        Step {Math.min(currentStep, stepCount)} / {stepCount}
+        {stepCount === 0
+          ? 'No animations'
+          : currentStep > stepCount
+            ? 'Done'
+            : `Step ${currentStep} / ${stepCount}`}
       </div>
 
       {/* Slide container */}
@@ -141,10 +172,74 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
         )}
       </div>
 
-      {/* Hint */}
+      {/* Playback controls */}
       <div
         style={{
           marginTop: 16,
+          display: 'flex',
+          gap: 8,
+          alignItems: 'center',
+        }}
+      >
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleReset();
+          }}
+          style={{
+            padding: '6px 14px',
+            fontSize: 12,
+            border: '1px solid rgba(255,255,255,0.3)',
+            borderRadius: 4,
+            backgroundColor: 'rgba(255,255,255,0.1)',
+            color: '#ffffff',
+            cursor: 'pointer',
+          }}
+        >
+          Reset
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handlePrevious();
+          }}
+          disabled={!scheduler.canGoBack()}
+          style={{
+            padding: '6px 14px',
+            fontSize: 12,
+            border: '1px solid rgba(255,255,255,0.3)',
+            borderRadius: 4,
+            backgroundColor: !scheduler.canGoBack() ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)',
+            color: !scheduler.canGoBack() ? 'rgba(255,255,255,0.3)' : '#ffffff',
+            cursor: !scheduler.canGoBack() ? 'not-allowed' : 'pointer',
+          }}
+        >
+          Previous Step
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleAdvance();
+          }}
+          disabled={!scheduler.canAdvance()}
+          style={{
+            padding: '6px 14px',
+            fontSize: 12,
+            border: '1px solid rgba(255,255,255,0.3)',
+            borderRadius: 4,
+            backgroundColor: !scheduler.canAdvance() ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)',
+            color: !scheduler.canAdvance() ? 'rgba(255,255,255,0.3)' : '#ffffff',
+            cursor: !scheduler.canAdvance() ? 'not-allowed' : 'pointer',
+          }}
+        >
+          Next Step
+        </button>
+      </div>
+
+      {/* Hint */}
+      <div
+        style={{
+          marginTop: 12,
           color: 'rgba(255,255,255,0.5)',
           fontSize: 12,
         }}

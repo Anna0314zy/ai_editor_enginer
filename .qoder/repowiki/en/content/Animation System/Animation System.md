@@ -2,29 +2,30 @@
 
 <cite>
 **Referenced Files in This Document**
-- [spec.md](file://spec.md)
-- [src/engine/index.ts](file://src/engine/index.ts)
-- [src/engine/engine.ts](file://src/engine/engine.ts)
+- [src/animation/index.ts](file://src/animation/index.ts)
+- [src/animation/engine.ts](file://src/animation/engine.ts)
+- [src/animation/adapter.ts](file://src/animation/adapter.ts)
+- [src/animation/webAnimationAdapter.ts](file://src/animation/webAnimationAdapter.ts)
+- [src/animation/gsapAdapter.ts](file://src/animation/gsapAdapter.ts)
+- [src/animation/buildKeyframes.ts](file://src/animation/buildKeyframes.ts)
+- [src/animation/scheduler.ts](file://src/animation/scheduler.ts)
+- [src/types/animation.ts](file://src/types/animation.ts)
+- [src/components/AnimationPanel.tsx](file://src/components/AnimationPanel.tsx)
+- [src/engine/animationCommands.ts](file://src/engine/animationCommands.ts)
 - [src/engine/timeline.ts](file://src/engine/timeline.ts)
-- [src/engine/scene.ts](file://src/engine/scene.ts)
-- [src/engine/history.ts](file://src/engine/history.ts)
-- [src/engine/commands.ts](file://src/engine/commands.ts)
-- [src/renderer/index.tsx](file://src/renderer/index.tsx)
-- [src/types/index.ts](file://src/types/index.ts)
-- [src/components/Canvas.tsx](file://src/components/Canvas.tsx)
 - [src/App.tsx](file://src/App.tsx)
-- [src/main.tsx](file://src/main.tsx)
 - [package.json](file://package.json)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Updated Timeline Engine section to reflect new frame-based animation implementation
-- Added detailed coverage of keyframe interpolation algorithms
-- Enhanced playback control documentation with current implementation
-- Updated architecture diagrams to show actual code structure
-- Added new section on Animation Evaluation and Interpolation
-- Updated performance considerations for the new timeline-based approach
+- Complete rewrite to reflect the new AnimationEngine architecture with adapter pattern
+- Added comprehensive coverage of Web Animations API and GSAP integration
+- Documented the new scheduler system with batch execution model
+- Updated AnimationPanel UI component documentation with new capabilities
+- Added support for click-triggered animations with step/batch execution
+- Enhanced animation configuration system with advanced parameter handling
+- Updated performance considerations for adapter-based animation engines
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -39,454 +40,565 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document describes the Animation System for a timeline-based animation engine integrated into a React-based editor. The system features a new timeline engine with frame-based animation, keyframe interpolation, and comprehensive playback control. It covers the timeline engine architecture, keyframe interpolation algorithms, animation playback control, path animation implementation with control points, coordination with the scene graph, transform application over time, and integration with user-triggered animations (auto/click). It also provides guidance on setting up keyframes, configuring animation timing and easing, previewing animations, performance considerations, memory management, serialization, synchronization, and debugging.
+This document describes the comprehensive Animation System featuring a modern adapter-based architecture with AnimationEngine, AnimationAdapter interface, scheduler system, and AnimationPanel UI. The system supports both Web Animations API and GSAP integration with advanced scheduling capabilities for click-triggered animations. It provides timeline-based animation orchestration, keyframe generation, animation playback control, and seamless integration with the React-based editor interface.
 
 ## Project Structure
-The project follows a layered architecture with a clear separation between the timeline engine and animation evaluation:
-- UI layer: React components and application shell
-- Core engine layer: Engine, Scene Graph, Timeline, Renderer, and optional plugin system
-- Types and shared definitions
-- Build and runtime configuration
+The animation system follows a modular architecture with clear separation between core engine, adapters, and UI components:
+- Animation core: AnimationEngine, AnimationAdapter interface, keyframe builders
+- Adapter implementations: WebAnimationAdapter and GSAPAdapter
+- Scheduler system: Step and batch execution model
+- UI components: AnimationPanel with drag-and-drop functionality
+- Type definitions: Comprehensive animation configuration and controller interfaces
 
 ```mermaid
 graph TB
+subgraph "Animation Core"
+ENGINE["AnimationEngine"]
+ADAPTER["AnimationAdapter Interface"]
+BUILD["buildKeyframes"]
+END
+subgraph "Adapters"
+WAAPI["WebAnimationAdapter"]
+GSAP["GSAPAdapter"]
+END
+subgraph "Scheduler"
+SCHEDULER["AnimationScheduler"]
+CLICK["buildClickSteps"]
+END
 subgraph "UI Layer"
-APP["App.tsx"]
-MAIN["main.tsx"]
-CANVAS["Canvas.tsx"]
-end
-subgraph "Engine Layer"
-ENGINE["engine/engine.ts"]
-TIMELINE["engine/timeline.ts"]
-SCENE["engine/scene.ts"]
-RENDERER["renderer/index.tsx"]
-COMMANDS["engine/commands.ts"]
-HISTORY["engine/history.ts"]
-TYPES["types/index.ts"]
-end
-APP --> CANVAS
-APP --> ENGINE
-CANVAS --> RENDERER
-ENGINE --> TIMELINE
-ENGINE --> SCENE
-ENGINE --> HISTORY
-ENGINE --> COMMANDS
-RENDERER --> TYPES
-SCENE --> TYPES
-TIMELINE --> TYPES
-COMMANDS --> TYPES
-HISTORY --> TYPES
-MAIN --> APP
+PANEL["AnimationPanel"]
+COMMANDS["BatchAnimationCommand"]
+END
+subgraph "Types"
+TYPES["Animation Types"]
+END
+ENGINE --> ADAPTER
+ADAPTER --> WAAPI
+ADAPTER --> GSAP
+ENGINE --> BUILD
+SCHEDULER --> ENGINE
+SCHEDULER --> CLICK
+PANEL --> ENGINE
+PANEL --> SCHEDULER
+COMMANDS --> ENGINE
+TYPES --> ENGINE
+TYPES --> PANEL
 ```
 
 **Diagram sources**
-- [src/App.tsx:1-17](file://src/App.tsx#L1-L17)
-- [src/main.tsx:1-10](file://src/main.tsx#L1-L10)
-- [src/components/Canvas.tsx:1-40](file://src/components/Canvas.tsx#L1-L40)
-- [src/engine/engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
-- [src/engine/timeline.ts:1-68](file://src/engine/timeline.ts#L1-L68)
-- [src/engine/scene.ts:1-146](file://src/engine/scene.ts#L1-L146)
-- [src/renderer/index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
-- [src/engine/commands.ts:1-67](file://src/engine/commands.ts#L1-L67)
-- [src/engine/history.ts:1-45](file://src/engine/history.ts#L1-L45)
-- [src/types/index.ts:1-238](file://src/types/index.ts#L1-L238)
+- [src/animation/engine.ts:1-120](file://src/animation/engine.ts#L1-L120)
+- [src/animation/adapter.ts:1-27](file://src/animation/adapter.ts#L1-L27)
+- [src/animation/webAnimationAdapter.ts:1-67](file://src/animation/webAnimationAdapter.ts#L1-L67)
+- [src/animation/gsapAdapter.ts:1-140](file://src/animation/gsapAdapter.ts#L1-L140)
+- [src/animation/buildKeyframes.ts:1-125](file://src/animation/buildKeyframes.ts#L1-L125)
+- [src/animation/scheduler.ts:1-136](file://src/animation/scheduler.ts#L1-L136)
+- [src/components/AnimationPanel.tsx:1-847](file://src/components/AnimationPanel.tsx#L1-L847)
+- [src/engine/animationCommands.ts:1-44](file://src/engine/animationCommands.ts#L1-L44)
+- [src/types/animation.ts:1-113](file://src/types/animation.ts#L1-L113)
 
 **Section sources**
-- [src/App.tsx:1-17](file://src/App.tsx#L1-L17)
-- [src/main.tsx:1-10](file://src/main.tsx#L1-L10)
-- [src/components/Canvas.tsx:1-40](file://src/components/Canvas.tsx#L1-L40)
-- [src/engine/engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
-- [src/engine/timeline.ts:1-68](file://src/engine/timeline.ts#L1-L68)
-- [src/engine/scene.ts:1-146](file://src/engine/scene.ts#L1-L146)
-- [src/renderer/index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
-- [src/engine/commands.ts:1-67](file://src/engine/commands.ts#L1-L67)
-- [src/engine/history.ts:1-45](file://src/engine/history.ts#L1-L45)
-- [src/types/index.ts:1-238](file://src/types/index.ts#L1-L238)
+- [src/animation/index.ts:1-8](file://src/animation/index.ts#L1-L8)
+- [src/animation/engine.ts:1-120](file://src/animation/engine.ts#L1-L120)
+- [src/animation/adapter.ts:1-27](file://src/animation/adapter.ts#L1-L27)
+- [src/animation/webAnimationAdapter.ts:1-67](file://src/animation/webAnimationAdapter.ts#L1-L67)
+- [src/animation/gsapAdapter.ts:1-140](file://src/animation/gsapAdapter.ts#L1-L140)
+- [src/animation/buildKeyframes.ts:1-125](file://src/animation/buildKeyframes.ts#L1-L125)
+- [src/animation/scheduler.ts:1-136](file://src/animation/scheduler.ts#L1-L136)
+- [src/components/AnimationPanel.tsx:1-847](file://src/components/AnimationPanel.tsx#L1-L847)
+- [src/engine/animationCommands.ts:1-44](file://src/engine/animationCommands.ts#L1-L44)
+- [src/types/animation.ts:1-113](file://src/types/animation.ts#L1-L113)
 
 ## Core Components
-- **Scene Graph and Data Model**: Defines documents, slides, elements, animations, and keyframes. Elements carry transforms and optional animation arrays.
-- **Animation Types**: Support entrance, emphasis, and path animations with start time, duration, easing, optional trigger (auto/click), and optional keyframes.
-- **Timeline Engine**: Frame-based animation system driven by requestAnimationFrame, supporting play/pause/seek, and computing per-animation progress to interpolate properties.
-- **Renderer**: Pure function mapping element state to UI; applies transforms (x, y, scale, rotate, opacity) during render.
-- **Engine Core**: Central orchestrator that coordinates scene updates, history, and timeline-driven animation evaluation.
-- **Store**: Editor state separate from scene data; integrates with UI panels and controls.
+- **AnimationEngine**: Central orchestrator that manages animation configurations, builds keyframes, and delegates playback to adapter implementations
+- **AnimationAdapter Interface**: Abstraction layer for different animation libraries (Web Animations API, GSAP)
+- **WebAnimationAdapter**: Native browser animation implementation using element.animate()
+- **GSAPAdapter**: Advanced animation library integration with tweening capabilities
+- **AnimationScheduler**: Implements batch execution model for click-triggered animations with step and batch coordination
+- **AnimationPanel**: Interactive UI for creating, editing, and managing animations with drag-and-drop support
+- **Keyframe Builder**: Generates WAAPI-compatible keyframes from animation configurations
+- **Animation Types**: Comprehensive type definitions for animation configurations, effects, and controller interfaces
 
 Key data model references:
-- Element with optional animations array
-- Animation with timing, easing, trigger, and optional keyframes
-- Keyframe with numeric offset and partial transform/opacity props
-- Timeline with current time and duration
+- AnimationConfig with effect types, timing parameters, and start triggers
+- WAAPIKeyframe format compatible with Web Animations API
+- AnimationController interface for lifecycle management
+- ClickStep and AnimationBatch structures for scheduler execution
 
 **Section sources**
-- [spec.md:107-134](file://spec.md#L107-L134)
-- [spec.md:231-279](file://spec.md#L231-L279)
-- [src/types/index.ts:87-101](file://src/types/index.ts#L87-L101)
-- [src/types/index.ts:207-228](file://src/types/index.ts#L207-L228)
+- [src/animation/engine.ts:9-119](file://src/animation/engine.ts#L9-L119)
+- [src/animation/adapter.ts:7-26](file://src/animation/adapter.ts#L7-L26)
+- [src/animation/webAnimationAdapter.ts:12-66](file://src/animation/webAnimationAdapter.ts#L12-L66)
+- [src/animation/gsapAdapter.ts:13-139](file://src/animation/gsapAdapter.ts#L13-L139)
+- [src/animation/scheduler.ts:56-135](file://src/animation/scheduler.ts#L56-L135)
+- [src/components/AnimationPanel.tsx:87-539](file://src/components/AnimationPanel.tsx#L87-L539)
+- [src/animation/buildKeyframes.ts:7-109](file://src/animation/buildKeyframes.ts#L7-L109)
+- [src/types/animation.ts:26-113](file://src/types/animation.ts#L26-L113)
 
 ## Architecture Overview
-The animation pipeline is time-driven and data-centric with frame-based execution:
-- Timeline advances time via requestAnimationFrame with performance.now() timing
-- For each element with animations, compute normalized progress per animation
-- Interpolate properties using easing and keyframes
-- Apply interpolated transforms to the element
-- Renderer renders the transformed element
+The animation system implements a modern adapter-based architecture with clear separation of concerns:
+- AnimationEngine manages configuration lifecycle and delegates to adapters
+- AnimationAdapter interface provides abstraction for different animation libraries
+- Scheduler implements sophisticated execution models for user-triggered animations
+- UI components provide comprehensive animation authoring capabilities
 
 ```mermaid
 sequenceDiagram
-participant RAF as "requestAnimationFrame"
-participant TL as "Timeline"
-participant ENG as "Engine"
-participant REN as "Renderer"
-participant UI as "UI"
-RAF->>TL : "tick(currentTime)"
-TL->>TL : "calculate delta time"
-TL->>ENG : "evaluateAnimations(time)"
-ENG->>ENG : "compute per-animation progress"
-ENG->>ENG : "interpolate keyframes/easing"
-ENG->>REN : "element state with transforms"
-REN-->>UI : "ReactNode with applied transforms"
-UI-->>RAF : "next frame"
+participant UI as "AnimationPanel"
+participant ENGINE as "AnimationEngine"
+participant ADAPTER as "AnimationAdapter"
+participant LIB as "Animation Library"
+participant CTRL as "AnimationController"
+UI->>ENGINE : "register(config)"
+UI->>ENGINE : "play(configId)"
+ENGINE->>ENGINE : "buildKeyframes(config)"
+ENGINE->>ADAPTER : "play(element, keyframes, options)"
+ADAPTER->>LIB : "create animation"
+LIB-->>ADAPTER : "Animation instance"
+ADAPTER-->>ENGINE : "AnimationController"
+ENGINE-->>UI : "AnimationController"
+UI->>CTRL : "onFinish(callback)"
+CTRL-->>UI : "completion callback"
 ```
 
 **Diagram sources**
-- [src/engine/timeline.ts:48-66](file://src/engine/timeline.ts#L48-L66)
-- [src/engine/engine.ts:14-19](file://src/engine/engine.ts#L14-L19)
-- [src/renderer/index.tsx:121-134](file://src/renderer/index.tsx#L121-L134)
+- [src/components/AnimationPanel.tsx:256-267](file://src/components/AnimationPanel.tsx#L256-L267)
+- [src/animation/engine.ts:53-70](file://src/animation/engine.ts#L53-L70)
+- [src/animation/webAnimationAdapter.ts:15-43](file://src/animation/webAnimationAdapter.ts#L15-L43)
+- [src/animation/gsapAdapter.ts:16-60](file://src/animation/gsapAdapter.ts#L16-L60)
 
 ## Detailed Component Analysis
 
-### Timeline Engine
-**Updated** The timeline engine now implements a frame-based animation system with precise timing control.
+### AnimationEngine
+The AnimationEngine serves as the central coordinator for all animation operations, managing configuration lifecycle and delegating playback to adapter implementations.
 
-Responsibilities:
-- Track current time and total duration using performance.now()
-- Playback control: play, pause, seek with frame-accurate positioning
-- Compute per-animation progress: progress = clamp((time - start) / duration, 0..1)
-- Coordinate with animation evaluation loop using requestAnimationFrame
+**Key Responsibilities:**
+- Manages animation configurations in an internal registry
+- Builds WAAPI-compatible keyframes from animation configurations
+- Delegates animation playback to configured adapter implementations
+- Provides element scoping for DOM queries
+- Handles bulk animation operations (playAllForElement, stopAll)
 
-Frame-based timing implementation:
-- Uses performance.now() for sub-millisecond precision
-- Delta time calculation ensures smooth animation regardless of frame rate
-- Automatic cleanup of animation frames when playback stops
+**Configuration Management:**
+- register(): Adds or updates animation configurations
+- unregister(): Removes configurations from registry
+- getAllConfigs(): Retrieves all registered animations
+- getConfig(): Fetches specific configuration by ID
 
-Interpolation and easing:
-- Normalize progress per animation using time-based calculations
-- Apply easing curves to progress values for smooth motion
-- Interpolate keyframes using the eased progress values
-- Combine multiple animations' contributions to final property values
-
-User-triggered animations:
-- Auto-triggered animations start automatically when their start time is reached
-- Click-triggered animations start on user interaction events
+**Playback Operations:**
+- play(): Executes individual animation with controller return
+- playAllForElement(): Plays all animations for a specific element
+- stop(), stopAll(): Cancels animation playback
+- pause(), resume(): Controls animation state
 
 ```mermaid
 flowchart TD
-Start(["Timeline Tick"]) --> CalcDelta["Calculate delta time<br/>using performance.now()"]
-CalcDelta --> UpdateTime["Update current time<br/>with delta accumulation"]
-UpdateTime --> CheckBounds{"Time within<br/>duration bounds?"}
-CheckBounds --> |Yes| CalcProgress["Compute per-animation progress"]
-CheckBounds --> |No| StopPlayback["Stop playback<br/>and signal completion"]
-CalcProgress --> Easing["Apply easing curve"]
-Easing --> KeyframeInterp["Interpolate keyframes"]
-KeyframeInterp --> Merge["Merge transforms"]
-Merge --> Apply["Apply to element state"]
-Apply --> ScheduleNext["Schedule next frame<br/>if still playing"]
-ScheduleNext --> End(["Next frame"])
-StopPlayback --> End
+START(["AnimationEngine Operation"]) --> CHECK{"Operation Type"}
+CHECK --> |"register"| REG["Register Config<br/>- Add to Map"]
+CHECK --> |"play"| PLAY["Play Animation<br/>- Query Element<br/>- Build Keyframes<br/>- Delegate to Adapter"]
+CHECK --> |"stopAll"| STOPALL["Stop All<br/>- Iterate Configs<br/>- Call Adapter.stop"]
+CHECK --> |"queryElement"| QUERY["Query Element<br/>- Scope Root Check<br/>- DOM Selector"]
+PLAY --> CONTROLLER["Return Controller<br/>- finish()<br/>- cancel()<br/>- pause()<br/>- play()"]
+QUERY --> FOUND{"Element Found?"}
+FOUND --> |"Yes"| RETURN["Return Element"]
+FOUND --> |"No"| NULL["Return Null"]
 ```
 
 **Diagram sources**
-- [src/engine/timeline.ts:48-66](file://src/engine/timeline.ts#L48-L66)
-- [src/engine/timeline.ts:44-46](file://src/engine/timeline.ts#L44-L46)
+- [src/animation/engine.ts:33-119](file://src/animation/engine.ts#L33-L119)
 
 **Section sources**
-- [src/engine/timeline.ts:1-68](file://src/engine/timeline.ts#L1-L68)
-- [src/engine/engine.ts:14-19](file://src/engine/engine.ts#L14-L19)
+- [src/animation/engine.ts:9-119](file://src/animation/engine.ts#L9-L119)
 
-### Animation Evaluation and Interpolation
-**New** The animation evaluation system handles keyframe interpolation and property blending.
+### AnimationAdapter Interface and Implementations
+The AnimationAdapter interface provides a unified abstraction for different animation libraries, enabling pluggable animation backends.
 
-Keyframe interpolation algorithms:
-- Linear interpolation for numeric properties (position, scale, opacity)
-- Spline interpolation for complex paths and bezier curves
-- Easing function application for non-linear motion profiles
-- Property blending for multiple animations targeting the same property
+**Interface Contract:**
+- play(): Creates and starts animations with keyframes and options
+- stop(): Cancels ongoing animations
+- pause(): Temporarily halts animations
+- resume(): Resumes paused animations
 
-Animation evaluation process:
-1. For each animation, calculate normalized progress based on current timeline position
-2. Apply easing to the progress value for smooth acceleration/deceleration
-3. Find the appropriate keyframe pair for interpolation
-4. Calculate interpolation weights based on eased progress
-5. Blend property values from keyframes using calculated weights
-6. Accumulate contributions from multiple animations targeting the same property
+**WebAnimationAdapter Implementation:**
+- Uses native Web Animations API (element.animate)
+- Provides native browser animation capabilities
+- Supports standard WAAPI keyframe format
+- Includes built-in caching mechanism
+
+**GSAPAdapter Implementation:**
+- Integrates advanced GSAP tweening library
+- Converts WAAPI keyframes to GSAP fromTo syntax
+- Parses CSS transform strings into GSAP properties
+- Maps easing presets to GSAP ease strings
+- Maintains weak map for tween lifecycle management
 
 ```mermaid
-flowchart TD
-AEStart["Animation Evaluation"] --> GetAnim["Get active animations"]
-GetAnim --> CalcProgress["Calculate progress<br/>for each animation"]
-CalcProgress --> ApplyEasing["Apply easing function"]
-ApplyEasing --> FindKF["Find keyframe pairs"]
-FindKF --> CalcWeights["Calculate interpolation weights"]
-CalcWeights --> Interpolate["Interpolate property values"]
-Interpolate --> Blend["Blend multiple animation<br/>contributions"]
-Blend --> FinalValue["Final property value"]
-FinalValue --> AEEnd["Apply to element transform"]
+classDiagram
+class AnimationAdapter {
+<<interface>>
++play(element, keyframes, options) AnimationController
++stop(element) void
++pause(element) void
++resume(element) void
+}
+class WebAnimationAdapter {
+- cache : WeakMap~HTMLElement, Animation~
++play() AnimationController
++stop() void
++pause() void
++resume() void
+}
+class GSAPAdapter {
+- tweens : WeakMap~HTMLElement, Tween~
++play() AnimationController
++stop() void
++pause() void
++resume() void
+frameToGSAPVars() TweenVars
+parseTransform() void
+mapEasing() string
+}
+AnimationAdapter <|-- WebAnimationAdapter
+AnimationAdapter <|-- GSAPAdapter
 ```
 
 **Diagram sources**
-- [src/engine/timeline.ts:23-25](file://src/engine/timeline.ts#L23-L25)
+- [src/animation/adapter.ts:7-26](file://src/animation/adapter.ts#L7-L26)
+- [src/animation/webAnimationAdapter.ts:12-66](file://src/animation/webAnimationAdapter.ts#L12-L66)
+- [src/animation/gsapAdapter.ts:13-139](file://src/animation/gsapAdapter.ts#L13-L139)
 
 **Section sources**
-- [src/engine/timeline.ts:23-25](file://src/engine/timeline.ts#L23-L25)
+- [src/animation/adapter.ts:1-27](file://src/animation/adapter.ts#L1-L27)
+- [src/animation/webAnimationAdapter.ts:1-67](file://src/animation/webAnimationAdapter.ts#L1-L67)
+- [src/animation/gsapAdapter.ts:1-140](file://src/animation/gsapAdapter.ts#L1-L140)
 
-### Scene Graph and Transform Application
-Scene Graph:
-- Document, Slide, Element, Animation, Keyframe types define the hierarchical structure
-- Elements store geometry, transforms, z-index, and optional animation arrays
-- Animations reference keyframes and timing/easing/trigger
+### AnimationScheduler and Batch Execution Model
+The AnimationScheduler implements a sophisticated execution model for click-triggered animations using steps and batches.
 
-Transform application:
-- Renderer reads element state and applies transforms (x, y, scale, rotate, opacity)
-- Transforms are computed by the engine based on timeline evaluation
+**Execution Model:**
+- Steps: User-triggered animation groups (click events)
+- Batches: Sequential execution within steps
+- Concurrent execution: All animations in a batch play simultaneously
 
-```mermaid
-erDiagram
-DOCUMENT {
-string id
-array slides
-}
-SLIDE {
-string id
-string name
-array elementIds
-}
-ELEMENT {
-string id
-string type
-number x
-number y
-number width
-number height
-number rotation
-number opacity
-boolean visible
-string parentId
-array childrenIds
-array animations
-}
-ANIMATION {
-string id
-string elementId
-string property
-array keyframes
-}
-KEYFRAME {
-string id
-number time
-any value
-string easing
-}
-DOCUMENT ||--o{ SLIDE : "contains"
-SLIDE ||--o{ ELEMENT : "references"
-ELEMENT ||--o{ ANIMATION : "has"
-ANIMATION ||--o{ KEYFRAME : "uses"
-```
+**Step Types:**
+- click: Starts a new step (user click)
+- withPrev: Joins current batch (executes with previous animations)
+- afterPrev: Starts new batch (executes after previous batch completes)
 
-**Diagram sources**
-- [src/types/index.ts:57-101](file://src/types/index.ts#L57-L101)
-
-**Section sources**
-- [src/types/index.ts:57-101](file://src/types/index.ts#L57-L101)
-
-### Path Animation Implementation
-Path animation uses SVG path geometry:
-- Path string defines trajectory
-- At each frame, evaluate position along the path using eased progress
-- Apply resulting position as element transform
-- Supports interactive editing via SVG overlay and control point dragging
-
-```mermaid
-flowchart TD
-PStart["Path Animation Start"] --> PSeek["Get eased progress"]
-PSeek --> PEval["Evaluate point on path"]
-PEval --> PApply["Set element position"]
-PApply --> PEnd["Render frame"]
-```
-
-**Diagram sources**
-- [spec.md:281-307](file://spec.md#L281-L307)
-
-**Section sources**
-- [spec.md:281-307](file://spec.md#L281-L307)
-
-### Animation Playback Control
-**Updated** Playback control now uses the frame-based timeline system.
-
-Playback control includes:
-- Play/Pause: start/stop the timeline loop with requestAnimationFrame
-- Seek: jump to a specific time with frame-accurate positioning
-- Multiple animations: parallel evaluation with independent timing windows
-- Trigger modes: auto (time-based) and click (event-based)
+**Scheduler Operations:**
+- load(): Processes animation configurations into step structure
+- playNextStep(): Executes next step in sequence
+- playFromStep(): Jumps to specific step index
+- reset(): Cancels all running animations and clears state
 
 ```mermaid
 stateDiagram-v2
 [*] --> Idle
-Idle --> Playing : "play()"
-Playing --> Paused : "pause()"
-Paused --> Playing : "resume()"
-Playing --> Seeking : "seek(t)"
-Seeking --> Playing : "resume()"
-Playing --> Idle : "stop()"
+Idle --> StepLoaded : "load(animations)"
+StepLoaded --> Executing : "playNextStep()"
+Executing --> StepComplete : "batch finishes"
+StepComplete --> Executing : "next batch"
+StepComplete --> Idle : "all steps complete"
+Executing --> Reset : "reset()"
+Reset --> Idle
 ```
 
 **Diagram sources**
-- [src/engine/timeline.ts:27-46](file://src/engine/timeline.ts#L27-L46)
+- [src/animation/scheduler.ts:56-135](file://src/animation/scheduler.ts#L56-L135)
 
 **Section sources**
-- [src/engine/timeline.ts:27-46](file://src/engine/timeline.ts#L27-L46)
-- [spec.md:252-258](file://spec.md#L252-L258)
+- [src/animation/scheduler.ts:13-135](file://src/animation/scheduler.ts#L13-L135)
 
-### Integration with UI Panels and Rendering
-- Right-side panels expose animation controls (type, timing, keyframes)
-- Store holds editor state separate from scene data
-- Renderer is a pure function mapping element state to React nodes
-- Canvas component hosts the editor surface
+### AnimationPanel UI Component
+The AnimationPanel provides a comprehensive interface for animation authoring with drag-and-drop functionality and real-time preview capabilities.
+
+**Core Features:**
+- Animation creation and editing with form validation
+- Drag-and-drop reordering with automatic start type adjustment
+- Real-time animation preview and playback control
+- Step visualization with batch indicators
+- Parameter-specific form fields for different animation effects
+
+**Form Management:**
+- Dynamic parameter fields based on selected animation effect
+- Automatic parameter validation and defaults
+- Real-time effect type detection (enter/emphasis/exit)
+- Start type auto-correction during drag operations
+
+**Playback Controls:**
+- Individual animation preview with stop-all protection
+- Step-based playback from specific animation
+- Visual step numbering and relationship indicators
+- Integration with AnimationScheduler for complex sequences
 
 ```mermaid
-graph LR
-UI["Right Panels<br/>Animation Controls"] --> ENGINE["Engine"]
-ENGINE --> TIMELINE["Timeline"]
-ENGINE --> RENDERER["Renderer"]
-RENDERER --> UI
-UI --> CANVAS["Canvas"]
+flowchart TD
+UI_START["AnimationPanel Load"] --> GET_ANIMS["Get Slide Animations"]
+GET_ANIMS --> BUILD_STEPS["Build Click Steps"]
+BUILD_STEPS --> RENDER_LIST["Render Animation List"]
+RENDER_LIST --> USER_INTERACTION{"User Action"}
+USER_INTERACTION --> |"Add/Edit"| FORM_OPEN["Open Form Modal"]
+USER_INTERACTION --> |"Play"| PREVIEW["Play Animation"]
+USER_INTERACTION --> |"Drag"| REORDER["Reorder & Auto-fix"]
+FORM_OPEN --> VALIDATE["Validate Parameters"]
+VALIDATE --> SAVE["Save to Engine & Registry"]
+PREVIEW --> STOP_ALL["Stop All Animations"]
+REORDER --> UPDATE_ENGINE["Update Engine State"]
+SAVE --> REFRESH["Refresh UI"]
+STOP_ALL --> REFRESH
+UPDATE_ENGINE --> REFRESH
+REFRESH --> RENDER_LIST
 ```
 
 **Diagram sources**
-- [src/components/Canvas.tsx:1-40](file://src/components/Canvas.tsx#L1-L40)
-- [src/engine/engine.ts:7-19](file://src/engine/engine.ts#L7-L19)
-- [src/renderer/index.tsx:121-134](file://src/renderer/index.tsx#L121-L134)
+- [src/components/AnimationPanel.tsx:87-539](file://src/components/AnimationPanel.tsx#L87-L539)
 
 **Section sources**
-- [src/components/Canvas.tsx:1-40](file://src/components/Canvas.tsx#L1-L40)
-- [src/engine/engine.ts:7-19](file://src/engine/engine.ts#L7-L19)
-- [src/renderer/index.tsx:121-134](file://src/renderer/index.tsx#L121-L134)
+- [src/components/AnimationPanel.tsx:1-847](file://src/components/AnimationPanel.tsx#L1-L847)
+
+### Keyframe Generation and Effects System
+The keyframe generation system converts animation configurations into WAAPI-compatible keyframes with support for various animation effects.
+
+**Effect Categories:**
+- Enter Effects: fadeIn, zoomIn, slideIn, flyIn, rotateIn
+- Emphasis Effects: pulse, shake, blink, scale, highlight
+- Exit Effects: fadeOut, zoomOut, slideOut, flyOut, rotateOut
+
+**Parameter Handling:**
+- Directional effects support distance parameters
+- Scale effects support fromScale/toScale ranges
+- Rotation effects support angle ranges
+- Brightness effects support intensity parameters
+
+**Keyframe Generation Process:**
+1. Effect type detection from AnimationConfig
+2. Parameter extraction and validation
+3. Offset calculation for timeline positioning
+4. Transform string construction for CSS properties
+5. WAAPI keyframe object creation
+
+**Section sources**
+- [src/animation/buildKeyframes.ts:7-125](file://src/animation/buildKeyframes.ts#L7-L125)
+- [src/types/animation.ts:6-12](file://src/types/animation.ts#L6-L12)
+
+### Animation Configuration and Types
+The animation system uses comprehensive type definitions to ensure type safety and provide clear interfaces for all animation operations.
+
+**AnimationConfig Structure:**
+- id: Unique identifier for animation instances
+- elementId: Target element for animation application
+- name: Human-readable animation name
+- enable: Toggle for animation activation
+- type: Animation category (enter/emphasis/exit)
+- effect: Specific animation effect
+- startType: Trigger mechanism (click/withPrev/afterPrev)
+- duration: Animation length in seconds
+- delay: Delay before animation start in seconds
+- easing: Easing preset selection
+- repeatCount: Number of animation repetitions
+- params: Effect-specific parameter objects
+
+**Controller Interface:**
+- finish(): Immediately completes animation
+- cancel(): Terminates animation and resets state
+- pause(): Temporarily halts animation progress
+- play(): Resumes paused animation
+- onFinish(): Registers completion callback
+
+**Section sources**
+- [src/types/animation.ts:26-98](file://src/types/animation.ts#L26-L98)
 
 ## Dependency Analysis
-- Engine depends on types for scene graph and animation structures
-- Timeline depends on Animation types for evaluation
-- Renderer depends on engine-provided element state and applies transforms
-- Store provides editor state consumed by UI and engine
-- UI components depend on store and renderer for presentation
+The animation system maintains clean dependency relationships with clear separation between core functionality and external libraries.
+
+**Internal Dependencies:**
+- AnimationEngine depends on AnimationAdapter interface and keyframe builder
+- WebAnimationAdapter and GSAPAdapter implement AnimationAdapter interface
+- AnimationPanel depends on AnimationEngine and scheduler utilities
+- AnimationCommands provide undo/redo functionality for animation operations
+
+**External Dependencies:**
+- GSAP library for advanced tweening capabilities
+- @dnd-kit for drag-and-drop functionality in UI
+- React ecosystem for component architecture
 
 ```mermaid
 graph TB
-TYPES["Types"] --> ENGINE["Engine"]
-ENGINE --> TIMELINE["Timeline"]
-ENGINE --> RENDERER["Renderer"]
-ENGINE --> SCENE["Scene"]
-ENGINE --> HISTORY["History"]
-ENGINE --> COMMANDS["Commands"]
-STORE["Store"] --> ENGINE
-UI["UI Panels"] --> STORE
-RENDERER --> UI
-SCENE --> TYPES
-TIMELINE --> TYPES
-COMMANDS --> TYPES
-HISTORY --> TYPES
+subgraph "Internal Dependencies"
+ENGINE["AnimationEngine"] --> ADAPTER["AnimationAdapter"]
+ENGINE --> BUILD["buildKeyframes"]
+WAAPI["WebAnimationAdapter"] --> ADAPTER
+GSAP["GSAPAdapter"] --> ADAPTER
+PANEL["AnimationPanel"] --> ENGINE
+PANEL --> SCHEDULER["buildClickSteps"]
+COMMANDS["BatchAnimationCommand"] --> ENGINE
+END
+subgraph "External Dependencies"
+GSAP_LIB["gsap"] --> GSAP
+DND_KIT["@dnd-kit/*"] --> PANEL
+END
 ```
 
 **Diagram sources**
-- [src/types/index.ts:1-238](file://src/types/index.ts#L1-L238)
-- [src/engine/engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
-- [src/engine/timeline.ts:1-68](file://src/engine/timeline.ts#L1-L68)
-- [src/engine/scene.ts:1-146](file://src/engine/scene.ts#L1-L146)
-- [src/engine/history.ts:1-45](file://src/engine/history.ts#L1-L45)
-- [src/engine/commands.ts:1-67](file://src/engine/commands.ts#L1-L67)
-- [src/renderer/index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
+- [src/animation/engine.ts:1-120](file://src/animation/engine.ts#L1-L120)
+- [src/animation/webAnimationAdapter.ts:1-67](file://src/animation/webAnimationAdapter.ts#L1-L67)
+- [src/animation/gsapAdapter.ts:1-140](file://src/animation/gsapAdapter.ts#L1-L140)
+- [src/components/AnimationPanel.tsx:1-847](file://src/components/AnimationPanel.tsx#L1-L847)
+- [src/engine/animationCommands.ts:1-44](file://src/engine/animationCommands.ts#L1-L44)
+- [package.json:12-20](file://package.json#L12-L20)
 
 **Section sources**
-- [src/types/index.ts:1-238](file://src/types/index.ts#L1-L238)
-- [src/engine/engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
-- [src/engine/timeline.ts:1-68](file://src/engine/timeline.ts#L1-L68)
-- [src/engine/scene.ts:1-146](file://src/engine/scene.ts#L1-L146)
-- [src/engine/history.ts:1-45](file://src/engine/history.ts#L1-L45)
-- [src/engine/commands.ts:1-67](file://src/engine/commands.ts#L1-L67)
-- [src/renderer/index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
+- [src/animation/engine.ts:1-120](file://src/animation/engine.ts#L1-L120)
+- [src/animation/adapter.ts:1-27](file://src/animation/adapter.ts#L1-L27)
+- [src/animation/webAnimationAdapter.ts:1-67](file://src/animation/webAnimationAdapter.ts#L1-L67)
+- [src/animation/gsapAdapter.ts:1-140](file://src/animation/gsapAdapter.ts#L1-L140)
+- [src/components/AnimationPanel.tsx:1-847](file://src/components/AnimationPanel.tsx#L1-L847)
+- [src/engine/animationCommands.ts:1-44](file://src/engine/animationCommands.ts#L1-L44)
+- [package.json:12-20](file://package.json#L12-L20)
 
 ## Performance Considerations
-**Updated** Performance optimizations for the frame-based timeline system.
+The animation system implements several performance optimizations for smooth playback and efficient resource management.
 
-- Use requestAnimationFrame for smooth playback aligned with the display refresh rate
-- Minimize layout thrashing by batching transform updates and avoiding forced synchronous layouts
-- Prefer pure functional rendering to reduce re-renders; rely on stable keys and shallow comparisons
-- Limit the number of concurrent animations and avoid deep nested hierarchies when possible
-- Cache intermediate interpolation results per animation tick to avoid recomputation
-- Use performance.now() for sub-millisecond timing precision
-- Implement delta time calculation to ensure smooth animation regardless of frame rate variations
-- Defer expensive operations off the main thread if needed (Web Workers for heavy computations)
-- Use efficient easing curves and keep keyframe counts reasonable to reduce interpolation overhead
-- Cancel animation frames when playback stops to prevent unnecessary CPU usage
+**Adapter Performance:**
+- WebAnimationAdapter uses native browser APIs for optimal performance
+- GSAPAdapter leverages optimized tweening algorithms
+- Both adapters implement caching mechanisms to avoid redundant operations
+
+**Memory Management:**
+- WeakMap-based caches prevent memory leaks
+- Proper cleanup of animation controllers and DOM references
+- Efficient configuration registry with Map data structure
+
+**Execution Model Optimizations:**
+- Batch execution reduces animation overhead
+- Concurrency control prevents resource contention
+- Smart element querying with optional root scoping
+
+**UI Performance:**
+- React component memoization and optimization
+- Drag-and-drop with efficient state updates
+- Debounced form validation and submission
+
+**Animation Optimization Strategies:**
+- Minimal DOM manipulation through transform properties
+- Efficient keyframe generation avoiding unnecessary recalculations
+- Proper easing curve selection for smooth motion profiles
 
 ## Troubleshooting Guide
-**Updated** Common issues specific to the frame-based timeline system.
+Common issues and solutions for the adapter-based animation system.
 
-Common issues and remedies:
-- Animations not playing: verify timeline is running and currentTime is advancing; check animation start/duration alignment
-- Incorrect easing or interpolation: confirm easing curve selection and keyframe times are within [0, duration]; validate interpolation logic
-- Timeline not stopping: ensure timeline.stop() is called when duration is reached; check for lingering requestAnimationFrame callbacks
-- Frame timing issues: verify performance.now() is being used instead of Date.now(); check for browser compatibility
-- Memory leaks: ensure cancelAnimationFrame is called in timeline.pause() and timeline.seek() methods
-- Path animation misalignment: ensure path string is valid SVG path data and control points are correctly placed
-- Trigger not firing: for click-triggered animations, ensure event handlers are attached and engine.execute is invoked on interaction
-- Rendering artifacts: confirm transforms are applied in the correct order (translate/scale/rotate) and renderer is pure
+**Adapter Issues:**
+- WebAnimationAdapter not working: Verify browser support for Web Animations API
+- GSAPAdapter errors: Ensure GSAP library is properly installed and imported
+- Missing dependencies: Check package.json for required animation libraries
 
-Debugging tips:
-- Log timeline ticks and per-animation progress to identify timing issues
-- Visualize keyframes and easing curves in the animation panel
-- Inspect element state before and after transform application
-- Use devtools to profile animation frames and identify bottlenecks
-- Monitor requestAnimationFrame callback frequency and adjust animation complexity accordingly
+**Animation Playback Problems:**
+- Animations not triggering: Verify element selectors match data-element-id attributes
+- Incorrect timing: Check duration/delay conversions (seconds to milliseconds)
+- Easing not applied: Confirm easing preset names match supported values
+
+**Scheduler Issues:**
+- Steps not executing: Verify animation startType assignments (click/withPrev/afterPrev)
+- Batch execution problems: Check animation ordering and dependencies
+- Step navigation issues: Ensure step indices are within valid range
+
+**UI Component Problems:**
+- AnimationPanel not displaying: Verify AnimationPanel is properly integrated into App
+- Drag-and-drop not working: Check @dnd-kit installation and sensor configuration
+- Form validation errors: Ensure parameter values are within acceptable ranges
+
+**Debugging Techniques:**
+- Enable browser developer tools to inspect animation controllers
+- Use console logging in AnimationEngine for operation tracking
+- Monitor WeakMap caches for proper cleanup
+- Validate animation configurations before registration
+
+**Section sources**
+- [src/animation/webAnimationAdapter.ts:12-66](file://src/animation/webAnimationAdapter.ts#L12-L66)
+- [src/animation/gsapAdapter.ts:13-139](file://src/animation/gsapAdapter.ts#L13-L139)
+- [src/animation/scheduler.ts:56-135](file://src/animation/scheduler.ts#L56-L135)
+- [src/components/AnimationPanel.tsx:87-539](file://src/components/AnimationPanel.tsx#L87-L539)
 
 ## Conclusion
-The Animation System is designed around a frame-based, time-driven architecture with precise timing control. The Timeline Engine evaluates animations per frame using performance.now() timing, interpolates properties using keyframes and easing functions, and applies transforms to elements. The Renderer remains pure and focused on transforming element state into UI. With proper configuration of keyframes, timing, and easing, and by following performance and debugging practices, the system delivers smooth, predictable animation playback synchronized with the scene graph and user interactions.
+The Animation System represents a comprehensive, modern approach to animation orchestration with its adapter-based architecture, sophisticated scheduler, and rich UI integration. The system successfully abstracts different animation libraries while providing powerful scheduling capabilities for user-triggered animations. With proper configuration, the system delivers smooth, performant animations that integrate seamlessly with the React-based editor interface.
 
 ## Appendices
 
-### Setting Up Keyframes and Timing
-**Updated** Keyframe setup for the new timeline system.
+### Setting Up Animation Configurations
+**Animation Configuration Process:**
+1. Create AnimationConfig with effect, parameters, and timing settings
+2. Register configuration with AnimationEngine.register()
+3. Use AnimationPanel for interactive editing and preview
+4. Implement custom effects through keyframe generation
 
-- Define animations on elements with elementId, property, and keyframes array
-- Configure keyframes with time (in milliseconds) and target property values
-- Choose easing functions: linear, ease-in, ease-out, ease-in-out
-- Set animation duration and start time for proper timeline integration
-- Preview animations using timeline controls
+**Configuration Examples:**
+- Basic fadeIn: Simple opacity transition with default parameters
+- Complex slideIn: Directional movement with distance specification
+- Scale animation: FromScale/ToScale parameters for size transitions
+- Custom effects: Extend buildKeyframes for specialized animation types
 
-References:
-- [src/types/index.ts:87-101](file://src/types/index.ts#L87-L101)
-- [src/types/index.ts:207-228](file://src/types/index.ts#L207-L228)
+**Section sources**
+- [src/animation/engine.ts:33-50](file://src/animation/engine.ts#L33-L50)
+- [src/animation/buildKeyframes.ts:7-109](file://src/animation/buildKeyframes.ts#L7-L109)
+- [src/types/animation.ts:26-39](file://src/types/animation.ts#L26-L39)
 
-### Path Animation Setup
-Path animation uses SVG path geometry:
-- Provide SVG path data for path animations
-- Edit path and control points in the overlay
-- Evaluate path positions at eased progress to drive motion
+### Animation Effects Reference
+**Supported Animation Effects:**
+- **Enter Effects**: fadeIn, zoomIn, slideIn, flyIn, rotateIn
+- **Emphasis Effects**: pulse, shake, blink, scale, highlight
+- **Exit Effects**: fadeOut, zoomOut, slideOut, flyOut, rotateOut
 
-References:
-- [spec.md:281-307](file://spec.md#L281-L307)
+**Effect Parameters:**
+- Directional effects: direction (left/right/up/down), distance (pixels)
+- Scale effects: fromScale, toScale (numeric values)
+- Rotation effects: fromAngle, toAngle (degrees)
+- Brightness effects: brightness (intensity multiplier)
 
-### Serialization and Synchronization
-- Serialize scene graph, animations, and keyframes for persistence
-- Synchronize playback across multiple animations by aligning timing windows
-- Maintain consistent state via the engine's command system and history
+**Section sources**
+- [src/types/animation.ts:6-12](file://src/types/animation.ts#L6-L12)
+- [src/animation/buildKeyframes.ts:14-104](file://src/animation/buildKeyframes.ts#L14-L104)
 
-References:
-- [src/engine/history.ts:1-45](file://src/engine/history.ts#L1-L45)
-- [src/engine/commands.ts:1-67](file://src/engine/commands.ts#L1-L67)
+### Scheduler Usage Patterns
+**Step-Based Animation Sequencing:**
+- click: Initiates new animation step (user interaction)
+- withPrev: Executes animation concurrently with previous batch
+- afterPrev: Executes animation sequentially after previous batch completes
 
-### Build and Runtime
-- React and Vite configuration for development and production builds
-- requestAnimationFrame-based animation loop with performance.now() timing
+**Implementation Patterns:**
+- Complex presentation flows with multiple animation layers
+- Interactive storytelling with user-controlled pacing
+- Coordinated multi-element animations with precise timing
 
-References:
-- [package.json:1-29](file://package.json#L1-L29)
-- [src/engine/timeline.ts:48-66](file://src/engine/timeline.ts#L48-L66)
+**Section sources**
+- [src/animation/scheduler.ts:13-49](file://src/animation/scheduler.ts#L13-L49)
+- [src/animation/scheduler.ts:56-135](file://src/animation/scheduler.ts#L56-L135)
+
+### Integration with Editor Components
+**AnimationPanel Integration:**
+- Direct integration with Engine for scene operations
+- AnimationEngine integration for playback control
+- Real-time preview and validation capabilities
+- Drag-and-drop reordering with automatic state updates
+
+**App Component Integration:**
+- Right-panel tab switching for animation interface
+- Preview modal integration for animation testing
+- State synchronization between editor and animation systems
+
+**Section sources**
+- [src/components/AnimationPanel.tsx:87-539](file://src/components/AnimationPanel.tsx#L87-L539)
+- [src/App.tsx:291-317](file://src/App.tsx#L291-L317)
+
+### Build and Runtime Configuration
+**Package Dependencies:**
+- gsap: Advanced animation and tweening library
+- @dnd-kit: Drag-and-drop functionality for animation management
+- React ecosystem: Core framework and UI components
+
+**Development Setup:**
+- TypeScript configuration for type safety
+- Vite build system for development and production
+- ESLint configuration for code quality
+
+**Section sources**
+- [package.json:12-20](file://package.json#L12-L20)
+- [package.json:21-32](file://package.json#L21-L32)

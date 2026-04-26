@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createEngine, DeleteElementCommand } from './engine';
 import { createMockDocument } from './types';
 import { AnimationEngine, WebAnimationAdapter, AnimationScheduler } from './animation';
@@ -18,17 +18,8 @@ function App() {
   const [rightPanelTab, setRightPanelTab] = useState<'properties' | 'animation'>('properties');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [stepScheduler, setStepScheduler] = useState<AnimationScheduler | null>(null);
-
-  // Close step preview when leaving animation tab or opening full preview
-  useEffect(() => {
-    if (rightPanelTab !== 'animation' || isPreviewOpen) {
-      if (stepScheduler) {
-        stepScheduler.reset();
-        setStepScheduler(null);
-        animationEngine.stopAll();
-      }
-    }
-  }, [rightPanelTab, isPreviewOpen, stepScheduler, animationEngine]);
+  const [stepProgress, setStepProgress] = useState({ current: 0, total: 0 });
+  const schedulerRef = useRef<AnimationScheduler | null>(null);
 
   const refresh = (): void => {
     setVersion((v) => v + 1);
@@ -44,28 +35,68 @@ function App() {
     }
   }, [version, engine, animationEngine]);
 
-  // Step preview scheduler
-  const startStepPreview = useCallback(() => {
-    const slideId = engine.scene.getDocument().currentSlideId;
-    const anims = engine.scene.getSlideAnimations(slideId).filter((a) => a.enable);
-    const scheduler = new AnimationScheduler(animationEngine);
-    scheduler.load(anims);
-    setStepScheduler(scheduler);
-  }, [engine, animationEngine]);
-
-  const stopStepPreview = useCallback(() => {
-    if (stepScheduler) {
-      stepScheduler.reset();
+  // Auto-manage step scheduler: create when on animation tab, destroy when leaving
+  useEffect(() => {
+    if (rightPanelTab === 'animation' && !isPreviewOpen) {
+      const slideId = engine.scene.getDocument().currentSlideId;
+      const anims = engine.scene.getSlideAnimations(slideId).filter((a) => a.enable);
+      const scheduler = new AnimationScheduler(animationEngine);
+      scheduler.load(anims);
+      schedulerRef.current = scheduler;
+      setStepScheduler(scheduler);
+      setStepProgress({ current: 0, total: scheduler.getStepCount() });
+    } else {
+      if (schedulerRef.current) {
+        schedulerRef.current.reset();
+        schedulerRef.current = null;
+      }
       setStepScheduler(null);
+      setStepProgress({ current: 0, total: 0 });
+      animationEngine.stopAll();
     }
+  }, [rightPanelTab, isPreviewOpen, engine, animationEngine]);
+
+  // Reload scheduler when animations change while on animation tab
+  useEffect(() => {
+    if (rightPanelTab === 'animation' && !isPreviewOpen && schedulerRef.current) {
+      const slideId = engine.scene.getDocument().currentSlideId;
+      const anims = engine.scene.getSlideAnimations(slideId).filter((a) => a.enable);
+      schedulerRef.current.reset();
+      schedulerRef.current.load(anims);
+      setStepProgress({ current: 0, total: schedulerRef.current.getStepCount() });
+    }
+  }, [version, rightPanelTab, isPreviewOpen, engine]);
+
+  const handleReset = useCallback(() => {
     animationEngine.stopAll();
-  }, [stepScheduler, animationEngine]);
+    if (schedulerRef.current) {
+      schedulerRef.current.reset();
+      const slideId = engine.scene.getDocument().currentSlideId;
+      const anims = engine.scene.getSlideAnimations(slideId).filter((a) => a.enable);
+      schedulerRef.current.load(anims);
+      setStepProgress({ current: 0, total: schedulerRef.current.getStepCount() });
+    }
+  }, [animationEngine, engine]);
 
   const handleNextStep = useCallback(() => {
-    if (stepScheduler) {
-      stepScheduler.playNextStep();
+    if (schedulerRef.current) {
+      schedulerRef.current.playNextStep();
+      setStepProgress({
+        current: schedulerRef.current.getCurrentStepIndex() + 1,
+        total: schedulerRef.current.getStepCount(),
+      });
     }
-  }, [stepScheduler]);
+  }, []);
+
+  const handlePreviousStep = useCallback(() => {
+    if (schedulerRef.current) {
+      schedulerRef.current.playPreviousStep();
+      setStepProgress({
+        current: schedulerRef.current.getCurrentStepIndex() + 1,
+        total: schedulerRef.current.getStepCount(),
+      });
+    }
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -169,9 +200,7 @@ function App() {
           {rightPanelTab === 'animation' && (
             <>
               <button
-                onClick={() => {
-                  animationEngine.stopAll();
-                }}
+                onClick={handleReset}
                 style={{
                   padding: '6px 12px',
                   fontSize: 12,
@@ -184,53 +213,36 @@ function App() {
               >
                 Reset
               </button>
-              {stepScheduler ? (
-                <>
-                  <button
-                    onClick={handleNextStep}
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: 12,
-                      border: '1px solid #d1d5db',
-                      borderRadius: 4,
-                      backgroundColor: '#3b82f6',
-                      color: '#ffffff',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Next Step ({stepScheduler.getCurrentStepIndex() + 1}/{stepScheduler.getStepCount()})
-                  </button>
-                  <button
-                    onClick={stopStepPreview}
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: 12,
-                      border: '1px solid #d1d5db',
-                      borderRadius: 4,
-                      backgroundColor: '#ffffff',
-                      color: '#374151',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Stop Preview
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={startStepPreview}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: 12,
-                    border: '1px solid #d1d5db',
-                    borderRadius: 4,
-                    backgroundColor: '#8b5cf6',
-                    color: '#ffffff',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Step Preview
-                </button>
-              )}
+              <button
+                onClick={handlePreviousStep}
+                disabled={!stepScheduler?.canGoBack()}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: 12,
+                  border: '1px solid #d1d5db',
+                  borderRadius: 4,
+                  backgroundColor: !stepScheduler?.canGoBack() ? '#9ca3af' : '#f59e0b',
+                  color: '#ffffff',
+                  cursor: !stepScheduler?.canGoBack() ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Previous Step
+              </button>
+              <button
+                onClick={handleNextStep}
+                disabled={!stepScheduler?.canAdvance()}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: 12,
+                  border: '1px solid #d1d5db',
+                  borderRadius: 4,
+                  backgroundColor: !stepScheduler?.canAdvance() ? '#9ca3af' : '#3b82f6',
+                  color: '#ffffff',
+                  cursor: !stepScheduler?.canAdvance() ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Next Step ({stepProgress.current}/{stepProgress.total})
+              </button>
             </>
           )}
           <button
