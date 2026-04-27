@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import type { DragEvent } from 'react';
 import type { Engine } from '../engine';
 import { AddElementCommand } from '../engine';
@@ -21,6 +21,15 @@ interface CanvasProps {
 
 export default function Canvas({ engine, animationEngine, onRefresh, version }: CanvasProps) {
   const slideRef = useRef<HTMLDivElement>(null);
+
+  // Scope animation DOM queries to the canvas slide container so
+  // animations always target the correct element in edit mode.
+  useEffect(() => {
+    animationEngine.setScopeRoot(slideRef.current);
+    return () => {
+      animationEngine.setScopeRoot(null);
+    };
+  }, [animationEngine]);
 
   const doc = engine.scene.getDocument();
   const currentPageId = doc.currentPageId;

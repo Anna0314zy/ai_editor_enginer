@@ -12,9 +12,18 @@ interface PreviewModalProps {
 
 export default function PreviewModal({ engine, animationEngine, onClose }: PreviewModalProps) {
   const doc = engine.scene.getDocument();
-  const currentPageId = doc.currentPageId;
-  const elements = engine.scene.getPageElements(currentPageId);
   const slideRef = useRef<HTMLDivElement>(null);
+
+  // Derive ordered page list from structureItems (preview-local ordering)
+  const pageIds = useMemo(
+    () => doc.structureItems.filter((item) => item.type === 'page').map((item) => item.id),
+    [doc.structureItems]
+  );
+
+  // Preview maintains its own current page so it doesn't mutate editor state
+  const [previewPageId, setPreviewPageId] = useState(doc.currentPageId);
+  const currentPageIndex = pageIds.indexOf(previewPageId);
+  const elements = engine.scene.getPageElements(previewPageId);
 
   const scheduler = useMemo(() => new AnimationScheduler(animationEngine), [animationEngine]);
 
@@ -29,11 +38,19 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
   }, [scheduler]);
 
   useEffect(() => {
-    const anims = engine.scene.getPageAnimations(currentPageId).filter((a) => a.enable);
+    // Register the preview page's animations into the shared engine
+    // so the scheduler can actually play them.
+    animationEngine.reset();
+    const allAnims = engine.scene.getPageAnimations(previewPageId);
+    for (const anim of allAnims) {
+      if (anim.enable) animationEngine.register(anim);
+    }
+
+    const anims = allAnims.filter((a) => a.enable);
     scheduler.load(anims);
     setStepInfo({ current: 0, total: scheduler.getStepCount() });
     return () => scheduler.reset();
-  }, [currentPageId, engine, scheduler]);
+  }, [previewPageId, engine, scheduler, animationEngine]);
 
   const handleAdvance = useCallback((): void => {
     if (scheduler.canAdvance()) {
@@ -51,10 +68,22 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
 
   const handleReset = useCallback((): void => {
     scheduler.reset();
-    const anims = engine.scene.getPageAnimations(currentPageId).filter((a) => a.enable);
+    const anims = engine.scene.getPageAnimations(previewPageId).filter((a) => a.enable);
     scheduler.load(anims);
     syncStepInfo();
-  }, [scheduler, engine, currentPageId, syncStepInfo]);
+  }, [scheduler, engine, previewPageId, syncStepInfo]);
+
+  const handleNextPage = useCallback((): void => {
+    if (currentPageIndex < pageIds.length - 1) {
+      setPreviewPageId(pageIds[currentPageIndex + 1]);
+    }
+  }, [currentPageIndex, pageIds]);
+
+  const handlePrevPage = useCallback((): void => {
+    if (currentPageIndex > 0) {
+      setPreviewPageId(pageIds[currentPageIndex - 1]);
+    }
+  }, [currentPageIndex, pageIds]);
 
   const handleCanvasClick = useCallback((): void => {
     handleAdvance();
@@ -64,7 +93,7 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
     animationEngine.setScopeRoot(slideRef.current);
 
     // Stop any running animations from edit mode
-    const pageElements = engine.scene.getPageElements(currentPageId);
+    const pageElements = engine.scene.getPageElements(previewPageId);
     for (const el of pageElements) {
       animationEngine.stop(el.id);
     }
@@ -72,23 +101,43 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
     const handleKeyDown = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') {
         onClose();
+        return;
       }
       if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
         handleAdvance();
+        return;
+      }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') {
+        e.preventDefault();
+        if (scheduler.canAdvance()) {
+          handleAdvance();
+        } else if (currentPageIndex < pageIds.length - 1) {
+          handleNextPage();
+        }
+        return;
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault();
+        if (scheduler.canGoBack()) {
+          handlePrevious();
+        } else if (currentPageIndex > 0) {
+          handlePrevPage();
+        }
+        return;
       }
     };
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      const pageElements = engine.scene.getPageElements(currentPageId);
+      const pageElements = engine.scene.getPageElements(previewPageId);
       for (const el of pageElements) {
         animationEngine.stop(el.id);
       }
       animationEngine.setScopeRoot(null);
     };
-  }, [currentPageId, animationEngine, engine, onClose, handleAdvance]);
+  }, [previewPageId, animationEngine, engine, onClose, handleAdvance, handlePrevious, handleNextPage, handlePrevPage, scheduler, currentPageIndex, pageIds.length]);
 
   const { current: currentStep, total: stepCount } = stepInfo;
 
@@ -133,7 +182,7 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
         ×
       </button>
 
-      {/* Progress indicator */}
+      {/* Page + Progress indicator */}
       <div
         style={{
           position: 'absolute',
@@ -143,13 +192,20 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
           color: 'rgba(255,255,255,0.7)',
           fontSize: 14,
           fontWeight: 500,
+          display: 'flex',
+          gap: 12,
+          alignItems: 'center',
         }}
       >
-        {stepCount === 0
-          ? 'No animations'
-          : currentStep > stepCount
-            ? 'Done'
-            : `Step ${currentStep} / ${stepCount}`}
+        <span>{`Page ${currentPageIndex + 1} / ${pageIds.length}`}</span>
+        <span style={{ opacity: 0.4 }}>|</span>
+        <span>
+          {stepCount === 0
+            ? 'No animations'
+            : currentStep > stepCount
+              ? 'Done'
+              : `Step ${currentStep} / ${stepCount}`}
+        </span>
       </div>
 
       {/* Slide container */}
@@ -158,7 +214,7 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
         style={{
           width: 960,
           height: 540,
-          backgroundColor: doc.pages[currentPageId]?.background ?? '#ffffff',
+          backgroundColor: doc.pages[previewPageId]?.background ?? '#ffffff',
           boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
           position: 'relative',
           overflow: 'hidden',
@@ -172,10 +228,57 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
         )}
       </div>
 
-      {/* Playback controls */}
+      {/* Page navigation */}
       <div
         style={{
           marginTop: 16,
+          display: 'flex',
+          gap: 8,
+          alignItems: 'center',
+        }}
+      >
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handlePrevPage();
+          }}
+          disabled={currentPageIndex <= 0}
+          style={{
+            padding: '6px 14px',
+            fontSize: 12,
+            border: '1px solid rgba(255,255,255,0.3)',
+            borderRadius: 4,
+            backgroundColor: currentPageIndex <= 0 ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)',
+            color: currentPageIndex <= 0 ? 'rgba(255,255,255,0.3)' : '#ffffff',
+            cursor: currentPageIndex <= 0 ? 'not-allowed' : 'pointer',
+          }}
+        >
+          Prev Page
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleNextPage();
+          }}
+          disabled={currentPageIndex >= pageIds.length - 1}
+          style={{
+            padding: '6px 14px',
+            fontSize: 12,
+            border: '1px solid rgba(255,255,255,0.3)',
+            borderRadius: 4,
+            backgroundColor: currentPageIndex >= pageIds.length - 1 ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)',
+            color: currentPageIndex >= pageIds.length - 1 ? 'rgba(255,255,255,0.3)' : '#ffffff',
+            cursor: currentPageIndex >= pageIds.length - 1 ? 'not-allowed' : 'pointer',
+          }}
+        >
+          Next Page
+        </button>
+      </div>
+
+      {/* Playback controls */}
+      <div
+        style={{
+          marginTop: 12,
           display: 'flex',
           gap: 8,
           alignItems: 'center',
@@ -244,7 +347,7 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
           fontSize: 12,
         }}
       >
-        Click anywhere or press Space/Enter to advance · Press Esc to exit
+        Click anywhere or press Space/Enter to advance · Arrow keys to navigate pages · Press Esc to exit
       </div>
     </div>
   );

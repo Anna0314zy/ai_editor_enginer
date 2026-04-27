@@ -29,13 +29,13 @@
 
 ## Update Summary
 **Changes Made**
-- Enhanced Engine class documentation to include new animation command system and snap engine integration
-- Updated Scene Graph architecture to include animation data management alongside elements
-- Added comprehensive Animation Engine system documentation with adapter pattern
-- Integrated Snap Engine for alignment and distribution functionality
-- Expanded command pattern system with animation-specific commands
-- Updated architecture diagrams to reflect the enhanced component structure
-- Enhanced performance considerations for animation and snapping operations
+- Updated Scene Graph architecture to reflect migration from slide-based to page-based document model
+- Modified all slide references to pages throughout documentation
+- Enhanced Document structure with hierarchical page management and structure items
+- Updated animation systems to work with page-specific collections
+- Revised Scene Graph ER diagram to show page-based relationships
+- Updated command patterns to operate on page-scoped elements and animations
+- Enhanced performance considerations for page-based traversal and management
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -50,9 +50,9 @@
 10. [Appendices](#appendices)
 
 ## Introduction
-This document describes the Core Engine System that acts as the central command execution hub for a framework-agnostic design tool engine. The system has been significantly enhanced with three major subsystems: Scene for hierarchical slide and element management, History for undo/redo functionality, Timeline for animation playback, Animation Engine for advanced animation capabilities, and Snap Engine for precise alignment and distribution. It focuses on:
+This document describes the Core Engine System that acts as the central command execution hub for a framework-agnostic design tool engine. The system has been significantly enhanced with three major subsystems: Scene for hierarchical page and element management, History for undo/redo functionality, Timeline for animation playback, Animation Engine for advanced animation capabilities, and Snap Engine for precise alignment and distribution. It focuses on:
 - The Engine class and its role as the single source of truth for state mutations
-- The Scene Graph architecture for hierarchical slide, element, and animation management
+- The Scene Graph architecture for hierarchical page, element, and animation management
 - The Command pattern enabling undo/redo functionality with animation support
 - History management mechanisms
 - Timeline animation system
@@ -67,7 +67,7 @@ This document describes the Core Engine System that acts as the central command 
 
 ## Project Structure
 The project is organized into clear layers with the enhanced engine system including animation and snapping capabilities:
-- Engine: Central command execution and state orchestration with Scene, History, Timeline, Animation Engine, and Snap Engine components
+- Engine: Central command execution and state orchestration with Scene, History, Timeline, Animation Commands, and Snap Engine components
 - Animation: Advanced animation system with adapter pattern and scheduler
 - Renderer: Pure data-to-UI rendering utilities
 - Store: Editor state separate from scene data
@@ -134,10 +134,10 @@ TYPES --> ANIMATION_TYPES
 - [components/Canvas.tsx:1-169](file://src/components/Canvas.tsx#L1-L169)
 - [components/AnimationPanel.tsx:1-847](file://src/components/AnimationPanel.tsx#L1-L847)
 - [engine/engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
-- [engine/scene.ts:1-198](file://src/engine/scene.ts#L1-L198)
+- [engine/scene.ts:1-273](file://src/engine/scene.ts#L1-L273)
 - [engine/history.ts:1-45](file://src/engine/history.ts#L1-L45)
 - [engine/timeline.ts:1-68](file://src/engine/timeline.ts#L1-L68)
-- [engine/commands.ts:1-173](file://src/engine/commands.ts#L1-L173)
+- [engine/commands.ts:1-161](file://src/engine/commands.ts#L1-L161)
 - [engine/animationCommands.ts:1-44](file://src/engine/animationCommands.ts#L1-L44)
 - [engine/snapEngine.ts:1-259](file://src/engine/snapEngine.ts#L1-L259)
 - [animation/index.ts:1-8](file://src/animation/index.ts#L1-L8)
@@ -145,7 +145,7 @@ TYPES --> ANIMATION_TYPES
 - [animation/scheduler.ts:1-136](file://src/animation/scheduler.ts#L1-L136)
 - [renderer/index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
 - [store/index.ts:1-2](file://src/store/index.ts#L1-L2)
-- [types/index.ts:1-262](file://src/types/index.ts#L1-L262)
+- [types/index.ts:1-159](file://src/types/index.ts#L1-L159)
 - [types/animation.ts:1-113](file://src/types/animation.ts#L1-L113)
 
 **Section sources**
@@ -154,10 +154,10 @@ TYPES --> ANIMATION_TYPES
 - [components/Canvas.tsx:1-169](file://src/components/Canvas.tsx#L1-L169)
 - [components/AnimationPanel.tsx:1-847](file://src/components/AnimationPanel.tsx#L1-L847)
 - [engine/engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
-- [engine/scene.ts:1-198](file://src/engine/scene.ts#L1-L198)
+- [engine/scene.ts:1-273](file://src/engine/scene.ts#L1-L273)
 - [engine/history.ts:1-45](file://src/engine/history.ts#L1-L45)
 - [engine/timeline.ts:1-68](file://src/engine/timeline.ts#L1-L68)
-- [engine/commands.ts:1-173](file://src/engine/commands.ts#L1-L173)
+- [engine/commands.ts:1-161](file://src/engine/commands.ts#L1-L161)
 - [engine/animationCommands.ts:1-44](file://src/engine/animationCommands.ts#L1-L44)
 - [engine/snapEngine.ts:1-259](file://src/engine/snapEngine.ts#L1-L259)
 - [animation/index.ts:1-8](file://src/animation/index.ts#L1-L8)
@@ -165,12 +165,12 @@ TYPES --> ANIMATION_TYPES
 - [animation/scheduler.ts:1-136](file://src/animation/scheduler.ts#L1-L136)
 - [renderer/index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
 - [store/index.ts:1-2](file://src/store/index.ts#L1-L2)
-- [types/index.ts:1-262](file://src/types/index.ts#L1-L262)
+- [types/index.ts:1-159](file://src/types/index.ts#L1-L159)
 - [types/animation.ts:1-113](file://src/types/animation.ts#L1-L113)
 
 ## Core Components
 - **Engine**: The central orchestrator that coordinates Scene, History, Timeline, Animation Commands, and Snap Engine components. It enforces that all state changes must go through engine.execute(command).
-- **Scene**: Manages the hierarchical structure of documents, slides, elements, and animations with CRUD operations and group hierarchy maintenance.
+- **Scene**: Manages the hierarchical structure of documents, pages, elements, and animations with CRUD operations and group hierarchy maintenance.
 - **History**: Maintains undo/redo stacks for command execution with proper stack behavior.
 - **Timeline**: Handles animation playback with time-based progression and requestAnimationFrame integration.
 - **Animation Engine**: Advanced animation system with adapter pattern supporting multiple animation backends (Web Animations API, GSAP).
@@ -182,16 +182,16 @@ TYPES --> ANIMATION_TYPES
 
 **Section sources**
 - [engine/engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
-- [engine/scene.ts:1-198](file://src/engine/scene.ts#L1-L198)
+- [engine/scene.ts:1-273](file://src/engine/scene.ts#L1-L273)
 - [engine/history.ts:1-45](file://src/engine/history.ts#L1-L45)
 - [engine/timeline.ts:1-68](file://src/engine/timeline.ts#L1-L68)
-- [engine/commands.ts:1-173](file://src/engine/commands.ts#L1-L173)
+- [engine/commands.ts:1-161](file://src/engine/commands.ts#L1-L161)
 - [engine/animationCommands.ts:1-44](file://src/engine/animationCommands.ts#L1-L44)
 - [engine/snapEngine.ts:1-259](file://src/engine/snapEngine.ts#L1-L259)
 - [animation/engine.ts:1-120](file://src/animation/engine.ts#L1-L120)
 - [renderer/index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
 - [store/index.ts:1-2](file://src/store/index.ts#L1-L2)
-- [types/index.ts:1-262](file://src/types/index.ts#L1-L262)
+- [types/index.ts:1-159](file://src/types/index.ts#L1-L159)
 
 ## Architecture Overview
 The engine layer is framework-agnostic and acts as the single source of truth. UI components trigger interactions that produce commands. The engine executes commands against the scene graph, updates history, and notifies the renderer to re-render. Editor state (selection, panels) is kept separate in the store. The Timeline component handles animation playback independently, while the Animation Engine manages complex animation lifecycles with adapter pattern support.
@@ -258,18 +258,24 @@ class Engine {
 - [engine/engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
 
 ### Scene Graph Architecture
-The Scene component manages the hierarchical structure of documents, slides, elements, and animations. It provides CRUD operations and maintains group hierarchy consistency.
+The Scene component manages the hierarchical structure of documents, pages, elements, and animations. It provides CRUD operations and maintains group hierarchy consistency.
+
+**Updated** Migrated from slide-based to page-based document model with enhanced hierarchical page management and structure items.
 
 - **Core Entities**:
-  - **Document**: Contains elements, slides, and animations with current slide tracking
-  - **Slide**: Container of element ids and animation ids with ordering and background
+  - **Document**: Contains pages, nodes, structure items, and current page tracking
+  - **Page**: Container of element ids and animation ids with ordering and background
+  - **Node**: Reference entity for structural organization
   - **Element**: Shape, image, text, or group with position, size, rotation, opacity, visibility, and hierarchy
   - **AnimationConfig**: Animation definitions with type, effect, timing, and parameters
+  - **StructureItem**: Ordered list of pages and nodes for document navigation
   - **Group Hierarchy**: Parent-child relationships maintained through parentId and childrenIds
 - **Operations**:
-  - Add/update/delete/get element operations
-  - Add/update/delete/get animation operations
-  - Get slide elements and animations by slideId
+  - Add/update/delete/get page operations with structure item management
+  - Add/update/delete/get node operations
+  - Add/update/delete/get element operations scoped to pages
+  - Add/update/delete/get animation operations scoped to pages
+  - Get page elements and animations by pageId
   - Automatic group hierarchy maintenance
   - Pure data operations without React dependency
 
@@ -278,19 +284,25 @@ erDiagram
 DOCUMENT {
 string id
 string name
-record elements
-record slides
-record animations
-string currentSlideId
-array slideOrder
+record pages
+record nodes
+array structureItems
+string currentPageId
 }
-SLIDE {
+PAGE {
 string id PK
 string name
-array elementIds
-array animationIds
-number order
 string background
+record elements
+record animations
+}
+NODE {
+string id PK
+string name
+}
+STRUCTURE_ITEM {
+string type
+string id
 }
 ELEMENT {
 string id PK
@@ -320,50 +332,25 @@ string easing
 number repeatCount
 object params
 }
-GROUP_ELEMENT {
-string id PK
-type group
-}
-SHAPE_ELEMENT {
-string id PK
-type shape
-enum shapeType
-string fill
-string stroke
-number strokeWidth
-}
-TEXT_ELEMENT {
-string id PK
-type text
-string text
-number fontSize
-string fontFamily
-string color
-enum align
-}
-IMAGE_ELEMENT {
-string id PK
-type image
-string src
-enum objectFit
-}
-DOCUMENT ||--o{ SLIDE : "contains"
-SLIDE ||--o{ ELEMENT : "elementIds"
-SLIDE ||--o{ ANIMATION_CONFIG : "animationIds"
+DOCUMENT ||--o{ PAGE : "contains"
+DOCUMENT ||--o{ NODE : "contains"
+DOCUMENT ||--o{ STRUCTURE_ITEM : "ordered"
+PAGE ||--o{ ELEMENT : "elements"
+PAGE ||--o{ ANIMATION_CONFIG : "animations"
 ELEMENT ||--o{ ELEMENT : "childrenIds"
 ELEMENT ||--|| ELEMENT : "parentId"
 ANIMATION_CONFIG ||--|| ELEMENT : "elementId"
 ```
 
 **Diagram sources**
+- [types/index.ts:60-84](file://src/types/index.ts#L60-L84)
 - [types/index.ts:69-77](file://src/types/index.ts#L69-L77)
-- [types/index.ts:60-67](file://src/types/index.ts#L60-L67)
 - [types/index.ts:9-54](file://src/types/index.ts#L9-L54)
-- [engine/scene.ts:18-62](file://src/engine/scene.ts#L18-L62)
+- [engine/scene.ts:18-69](file://src/engine/scene.ts#L18-L69)
 
 **Section sources**
-- [engine/scene.ts:1-198](file://src/engine/scene.ts#L1-L198)
-- [types/index.ts:1-262](file://src/types/index.ts#L1-L262)
+- [engine/scene.ts:1-273](file://src/engine/scene.ts#L1-L273)
+- [types/index.ts:1-159](file://src/types/index.ts#L1-L159)
 
 ### Animation Command System
 The animation command system implements the Command pattern specifically for animation management, providing atomic operations for animation lifecycle management.
@@ -372,10 +359,10 @@ The animation command system implements the Command pattern specifically for ani
   - execute(): applies the animation operation to the scene graph
   - undo(): reverses the animation operation using stored state
 - **Implemented Animation Commands**:
-  - **AddAnimationCommand**: Creates new animation configurations with automatic slide association
-  - **RemoveAnimationCommand**: Removes animations and restores original slide positions
+  - **AddAnimationCommand**: Creates new animation configurations with automatic page association
+  - **RemoveAnimationCommand**: Removes animations and restores original page positions
   - **UpdateAnimationCommand**: Updates animation properties with before/after state snapshots
-  - **ReorderAnimationsCommand**: Manages animation ordering within slides
+  - **ReorderAnimationsCommand**: Manages animation ordering within pages
   - **BatchAnimationCommand**: Captures before/after snapshots of all animation configs for complex operations
 - **State Management**:
   - Commands capture before state for undo operations
@@ -391,7 +378,7 @@ class Command {
 }
 class AddAnimationCommand {
 +scene : Scene
-+slideId : string
++pageId : string
 +config : AnimationConfig
 +execute()
 +undo()
@@ -400,7 +387,7 @@ class RemoveAnimationCommand {
 +scene : Scene
 +configId : string
 +removedConfig : AnimationConfig
-+slideId : string
++pageId : string
 +prevIndex : number
 +execute()
 +undo()
@@ -415,7 +402,7 @@ class UpdateAnimationCommand {
 }
 class ReorderAnimationsCommand {
 +scene : Scene
-+slideId : string
++pageId : string
 +afterIds : string[]
 +beforeIds : string[]
 +execute()
@@ -437,11 +424,11 @@ BatchAnimationCommand ..|> Command
 ```
 
 **Diagram sources**
-- [engine/commands.ts:72-172](file://src/engine/commands.ts#L72-L172)
+- [engine/commands.ts:74-160](file://src/engine/commands.ts#L74-L160)
 - [engine/animationCommands.ts:14-43](file://src/engine/animationCommands.ts#L14-L43)
 
 **Section sources**
-- [engine/commands.ts:1-173](file://src/engine/commands.ts#L1-L173)
+- [engine/commands.ts:1-161](file://src/engine/commands.ts#L1-L161)
 - [engine/animationCommands.ts:1-44](file://src/engine/animationCommands.ts#L1-L44)
 
 ### History Management
@@ -712,7 +699,7 @@ Engine-->>UI : "success"
 
 **Diagram sources**
 - [engine/engine.ts:29-32](file://src/engine/engine.ts#L29-L32)
-- [engine/commands.ts:11-17](file://src/engine/commands.ts#L11-L17)
+- [engine/commands.ts:4-18](file://src/engine/commands.ts#L4-L18)
 
 #### Executing Animation Commands
 - **Trigger**: Animation panel interaction
@@ -735,16 +722,17 @@ Engine-->>UI : "success"
 
 **Diagram sources**
 - [components/AnimationPanel.tsx:203-213](file://src/components/AnimationPanel.tsx#L203-L213)
-- [engine/commands.ts:79-85](file://src/engine/commands.ts#L79-L85)
+- [engine/commands.ts:74-88](file://src/engine/commands.ts#L74-L88)
 
 #### Scene Graph Traversal
-- **Retrieve slide elements**: getSlideElements(slideId)
+- **Retrieve page elements**: getPageElements(pageId)
 - **Access element tree**: traverse via id references (parentId/childrenIds)
 - **Group hierarchy**: maintain parent-child relationships automatically
+- **Page management**: navigate between pages using structure items
 
 ```mermaid
 flowchart TD
-Start(["Given Slide ID"]) --> Fetch["Fetch Slide"]
+Start(["Given Page ID"]) --> Fetch["Fetch Page"]
 Fetch --> Loop{"Has Element IDs?"}
 Loop --> |Yes| Next["Get Element by ID"]
 Next --> Children{"Has Children?"}
@@ -756,7 +744,7 @@ Loop --> |No| End(["Traversal Complete"])
 ```
 
 **Diagram sources**
-- [engine/scene.ts:156-165](file://src/engine/scene.ts#L156-L165)
+- [engine/scene.ts:169-173](file://src/engine/scene.ts#L169-L173)
 
 #### State Mutation Patterns
 - **All mutations**: Must go through engine.execute(command)
@@ -776,7 +764,7 @@ Error --> Idle : "handle error"
 
 **Diagram sources**
 - [engine/engine.ts:29-40](file://src/engine/engine.ts#L29-L40)
-- [engine/commands.ts:11-43](file://src/engine/commands.ts#L11-L43)
+- [engine/commands.ts:4-44](file://src/engine/commands.ts#L4-L44)
 
 ## Dependency Analysis
 The engine components have clear, well-defined dependencies with the renderer, animation system, and types layer.
@@ -822,36 +810,40 @@ ANIMATION_ENGINE --> ADAPTERS["Animation Adapters"]
 **Diagram sources**
 - [renderer/index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
 - [engine/engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
-- [engine/scene.ts:1-198](file://src/engine/scene.ts#L1-L198)
+- [engine/scene.ts:1-273](file://src/engine/scene.ts#L1-L273)
 - [engine/history.ts:1-45](file://src/engine/history.ts#L1-L45)
 - [engine/timeline.ts:1-68](file://src/engine/timeline.ts#L1-L68)
-- [engine/commands.ts:1-173](file://src/engine/commands.ts#L1-L173)
+- [engine/commands.ts:1-161](file://src/engine/commands.ts#L1-L161)
 - [engine/animationCommands.ts:1-44](file://src/engine/animationCommands.ts#L1-L44)
 - [engine/snapEngine.ts:1-259](file://src/engine/snapEngine.ts#L1-L259)
 - [animation/engine.ts:1-120](file://src/animation/engine.ts#L1-L120)
 - [animation/scheduler.ts:1-136](file://src/animation/scheduler.ts#L1-L136)
 - [store/index.ts:1-2](file://src/store/index.ts#L1-L2)
-- [types/index.ts:1-262](file://src/types/index.ts#L1-L262)
+- [types/index.ts:1-159](file://src/types/index.ts#L1-L159)
 
 **Section sources**
 - [renderer/index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
 - [engine/engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
-- [engine/scene.ts:1-198](file://src/engine/scene.ts#L1-L198)
+- [engine/scene.ts:1-273](file://src/engine/scene.ts#L1-L273)
 - [engine/history.ts:1-45](file://src/engine/history.ts#L1-L45)
 - [engine/timeline.ts:1-68](file://src/engine/timeline.ts#L1-L68)
-- [engine/commands.ts:1-173](file://src/engine/commands.ts#L1-L173)
+- [engine/commands.ts:1-161](file://src/engine/commands.ts#L1-L161)
 - [engine/animationCommands.ts:1-44](file://src/engine/animationCommands.ts#L1-L44)
 - [engine/snapEngine.ts:1-259](file://src/engine/snapEngine.ts#L1-L259)
 - [animation/engine.ts:1-120](file://src/animation/engine.ts#L1-L120)
 - [animation/scheduler.ts:1-136](file://src/animation/scheduler.ts#L1-L136)
 - [store/index.ts:1-2](file://src/store/index.ts#L1-L2)
-- [types/index.ts:1-262](file://src/types/index.ts#L1-L262)
+- [types/index.ts:1-159](file://src/types/index.ts#L1-L159)
 
 ## Performance Considerations
 - **Immutable scene updates**:
   - Prefer shallow copies and replace changed subtrees to minimize re-renders
 - **Efficient traversal**:
   - Use id-based references to avoid deep scans; cache computed hierarchies when beneficial
+- **Page-based optimization**:
+  - Page-scoped operations reduce global search complexity
+  - Structure items enable efficient page navigation
+  - Animation operations scoped to specific pages improve performance
 - **Renderer purity**:
   - Pure functions enable easy memoization and predictable re-renders
 - **Memory management**:
@@ -892,6 +884,9 @@ ANIMATION_ENGINE --> ADAPTERS["Animation Adapters"]
 - **Symptom**: Snap functionality not working
   - **Cause**: Invalid snap input or threshold settings
   - **Fix**: Verify snap input parameters and adjust threshold values as needed
+- **Symptom**: Page management issues
+  - **Cause**: Incorrect page operations or missing structure items
+  - **Fix**: Ensure proper page creation with structure item registration and current page tracking
 
 **Section sources**
 - [engine/engine.ts:29-40](file://src/engine/engine.ts#L29-L40)
@@ -899,9 +894,10 @@ ANIMATION_ENGINE --> ADAPTERS["Animation Adapters"]
 - [engine/timeline.ts:27-46](file://src/engine/timeline.ts#L27-L46)
 - [animation/engine.ts:15-17](file://src/animation/engine.ts#L15-L17)
 - [engine/snapEngine.ts:242-243](file://src/engine/snapEngine.ts#L242-L243)
+- [engine/scene.ts:18-69](file://src/engine/scene.ts#L18-L69)
 
 ## Conclusion
-The Core Engine System establishes a robust, framework-agnostic foundation for a design tool with significantly enhanced capabilities. The new system with Scene, History, Timeline, Animation Engine, and Snap Engine components provides a solid foundation for scalable features like rendering, animation, snapping, plugins, and collaboration. The separation of concerns between scene data and editor state, combined with the reliable Command/History system, timeline animation capabilities, advanced animation engine with adapter pattern, and precise snap functionality, ensures predictable behavior, strong undo/redo support, maintainable architecture, and professional-grade animation and alignment features.
+The Core Engine System establishes a robust, framework-agnostic foundation for a design tool with significantly enhanced capabilities. The new system with Scene, History, Timeline, Animation Engine, and Snap Engine components provides a solid foundation for scalable features like rendering, animation, snapping, plugins, and collaboration. The migration to a page-based document model with hierarchical page management enhances the system's flexibility and scalability. The separation of concerns between scene data and editor state, combined with the reliable Command/History system, timeline animation capabilities, advanced animation engine with adapter pattern, and precise snap functionality, ensures predictable behavior, strong undo/redo support, maintainable architecture, and professional-grade animation and alignment features.
 
 ## Appendices
 
@@ -915,7 +911,7 @@ The Core Engine System establishes a robust, framework-agnostic foundation for a
 - **Animation engine synchronized (for animation commands)**
 
 **Section sources**
-- [engine/commands.ts:11-43](file://src/engine/commands.ts#L11-L43)
+- [engine/commands.ts:4-44](file://src/engine/commands.ts#L4-L44)
 - [engine/engine.ts:29-32](file://src/engine/engine.ts#L29-L32)
 
 ### Animation Command Execution Workflow
@@ -929,16 +925,20 @@ The Core Engine System establishes a robust, framework-agnostic foundation for a
 
 **Section sources**
 - [components/AnimationPanel.tsx:203-236](file://src/components/AnimationPanel.tsx#L203-L236)
-- [engine/commands.ts:79-171](file://src/engine/commands.ts#L79-L171)
+- [engine/commands.ts:74-160](file://src/engine/commands.ts#L74-L160)
 
 ### Serialization and Deserialization
 - **Commands**:
   - Serialize command type and payload
   - Deserialize to recreate command instances
 - **Scene Graph**:
+  - Serialize pages as Record<string, Page>
   - Serialize elements as Record<string, Element>
   - Serialize animations as Record<string, AnimationConfig>
   - Deserialize to rebuild id references and hierarchy
+- **Page Management**:
+  - Serialize structure items for document navigation
+  - Maintain page ordering and current page tracking
 - **Animation Configurations**:
   - Serialize animation effects, parameters, and timing
   - Support for multiple animation backends
@@ -949,7 +949,7 @@ The Core Engine System establishes a robust, framework-agnostic foundation for a
   - Support for custom thresholds and canvas sizes
 
 **Section sources**
-- [types/index.ts:126-205](file://src/types/index.ts#L126-L205)
+- [types/index.ts:60-84](file://src/types/index.ts#L60-L84)
 - [types/animation.ts:26-88](file://src/types/animation.ts#L26-L88)
-- [engine/commands.ts:11-172](file://src/engine/commands.ts#L11-L172)
+- [engine/commands.ts:4-160](file://src/engine/commands.ts#L4-L160)
 - [engine/snapEngine.ts:11-16](file://src/engine/snapEngine.ts#L11-L16)

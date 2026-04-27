@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import type { DragEvent } from 'react';
 import type { Engine } from '../engine';
-import { renderElement } from '../renderer';
+import { renderThumbnail } from '../renderer';
 
 interface StructurePanelProps {
   engine: Engine;
@@ -327,7 +327,7 @@ export default function StructurePanel({ engine, onRefresh }: StructurePanelProp
                         }}
                       >
                         {Object.values(doc.pages[proc.id]?.elements ?? {}).map((el) =>
-                          renderElement(el, {})
+                          renderThumbnail(el)
                         )}
                       </div>
                     </div>

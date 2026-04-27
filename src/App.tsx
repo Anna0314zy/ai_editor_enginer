@@ -39,9 +39,15 @@ function App() {
   useEffect(() => {
     if (rightPanelTab === 'animation' && !isPreviewOpen) {
       const pageId = engine.scene.getDocument().currentPageId;
-      const anims = engine.scene.getPageAnimations(pageId).filter((a) => a.enable);
+      const anims = engine.scene.getPageAnimations(pageId);
+      // Re-sync animationEngine configs to the current edit page
+      animationEngine.reset();
+      for (const anim of anims) {
+        if (anim.enable) animationEngine.register(anim);
+      }
+      const enabledAnims = anims.filter((a) => a.enable);
       const scheduler = new AnimationScheduler(animationEngine);
-      scheduler.load(anims);
+      scheduler.load(enabledAnims);
       schedulerRef.current = scheduler;
       setStepScheduler(scheduler);
       setStepProgress({ current: 0, total: scheduler.getStepCount() });

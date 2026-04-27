@@ -12,17 +12,18 @@
 - [types/animation.ts](file://src/types/animation.ts)
 - [types/index.ts](file://src/types/index.ts)
 - [engine/engine.ts](file://src/engine/engine.ts)
-- [animatespec.md](file://animatespec.md)
+- [components/AnimationPanel.tsx](file://src/components/AnimationPanel.tsx)
+- [App.tsx](file://src/App.tsx)
 </cite>
 
 ## Update Summary
 **Changes Made**
-- Updated Timeline Engine architecture to integrate with new Animation Engine system
-- Added comprehensive documentation for Animation Scheduler and Batch Execution Model
-- Documented new Animation Evaluation System with keyframe interpolation improvements
-- Added support for complex animation sequences and user-triggered animations
-- Integrated Web Animations API and GSAP adapter architectures
-- Enhanced timeline engine with new animation evaluation system
+- Enhanced AnimationScheduler with bidirectional step navigation capabilities
+- Added step progress tracking and UI integration for step-based animation sequencing
+- Updated documentation to cover new step-based animation execution model
+- Documented bidirectional navigation methods: playNextStep(), playPreviousStep(), canGoBack()
+- Added progress tracking APIs: getCurrentStepIndex(), getStepCount(), canAdvance()
+- Integrated step scheduler with UI components for interactive animation playback
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -32,27 +33,30 @@
 5. [Detailed Component Analysis](#detailed-component-analysis)
 6. [Animation Engine System](#animation-engine-system)
 7. [Animation Scheduler and Sequencing](#animation-scheduler-and-sequencing)
-8. [Keyframe Interpolation and Evaluation](#keyframe-interpolation-and-evaluation)
-9. [Adapter Architecture](#adapter-architecture)
-10. [Integration with Timeline Engine](#integration-with-timeline-engine)
-11. [Performance Considerations](#performance-considerations)
-12. [Troubleshooting Guide](#troubleshooting-guide)
-13. [Conclusion](#conclusion)
+8. [Step-Based Animation Execution Model](#step-based-animation-execution-model)
+9. [Bidirectional Navigation and Progress Tracking](#bidirectional-navigation-and-progress-tracking)
+10. [Keyframe Interpolation and Evaluation](#keyframe-interpolation-and-evaluation)
+11. [Adapter Architecture](#adapter-architecture)
+12. [Integration with Timeline Engine](#integration-with-timeline-engine)
+13. [Performance Considerations](#performance-considerations)
+14. [Troubleshooting Guide](#troubleshooting-guide)
+15. [Conclusion](#conclusion)
 
 ## Introduction
-This document describes the Timeline Engine that powers time-based animation playback in the Slides Editor. The engine has been enhanced with a new animation evaluation system, keyframe interpolation improvements, and integration with the new animation engine architecture. The Timeline Engine now coordinates multiple animation systems including the traditional keyframe-based timeline and the new Animation Engine with its adapter pattern.
+This document describes the Timeline Engine that powers time-based animation playback in the Slides Editor. The engine has been significantly enhanced with a new step-based animation execution model that provides bidirectional navigation, progress tracking, and sophisticated batch processing capabilities. The Timeline Engine now coordinates multiple animation systems including the traditional keyframe-based timeline and the new Animation Engine with its adapter pattern, while supporting interactive step-based animation sequencing.
 
 The Timeline Engine integrates with both the legacy timeline system and the new Animation Engine:
 - Legacy timeline: deterministic time-driven model with keyframe interpolation
 - Animation Engine: modern adapter-based system supporting Web Animations API and GSAP
-- Scheduler: complex animation sequences with user-triggered animations
-- Keyframe interpolation: improved evaluation system for smooth animation playback
+- Enhanced Animation Scheduler: bidirectional step navigation with progress tracking
+- Advanced Batch Execution Model: concurrent animation execution within steps
+- Interactive UI Integration: real-time step progress visualization
 
 ## Project Structure
-The repository follows a layered architecture with enhanced animation capabilities:
-- UI layer: React components (App, Canvas)
+The repository follows a layered architecture with enhanced animation capabilities and step-based execution:
+- UI layer: React components (App, Canvas, AnimationPanel)
 - Core engine layer: Engine, Scene Graph, Renderer, Timeline
-- Animation subsystem: Animation Engine, Scheduler, Adapters
+- Animation subsystem: Animation Engine, Enhanced Scheduler, Adapters
 - Types: Shared TypeScript types for both timeline and animation systems
 
 ```mermaid
@@ -60,15 +64,17 @@ graph TB
 subgraph "UI Layer"
 APP["App.tsx"]
 CANVAS["Canvas.tsx"]
+ANIMATION_PANEL["AnimationPanel.tsx"]
+PREVIEW_MODAL["PreviewModal.tsx"]
 end
 subgraph "Core Engine Layer"
 ENGINE["Engine<br/>src/engine/engine.ts"]
 RENDERER["Renderer<br/>src/renderer/index.ts"]
 TIMELINE["Timeline Engine<br/>src/engine/timeline.ts"]
 end
-subgraph "Animation Subsystem"
+subgraph "Enhanced Animation Subsystem"
 ANIM_ENGINE["Animation Engine<br/>src/animation/engine.ts"]
-SCHEDULER["Animation Scheduler<br/>src/animation/scheduler.ts"]
+SCHEDULER["Enhanced Animation Scheduler<br/>src/animation/scheduler.ts"]
 ADAPTERS["Animation Adapters<br/>Web Animations API & GSAP"]
 KEYFRAMES["Keyframe Builder<br/>src/animation/buildKeyframes.ts"]
 end
@@ -81,6 +87,8 @@ APP --> CANVAS
 CANVAS --> ENGINE
 ENGINE --> RENDERER
 ENGINE --> TIMELINE
+ANIMATION_PANEL --> SCHEDULER
+PREVIEW_MODAL --> SCHEDULER
 ANIM_ENGINE --> ADAPTERS
 ANIM_ENGINE --> KEYFRAMES
 SCHEDULER --> ANIM_ENGINE
@@ -93,23 +101,27 @@ ANIM_TYPES --> ANIM_ENGINE
 - [engine/engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
 - [engine/timeline.ts:1-66](file://src/engine/timeline.ts#L1-L66)
 - [animation/engine.ts:1-120](file://src/animation/engine.ts#L1-L120)
-- [animation/scheduler.ts:1-136](file://src/animation/scheduler.ts#L1-L136)
+- [animation/scheduler.ts:1-160](file://src/animation/scheduler.ts#L1-L160)
 - [animation/buildKeyframes.ts:1-125](file://src/animation/buildKeyframes.ts#L1-L125)
 - [animation/webAnimationAdapter.ts:1-67](file://src/animation/webAnimationAdapter.ts#L1-L67)
 - [animation/gsapAdapter.ts:1-140](file://src/animation/gsapAdapter.ts#L1-L140)
 - [types/index.ts:1-262](file://src/types/index.ts#L1-L262)
 - [types/animation.ts:1-113](file://src/types/animation.ts#L1-L113)
+- [components/AnimationPanel.tsx:1-856](file://src/components/AnimationPanel.tsx#L1-L856)
+- [App.tsx:1-120](file://src/App.tsx#L1-L120)
 
 **Section sources**
 - [engine/engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
 - [engine/timeline.ts:1-66](file://src/engine/timeline.ts#L1-L66)
 - [animation/engine.ts:1-120](file://src/animation/engine.ts#L1-L120)
-- [animation/scheduler.ts:1-136](file://src/animation/scheduler.ts#L1-L136)
+- [animation/scheduler.ts:1-160](file://src/animation/scheduler.ts#L1-L160)
 - [animation/buildKeyframes.ts:1-125](file://src/animation/buildKeyframes.ts#L1-L125)
 - [animation/webAnimationAdapter.ts:1-67](file://src/animation/webAnimationAdapter.ts#L1-L67)
 - [animation/gsapAdapter.ts:1-140](file://src/animation/gsapAdapter.ts#L1-L140)
 - [types/index.ts:1-262](file://src/types/index.ts#L1-L262)
 - [types/animation.ts:1-113](file://src/types/animation.ts#L1-L113)
+- [components/AnimationPanel.tsx:1-856](file://src/components/AnimationPanel.tsx#L1-L856)
+- [App.tsx:1-120](file://src/App.tsx#L1-L120)
 
 ## Core Components
 The enhanced Timeline Engine is defined by the following core components:
@@ -119,27 +131,28 @@ The enhanced Timeline Engine is defined by the following core components:
 - Core capabilities: play, pause, seek with requestAnimationFrame integration
 - Time progression: delta-based time updates using performance.now()
 
-### Animation Engine System
+### Enhanced Animation Engine System
 - AnimationEngine: manages animation configurations and delegates playback
-- AnimationScheduler: implements Batch Execution Model for complex sequences
+- Enhanced AnimationScheduler: implements sophisticated step and batch execution with bidirectional navigation
 - AnimationAdapter: abstracts underlying animation libraries (Web Animations API, GSAP)
 - KeyframeBuilder: generates WAAPI-compatible keyframes from animation configs
 
 ### Animation Types and Scheduling
 - AnimationConfig: comprehensive animation definition with timing, effects, and triggers
-- ClickStep: user-triggered animation sequences
+- ClickStep: user-triggered animation sequences with batch execution
 - AnimationBatch: concurrent animation execution groups
 - StartType: 'click', 'withPrev', 'afterPrev' trigger mechanisms
+- Enhanced progress tracking: getCurrentStepIndex(), getStepCount(), canAdvance()
 
 **Section sources**
 - [engine/timeline.ts:1-66](file://src/engine/timeline.ts#L1-L66)
 - [animation/engine.ts:1-120](file://src/animation/engine.ts#L1-L120)
-- [animation/scheduler.ts:1-136](file://src/animation/scheduler.ts#L1-L136)
+- [animation/scheduler.ts:56-160](file://src/animation/scheduler.ts#L56-L160)
 - [animation/adapter.ts:1-27](file://src/animation/adapter.ts#L1-L27)
 - [types/animation.ts:26-113](file://src/types/animation.ts#L26-L113)
 
 ## Architecture Overview
-The Timeline Engine now operates within an enhanced architecture that supports both legacy timeline playback and modern animation systems. The engine coordinates multiple animation pathways while maintaining backward compatibility.
+The Timeline Engine now operates within an enhanced architecture that supports both legacy timeline playback and modern animation systems with interactive step-based sequencing. The engine coordinates multiple animation pathways while maintaining backward compatibility and adding sophisticated navigation capabilities.
 
 ```mermaid
 sequenceDiagram
@@ -147,7 +160,7 @@ participant UI as "UI Layer"
 participant Engine as "Engine"
 participant Timeline as "Legacy Timeline"
 participant AnimEngine as "Animation Engine"
-participant Scheduler as "Animation Scheduler"
+participant Scheduler as "Enhanced Animation Scheduler"
 participant Adapter as "Animation Adapter"
 participant Renderer as "Renderer"
 UI->>Engine : User triggers animation
@@ -162,20 +175,22 @@ Scheduler-->>AnimEngine : Next batch
 AnimEngine-->>Engine : Animation states
 Engine->>Renderer : Render based on states
 Renderer-->>UI : Updated UI
+UI->>Scheduler : Bidirectional navigation
+Scheduler->>AnimEngine : Previous step replay
 ```
 
 **Diagram sources**
 - [engine/engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
 - [engine/timeline.ts:1-66](file://src/engine/timeline.ts#L1-L66)
 - [animation/engine.ts:1-120](file://src/animation/engine.ts#L1-L120)
-- [animation/scheduler.ts:1-136](file://src/animation/scheduler.ts#L1-L136)
+- [animation/scheduler.ts:56-160](file://src/animation/scheduler.ts#L56-L160)
 - [animation/adapter.ts:1-27](file://src/animation/adapter.ts#L1-L27)
 
 **Section sources**
 - [engine/engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
 - [engine/timeline.ts:1-66](file://src/engine/timeline.ts#L1-L66)
 - [animation/engine.ts:1-120](file://src/animation/engine.ts#L1-L120)
-- [animation/scheduler.ts:1-136](file://src/animation/scheduler.ts#L1-L136)
+- [animation/scheduler.ts:56-160](file://src/animation/scheduler.ts#L56-L160)
 - [animation/adapter.ts:1-27](file://src/animation/adapter.ts#L1-L27)
 
 ## Detailed Component Analysis
@@ -288,20 +303,25 @@ class AnimationEngine {
 +stop(id)
 +stopAll()
 }
-class AnimationScheduler {
+class EnhancedAnimationScheduler {
 +steps : ClickStep[]
 +currentStepIndex : number
 +load(animations)
 +playNextStep()
++playPreviousStep()
 +playFromStep(index)
 +reset()
++getCurrentStepIndex()
++getStepCount()
++canGoBack()
++canAdvance()
 }
 class Renderer {
 +render(element, engine)
 }
 Engine --> Timeline : "coordinates"
 Engine --> AnimationEngine : "coordinates"
-AnimationEngine --> AnimationScheduler : "uses"
+AnimationEngine --> EnhancedAnimationScheduler : "uses"
 Timeline --> Renderer : "provides states"
 AnimationEngine --> Renderer : "provides states"
 ```
@@ -310,13 +330,13 @@ AnimationEngine --> Renderer : "provides states"
 - [engine/engine.ts:7-19](file://src/engine/engine.ts#L7-L19)
 - [engine/timeline.ts:1-66](file://src/engine/timeline.ts#L1-L66)
 - [animation/engine.ts:9-120](file://src/animation/engine.ts#L9-L120)
-- [animation/scheduler.ts:56-136](file://src/animation/scheduler.ts#L56-L136)
+- [animation/scheduler.ts:56-160](file://src/animation/scheduler.ts#L56-L160)
 
 **Section sources**
 - [engine/engine.ts:7-19](file://src/engine/engine.ts#L7-L19)
 - [engine/timeline.ts:1-66](file://src/engine/timeline.ts#L1-L66)
 - [animation/engine.ts:9-120](file://src/animation/engine.ts#L9-L120)
-- [animation/scheduler.ts:56-136](file://src/animation/scheduler.ts#L56-L136)
+- [animation/scheduler.ts:56-160](file://src/animation/scheduler.ts#L56-L160)
 
 ## Animation Engine System
 The new Animation Engine provides a modern, adapter-based approach to animation management with enhanced capabilities for complex animation sequences.
@@ -402,22 +422,26 @@ Registered --> Unregistered : unregister()
 - [types/animation.ts:26-39](file://src/types/animation.ts#L26-L39)
 
 ## Animation Scheduler and Sequencing
-The Animation Scheduler implements a sophisticated Batch Execution Model that supports complex animation sequences with user-triggered animations.
+The Animation Scheduler implements a sophisticated Batch Execution Model that supports complex animation sequences with user-triggered animations and bidirectional navigation.
 
 ### ClickStep and AnimationBatch Architecture
-The scheduler organizes animations into logical execution units:
+The scheduler organizes animations into logical execution units with enhanced capabilities:
 
 ```mermaid
 graph TB
-subgraph "Animation Sequence"
-STEP1["ClickStep 1"]
-STEP2["ClickStep 2"]
-STEP3["ClickStep 3"]
+subgraph "Enhanced Animation Sequence"
+STEP1["ClickStep 1<br/>Index: 0"]
+STEP2["ClickStep 2<br/>Index: 1"]
+STEP3["ClickStep 3<br/>Index: 2"]
 end
-subgraph "Within Each Step"
-BATCH1A["Batch 1A<br/>Concurrent Animations"]
-BATCH1B["Batch 1B<br/>Concurrent Animations"]
-BATCH2A["Batch 2A<br/>Concurrent Animations"]
+subgraph "Within Each Step - Sequential Batches"
+BATCH1A["Batch 1A<br/>Concurrent Animations<br/>Index: 0"]
+BATCH1B["Batch 1B<br/>Concurrent Animations<br/>Index: 1"]
+BATCH2A["Batch 2A<br/>Concurrent Animations<br/>Index: 0"]
+end
+subgraph "Bidirectional Navigation"
+NAVIGATION["Navigation Controls<br/>Next Step / Previous Step"]
+PROGRESS["Progress Tracking<br/>Step Index / Total Steps"]
 end
 STEP1 --> BATCH1A
 STEP1 --> BATCH1B
@@ -425,14 +449,16 @@ STEP2 --> BATCH2A
 BATCH1A -.->|"onFinish()"| STEP2
 BATCH1B -.->|"onFinish()"| STEP2
 BATCH2A -.->|"onFinish()"| STEP3
+NAVIGATION --> STEP1
+PROGRESS --> STEP1
 ```
 
 **Diagram sources**
-- [animation/scheduler.ts:56-136](file://src/animation/scheduler.ts#L56-L136)
+- [animation/scheduler.ts:56-160](file://src/animation/scheduler.ts#L56-L160)
 - [types/animation.ts:104-113](file://src/types/animation.ts#L104-L113)
 
 ### BuildClickSteps Algorithm
-The buildClickSteps function processes animation arrays into executable sequences:
+The buildClickSteps function processes animation arrays into executable sequences with enhanced logic:
 
 ```mermaid
 flowchart TD
@@ -459,16 +485,16 @@ NextAnim --> |Done| Return["Return steps array"]
 - [animation/scheduler.ts:13-49](file://src/animation/scheduler.ts#L13-L49)
 
 **Section sources**
-- [animation/scheduler.ts:13-136](file://src/animation/scheduler.ts#L13-L136)
+- [animation/scheduler.ts:13-160](file://src/animation/scheduler.ts#L13-L160)
 - [types/animation.ts:104-113](file://src/types/animation.ts#L104-L113)
 
-### Execution Model Details
-The scheduler implements a sophisticated execution model with proper state management:
+### Enhanced Execution Model Details
+The scheduler implements a sophisticated execution model with proper state management and bidirectional navigation:
 
 ```mermaid
 sequenceDiagram
 participant User as "User"
-participant Scheduler as "AnimationScheduler"
+participant Scheduler as "Enhanced AnimationScheduler"
 participant Engine as "AnimationEngine"
 participant Controller as "AnimationController"
 User->>Scheduler : playNextStep()
@@ -481,13 +507,155 @@ Scheduler->>Controller : register onFinish callbacks
 Controller-->>Scheduler : onFinish() callback
 Scheduler->>Scheduler : remove from unfinished set
 Scheduler->>Scheduler : if unfinished.size === 0<br/>execute next batch
+User->>Scheduler : playPreviousStep()
+Scheduler->>Scheduler : cancel all running animations
+Scheduler->>Scheduler : currentStepIndex--
+Scheduler->>Scheduler : replay current step
 ```
 
 **Diagram sources**
-- [animation/scheduler.ts:72-108](file://src/animation/scheduler.ts#L72-L108)
+- [animation/scheduler.ts:72-133](file://src/animation/scheduler.ts#L72-L133)
 
 **Section sources**
-- [animation/scheduler.ts:72-108](file://src/animation/scheduler.ts#L72-L108)
+- [animation/scheduler.ts:72-133](file://src/animation/scheduler.ts#L72-L133)
+
+## Step-Based Animation Execution Model
+The enhanced Animation Scheduler introduces a sophisticated step-based execution model that provides structured animation sequencing with bidirectional navigation capabilities.
+
+### Step Execution Flow
+The step-based model organizes animations into logical execution units with precise control:
+
+```mermaid
+flowchart TD
+Start["Animation Sequence"] --> Step1["Step 1<br/>User Click"]
+Step1 --> Batch1A["Batch 1A<br/>Concurrent Animations"]
+Batch1A --> Wait1["Wait for completion"]
+Wait1 --> Batch1B["Batch 1B<br/>Concurrent Animations"]
+Batch1B --> Wait2["Wait for completion"]
+Wait2 --> Step2["Step 2<br/>User Click"]
+Step2 --> Batch2A["Batch 2A<br/>Concurrent Animations"]
+Batch2A --> Complete["Sequence Complete"]
+```
+
+**Diagram sources**
+- [animation/scheduler.ts:79-108](file://src/animation/scheduler.ts#L79-L108)
+
+### Batch Execution Strategy
+Within each step, animations are executed with intelligent concurrency management:
+
+```mermaid
+graph TB
+subgraph "Step Execution"
+Step["ClickStep"]
+Batch["AnimationBatch"]
+end
+subgraph "Concurrent Execution"
+Anim1["Animation 1"]
+Anim2["Animation 2"]
+AnimN["Animation N"]
+end
+subgraph "Completion Tracking"
+Tracker["Unfinished Set<br/>Size: 0"]
+end
+Step --> Batch
+Batch --> Anim1
+Batch --> Anim2
+Batch --> AnimN
+Anim1 --> Tracker
+Anim2 --> Tracker
+AnimN --> Tracker
+Tracker --> |All finished| NextBatch["Execute Next Batch"]
+```
+
+**Diagram sources**
+- [animation/scheduler.ts:83-108](file://src/animation/scheduler.ts#L83-L108)
+
+**Section sources**
+- [animation/scheduler.ts:79-108](file://src/animation/scheduler.ts#L79-L108)
+
+## Bidirectional Navigation and Progress Tracking
+The enhanced Animation Scheduler provides comprehensive navigation controls and progress tracking for interactive animation playback.
+
+### Navigation Methods
+The scheduler supports sophisticated bidirectional navigation with proper state management:
+
+```mermaid
+classDiagram
+class EnhancedAnimationScheduler {
++steps : ClickStep[]
++currentStepIndex : number
++load(animations)
++playNextStep() boolean
++playPreviousStep() boolean
++playFromStep(stepIndex)
++reset()
++getCurrentStepIndex() number
++getStepCount() number
++canGoBack() boolean
++canAdvance() boolean
+}
+class StepNavigation {
++nextStep() : boolean
++previousStep() : boolean
++goToStep(index) : void
++canNavigateForward() : boolean
++canNavigateBackward() : boolean
+}
+EnhancedAnimationScheduler --> StepNavigation : "provides"
+```
+
+**Diagram sources**
+- [animation/scheduler.ts:110-159](file://src/animation/scheduler.ts#L110-L159)
+
+### Progress Tracking System
+Real-time progress tracking enables UI integration and user feedback:
+
+```mermaid
+stateDiagram-v2
+[*] --> Step0 : Initial State
+Step0 --> Step1 : playNextStep()
+Step1 --> Step2 : playNextStep()
+Step2 --> Step3 : playNextStep()
+Step3 --> Step2 : playPreviousStep()
+Step2 --> Step1 : playPreviousStep()
+Step1 --> Step0 : playPreviousStep()
+Step0 --> [*] : reset()
+```
+
+**Section sources**
+- [animation/scheduler.ts:110-159](file://src/animation/scheduler.ts#L110-L159)
+
+### UI Integration Examples
+The step scheduler integrates seamlessly with React components for interactive animation playback:
+
+```mermaid
+graph TB
+subgraph "UI Components"
+ANIMATION_PANEL["AnimationPanel.tsx"]
+PREVIEW_MODAL["PreviewModal.tsx"]
+APP["App.tsx"]
+end
+subgraph "Step Scheduler Integration"
+SCHEDULER["AnimationScheduler"]
+STATE["Step Progress State"]
+CONTROLS["Navigation Controls"]
+end
+ANIMATION_PANEL --> SCHEDULER
+PREVIEW_MODAL --> SCHEDULER
+APP --> SCHEDULER
+SCHEDULER --> STATE
+STATE --> CONTROLS
+CONTROLS --> ANIMATION_PANEL
+CONTROLS --> PREVIEW_MODAL
+```
+
+**Diagram sources**
+- [components/AnimationPanel.tsx:59-89](file://src/components/AnimationPanel.tsx#L59-L89)
+- [App.tsx:39-89](file://src/App.tsx#L39-L89)
+
+**Section sources**
+- [components/AnimationPanel.tsx:59-89](file://src/components/AnimationPanel.tsx#L59-L89)
+- [App.tsx:39-89](file://src/App.tsx#L39-L89)
 
 ## Keyframe Interpolation and Evaluation
 The keyframe interpolation system has been enhanced with improved evaluation algorithms and better integration with the animation engine.
@@ -669,7 +837,7 @@ CacheTween --> ReturnController["Return AnimationController"]
 - [animation/gsapAdapter.ts:13-140](file://src/animation/gsapAdapter.ts#L13-L140)
 
 ## Integration with Timeline Engine
-The Timeline Engine now integrates with both the legacy timeline system and the new Animation Engine, providing a unified animation playback experience.
+The Timeline Engine now integrates with both the legacy timeline system and the new Animation Engine, providing a unified animation playback experience with enhanced step-based sequencing capabilities.
 
 ### Timeline Engine Integration Points
 The integration maintains backward compatibility while leveraging new animation capabilities:
@@ -678,8 +846,9 @@ The integration maintains backward compatibility while leveraging new animation 
 graph TB
 subgraph "Timeline Integration"
 LegacyTimeline["Legacy Timeline<br/>src/engine/timeline.ts"]
-ModernEngine["Modern Animation Engine<br/>src/animation/engine.ts"]
-Scheduler["Animation Scheduler<br/>src/animation/scheduler.ts"]
+EnhancedEngine["Enhanced Animation Engine<br/>src/animation/engine.ts"]
+EnhancedScheduler["Enhanced Animation Scheduler<br/>src/animation/scheduler.ts"]
+UIIntegration["UI Integration<br/>AnimationPanel.tsx, App.tsx"]
 end
 subgraph "Animation Systems"
 WebAPI["Web Animations API"]
@@ -690,15 +859,20 @@ subgraph "Control Flow"
 UserInput["User Input"]
 CommandExecution["Command Execution"]
 RenderLoop["Render Loop"]
+Navigation["Step Navigation"]
+Progress["Progress Tracking"]
 end
 UserInput --> CommandExecution
 CommandExecution --> LegacyTimeline
-CommandExecution --> ModernEngine
-ModernEngine --> Scheduler
-Scheduler --> WebAPI
-Scheduler --> GSAP
+CommandExecution --> EnhancedEngine
+EnhancedEngine --> EnhancedScheduler
+EnhancedScheduler --> WebAPI
+EnhancedScheduler --> GSAP
+EnhancedScheduler --> UIIntegration
+UIIntegration --> Navigation
+UIIntegration --> Progress
 LegacyTimeline --> RenderLoop
-ModernEngine --> RenderLoop
+EnhancedEngine --> RenderLoop
 WebAPI --> RenderLoop
 GSAP --> RenderLoop
 KeyframeEval --> RenderLoop
@@ -707,7 +881,9 @@ KeyframeEval --> RenderLoop
 **Diagram sources**
 - [engine/timeline.ts:1-66](file://src/engine/timeline.ts#L1-L66)
 - [animation/engine.ts:1-120](file://src/animation/engine.ts#L1-L120)
-- [animation/scheduler.ts:1-136](file://src/animation/scheduler.ts#L1-L136)
+- [animation/scheduler.ts:1-160](file://src/animation/scheduler.ts#L1-L160)
+- [components/AnimationPanel.tsx:1-856](file://src/components/AnimationPanel.tsx#L1-L856)
+- [App.tsx:1-120](file://src/App.tsx#L1-L120)
 
 ### Animation Configuration Integration
 The timeline engine coordinates with animation configurations stored in the document:
@@ -732,9 +908,10 @@ number delay
 string easing
 string startType
 }
-ANIMATION_ENGINE {
+ENHANCED_ANIMATION_ENGINE {
 map configs
 AnimationAdapter adapter
+EnhancedAnimationScheduler scheduler
 }
 TIMELINE {
 number currentTime
@@ -743,24 +920,25 @@ boolean playing
 }
 DOCUMENT ||--o{ SLIDE : "contains"
 SLIDE ||--o{ ANIMATION_CONFIG : "references"
-ANIMATION_CONFIG ||--|| ANIMATION_ENGINE : "configured by"
-ANIMATION_ENGINE ||--|| TIMELINE : "executes on"
+ANIMATION_CONFIG ||--|| ENHANCED_ANIMATION_ENGINE : "configured by"
+ENHANCED_ANIMATION_ENGINE ||--|| TIMELINE : "executes on"
 ```
 
 **Diagram sources**
 - [types/index.ts:69-77](file://src/types/index.ts#L69-L77)
 - [types/index.ts:74](file://src/types/index.ts#L74)
 - [animation/engine.ts:10-17](file://src/animation/engine.ts#L10-L17)
+- [animation/scheduler.ts:56-64](file://src/animation/scheduler.ts#L56-L64)
 - [engine/timeline.ts:1-66](file://src/engine/timeline.ts#L1-L66)
 
 **Section sources**
 - [engine/timeline.ts:1-66](file://src/engine/timeline.ts#L1-L66)
 - [animation/engine.ts:1-120](file://src/animation/engine.ts#L1-L120)
-- [animation/scheduler.ts:1-136](file://src/animation/scheduler.ts#L1-L136)
+- [animation/scheduler.ts:1-160](file://src/animation/scheduler.ts#L1-L160)
 - [types/index.ts:69-77](file://src/types/index.ts#L69-L77)
 
 ## Performance Considerations
-The enhanced timeline engine incorporates several performance optimizations:
+The enhanced timeline engine incorporates several performance optimizations with enhanced step-based execution:
 
 ### RequestAnimationFrame Optimization
 The legacy timeline uses delta-based time progression for smooth animation:
@@ -768,34 +946,38 @@ The legacy timeline uses delta-based time progression for smooth animation:
 - Calculates frame deltas for consistent timing
 - Integrates with browser's refresh rate via `requestAnimationFrame`
 
-### Animation Engine Performance
+### Enhanced Animation Engine Performance
 The new animation system includes several optimization strategies:
 - WeakMap caching for animation instances (Web Animations API)
 - Tween reuse and cleanup (GSAP)
 - Efficient keyframe building with memoization
 - Batch execution to minimize DOM operations
+- Bidirectional navigation with proper state cleanup
+- Real-time progress tracking with minimal overhead
 
 ### Memory Management
 - Proper cleanup of animation controllers and adapters
 - Weak references to prevent memory leaks
 - Controlled animation lifecycle management
 - Scope-based element querying to limit DOM traversal
+- Step scheduler cleanup on component unmount
 
 ### Rendering Optimization
 - Minimal DOM writes per frame
 - Efficient transform application
 - Optimized keyframe interpolation
 - Reduced layout thrashing through transform batching
+- Step-based execution reduces unnecessary animation restarts
 
 ## Troubleshooting Guide
-Common issues and debugging approaches for the enhanced timeline engine:
+Common issues and debugging approaches for the enhanced timeline engine with step-based execution:
 
 ### Timeline Playback Issues
 - **Stuttering playback**: Verify `requestAnimationFrame` usage and check for long-running synchronous operations
 - **Incorrect timing**: Confirm `performance.now()` timestamps and ensure proper delta calculation
 - **Memory leaks**: Monitor animation controller lifecycle and ensure proper cleanup
 
-### Animation Engine Problems
+### Enhanced Animation Engine Problems
 - **Animation not playing**: Check element selection with `data-element-id` attribute
 - **Keyframe issues**: Verify WAAPI keyframe format and easing function compatibility
 - **Adapter conflicts**: Ensure proper adapter initialization and element scoping
@@ -804,20 +986,30 @@ Common issues and debugging approaches for the enhanced timeline engine:
 - **Sequence not advancing**: Check `onFinish` callback registration and completion detection
 - **Batch execution failures**: Verify animation controller availability and error handling
 - **Step state corruption**: Monitor `currentStepIndex` and ensure proper reset procedures
+- **Bidirectional navigation issues**: Verify `canGoBack()` and `canAdvance()` state management
+
+### Step-Based Execution Problems
+- **Step progress not updating**: Check `getCurrentStepIndex()` and `getStepCount()` integration
+- **Previous step navigation fails**: Verify animation cancellation and step replay logic
+- **UI integration issues**: Ensure proper state synchronization between scheduler and UI components
 
 ### Integration Issues
-- **Legacy vs Modern conflicts**: Ensure proper coordination between timeline and animation engine
+- **Legacy vs Enhanced conflicts**: Ensure proper coordination between timeline and animation engine
 - **Configuration mismatches**: Verify animation IDs match between document and engine
 - **Timing synchronization**: Check that timeline updates don't interfere with animation playback
+- **Step scheduler lifecycle**: Monitor proper initialization and cleanup of step schedulers
 
 ## Conclusion
-The enhanced Timeline Engine provides a comprehensive, time-driven foundation for animation playback in the Slides Editor. The integration of the new Animation Engine system with its adapter architecture enables support for complex animation sequences, user-triggered animations, and multiple animation libraries while maintaining backward compatibility with the legacy timeline system.
+The enhanced Timeline Engine provides a comprehensive, time-driven foundation for animation playback in the Slides Editor with sophisticated step-based execution capabilities. The integration of the new Animation Engine system with its enhanced adapter architecture enables support for complex animation sequences, user-triggered animations, bidirectional navigation, and real-time progress tracking while maintaining backward compatibility with the legacy timeline system.
 
 Key enhancements include:
 - **Dual Animation System**: Support for both legacy timeline and modern animation engine
-- **Advanced Scheduling**: Sophisticated batch execution model for complex sequences
+- **Advanced Scheduling**: Sophisticated batch execution model with bidirectional navigation
+- **Interactive Step Sequencing**: Real-time step-based animation playback with progress tracking
+- **Enhanced Navigation**: Comprehensive bidirectional navigation with proper state management
 - **Adapter Pattern**: Pluggable animation libraries (Web Animations API, GSAP)
 - **Improved Interpolation**: Enhanced keyframe evaluation and timing control
 - **Performance Optimizations**: Efficient memory management and rendering optimization
+- **UI Integration**: Seamless integration with React components for interactive animation playback
 
-The design supports future enhancements such as advanced easing functions, timeline UI integration, and optimized rendering paths while maintaining clean separation of concerns between the Engine, Renderer, and Animation subsystems.
+The design supports future enhancements such as advanced easing functions, timeline UI integration, optimized rendering paths, and sophisticated animation composition while maintaining clean separation of concerns between the Engine, Renderer, and Animation subsystems. The step-based execution model provides a robust foundation for complex animation scenarios while maintaining intuitive user interaction patterns.

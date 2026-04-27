@@ -178,3 +178,114 @@ export function renderElement(element: Element, props?: RenderProps): ReactNode 
       return null;
   }
 }
+
+// ============================================================================
+// Lightweight Thumbnail Renderer (no data-element-id, no events, no selection)
+// ============================================================================
+
+function renderThumbnailShape(element: ShapeElement): ReactNode {
+  const w = element.width;
+  const h = element.height;
+  const sw = element.strokeWidth;
+  const half = sw / 2;
+
+  let shape: ReactNode;
+  switch (element.shapeType) {
+    case 'rectangle':
+      shape = (
+        <rect
+          x={half}
+          y={half}
+          width={Math.max(0, w - sw)}
+          height={Math.max(0, h - sw)}
+          fill={element.fill}
+          stroke={element.stroke}
+          strokeWidth={sw}
+        />
+      );
+      break;
+    case 'circle':
+      shape = (
+        <ellipse
+          cx={w / 2}
+          cy={h / 2}
+          rx={Math.max(0, (w - sw) / 2)}
+          ry={Math.max(0, (h - sw) / 2)}
+          fill={element.fill}
+          stroke={element.stroke}
+          strokeWidth={sw}
+        />
+      );
+      break;
+    case 'triangle':
+      shape = (
+        <polygon
+          points={`${w / 2},${half} ${half},${h - half} ${w - half},${h - half}`}
+          fill={element.fill}
+          stroke={element.stroke}
+          strokeWidth={sw}
+        />
+      );
+      break;
+  }
+
+  return (
+    <div key={element.id} style={getBaseStyle(element)}>
+      <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
+        {shape}
+      </svg>
+    </div>
+  );
+}
+
+function renderThumbnailText(element: TextElement): ReactNode {
+  const style: CSSProperties = {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent:
+      element.align === 'center' ? 'center' : element.align === 'right' ? 'flex-end' : 'flex-start',
+    fontSize: element.fontSize,
+    fontFamily: element.fontFamily,
+    color: element.color,
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    padding: '4px',
+  };
+
+  return (
+    <div key={element.id} style={getBaseStyle(element)}>
+      <div style={style}>{element.text}</div>
+    </div>
+  );
+}
+
+function renderThumbnailImage(element: ImageElement): ReactNode {
+  const style: CSSProperties = {
+    width: '100%',
+    height: '100%',
+    objectFit: element.objectFit,
+  };
+
+  return (
+    <div key={element.id} style={getBaseStyle(element)}>
+      <img src={element.src} alt={element.name} style={style} draggable={false} />
+    </div>
+  );
+}
+
+export function renderThumbnail(element: Element): ReactNode {
+  switch (element.type) {
+    case 'shape':
+      return renderThumbnailShape(element);
+    case 'text':
+      return renderThumbnailText(element);
+    case 'image':
+      return renderThumbnailImage(element);
+    case 'group':
+      return null;
+    default:
+      return null;
+  }
+}
