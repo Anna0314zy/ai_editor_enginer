@@ -142,10 +142,32 @@ function renderImage(element: ImageElement, props: RenderProps): ReactNode {
       }}
       onMouseDown={(e) => props.onMouseDown?.(e, element.id)}
     >
-      <img src={element.src} alt={element.name} style={style} draggable={false} />
+      <img
+        src={element.src}
+        alt={element.name}
+        style={style}
+        draggable={false}
+        onError={(e) => {
+          const img = e.currentTarget;
+          if (img.src !== placeholderImageDataUri()) {
+            img.src = placeholderImageDataUri();
+          }
+        }}
+      />
       {props.isSelected && <SelectionOutline />}
     </div>
   );
+}
+
+export function placeholderImageDataUri(): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="150" viewBox="0 0 200 150">
+    <rect width="200" height="150" fill="#e5e7eb"/>
+    <rect x="70" y="50" width="60" height="45" rx="4" fill="#9ca3af" opacity="0.6"/>
+    <circle cx="90" cy="68" r="8" fill="#d1d5db"/>
+    <polygon points="85,82 95,72 105,82 110,77 120,95 80,95" fill="#d1d5db"/>
+    <text x="100" y="125" text-anchor="middle" font-size="12" fill="#6b7280" font-family="sans-serif">Image Placeholder</text>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
 }
 
 function SelectionOutline(): ReactNode {

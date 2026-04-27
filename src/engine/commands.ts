@@ -1,4 +1,4 @@
-import type { Command, Element, AnimationConfig } from '../types';
+import type { Command, Element, AnimationConfig, Page, Node, StructureItem } from '../types';
 import type { Scene } from './scene';
 
 export class AddElementCommand implements Command {
@@ -156,5 +156,124 @@ export class ReorderAnimationsCommand implements Command {
 
   undo(): void {
     this.scene.reorderAnimations(this.pageId, this.beforeIds);
+  }
+}
+
+// ============================================================================
+// Page / Node / Structure Commands
+// ============================================================================
+
+export class AddPageCommand implements Command {
+  private prevCurrentPageId: string;
+
+  constructor(
+    private scene: Scene,
+    private page: Page,
+    private setCurrent: boolean = true
+  ) {
+    this.prevCurrentPageId = scene.getDocument().currentPageId;
+  }
+
+  execute(): void {
+    this.scene.addPage(this.page);
+    if (this.setCurrent) {
+      this.scene.setCurrentPageId(this.page.id);
+    }
+  }
+
+  undo(): void {
+    this.scene.removePage(this.page.id);
+    this.scene.setCurrentPageId(this.prevCurrentPageId);
+  }
+}
+
+export class RemovePageCommand implements Command {
+  private removedPage: Page | undefined;
+  private removedIndex: number;
+  private prevCurrentPageId: string;
+
+  constructor(private scene: Scene, private pageId: string) {
+    const doc = scene.getDocument();
+    this.removedPage = doc.pages[pageId];
+    this.removedIndex = doc.structureItems.findIndex(
+      (item) => item.type === 'page' && item.id === pageId
+    );
+    this.prevCurrentPageId = doc.currentPageId;
+  }
+
+  execute(): void {
+    this.scene.removePage(this.pageId);
+  }
+
+  undo(): void {
+    if (!this.removedPage) return;
+    this.scene.addPage(
+      this.removedPage,
+      this.removedIndex >= 0 ? this.removedIndex : undefined
+    );
+    this.scene.setCurrentPageId(this.prevCurrentPageId);
+  }
+}
+
+export class AddNodeCommand implements Command {
+  constructor(
+    private scene: Scene,
+    private node: Node,
+    private targetPageId?: string
+  ) {}
+
+  execute(): void {
+    this.scene.addNode(this.node, this.targetPageId);
+  }
+
+  undo(): void {
+    this.scene.removeNode(this.node.id);
+  }
+}
+
+export class RemoveNodeCommand implements Command {
+  private removedNode: Node | undefined;
+  private targetPageId: string | undefined;
+
+  constructor(private scene: Scene, private nodeId: string) {
+    const doc = scene.getDocument();
+    this.removedNode = doc.nodes[nodeId];
+
+    const index = doc.structureItems.findIndex(
+      (item) => item.type === 'node' && item.id === nodeId
+    );
+    if (index >= 0) {
+      for (let i = index + 1; i < doc.structureItems.length; i++) {
+        if (doc.structureItems[i].type === 'page') {
+          this.targetPageId = doc.structureItems[i].id;
+          break;
+        }
+      }
+    }
+  }
+
+  execute(): void {
+    this.scene.removeNode(this.nodeId);
+  }
+
+  undo(): void {
+    if (!this.removedNode) return;
+    this.scene.addNode(this.removedNode, this.targetPageId);
+  }
+}
+
+export class ReorderStructureItemsCommand implements Command {
+  private beforeOrder: StructureItem[];
+
+  constructor(private scene: Scene, private afterOrder: StructureItem[]) {
+    this.beforeOrder = [...scene.getDocument().structureItems];
+  }
+
+  execute(): void {
+    this.scene.reorderStructureItems(this.afterOrder);
+  }
+
+  undo(): void {
+    this.scene.reorderStructureItems(this.beforeOrder);
   }
 }

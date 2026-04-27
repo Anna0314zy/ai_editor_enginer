@@ -15,7 +15,9 @@
 - [engine/engine.ts](file://src/engine/engine.ts)
 - [engine/commands.ts](file://src/engine/commands.ts)
 - [engine/animationCommands.ts](file://src/engine/animationCommands.ts)
+- [engine/scene.ts](file://src/engine/scene.ts)
 - [animation/engine.ts](file://src/animation/engine.ts)
+- [animation/scheduler.ts](file://src/animation/scheduler.ts)
 - [animation/buildKeyframes.ts](file://src/animation/buildKeyframes.ts)
 - [renderer/index.tsx](file://src/renderer/index.tsx)
 - [types/index.ts](file://src/types/index.ts)
@@ -29,12 +31,12 @@
 
 ## Update Summary
 **Changes Made**
-- Added comprehensive documentation for six new UI components: AnimationPanel, ComponentPalette, GuidesLayer, MoveableLayer, PreviewModal, and PropertyPanel
-- Updated Canvas component documentation to reflect integration with MoveableLayer and GuidesLayer
-- Enhanced architecture overview with new component interactions and animation system
-- Added detailed animation management capabilities with drag-and-drop support and real-time preview
-- Updated dependency analysis with new component relationships and animation engine integration
-- Expanded performance considerations for the enhanced UI structure with animation capabilities
+- Enhanced PreviewModal component documentation with comprehensive multi-page navigation features
+- Updated keyboard controls documentation for page transitions and animation playback
+- Added detailed animation scheduler integration and step-based playback system
+- Improved thumbnail rendering system documentation with page ordering and scope management
+- Updated animation engine integration with preview-specific scope root management
+- Enhanced component composition patterns with preview modal state management
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -56,7 +58,7 @@ This document focuses on the User Interface Components with emphasis on the Canv
 The project follows a clear separation of concerns with comprehensive React-based UI components and animation system:
 - UI layer: React components (App, Canvas, six specialized panels and layers)
 - Engine layer: framework-agnostic core logic and state transitions
-- Animation layer: dedicated animation engine with adapter pattern
+- Animation layer: dedicated animation engine with adapter pattern and scheduler
 - Renderer layer: pure data-to-UI rendering utilities
 - Store: editor state separate from scene data
 - Types: shared TypeScript types for both UI and animation systems
@@ -79,9 +81,11 @@ ENGINE["engine/index.ts"]
 ENGINE_CLASS["engine/engine.ts"]
 COMMANDS["engine/commands.ts"]
 ANIMATION_COMMANDS["engine/animationCommands.ts"]
+SCENE["engine/scene.ts"]
 end
 subgraph "Animation Layer"
 ANIMATION_ENGINE["animation/engine.ts"]
+ANIMATION_SCHEDULER["animation/scheduler.ts"]
 BUILD_KEYFRAMES["animation/buildKeyframes.ts"]
 end
 subgraph "Renderer Layer"
@@ -111,12 +115,16 @@ PROPERTY_PANEL --> ENGINE_CLASS
 ANIMATION_PANEL --> ENGINE_CLASS
 ANIMATION_PANEL --> ANIMATION_ENGINE
 PREVIEW_MODAL --> ANIMATION_ENGINE
+PREVIEW_MODAL --> ANIMATION_SCHEDULER
 MOVEABLE_LAYER --> ENGINE_CLASS
 MOVEABLE_LAYER --> GUIDES_LAYER
 RENDERER --> ENGINE_CLASS
 ENGINE_CLASS --> COMMANDS
 ENGINE_CLASS --> ANIMATION_COMMANDS
+ENGINE_CLASS --> SCENE
 ANIMATION_ENGINE --> BUILD_KEYFRAMES
+ANIMATION_SCHEDULER --> ANIMATION_ENGINE
+ANIMATION_SCHEDULER --> ANIMATION_TYPES
 STORE --> ENGINE_CLASS
 TYPES --> RENDERER
 ANIMATION_TYPES --> ANIMATION_ENGINE
@@ -128,19 +136,21 @@ TSCONFIG --> MAIN
 ```
 
 **Diagram sources**
-- [App.tsx:1-318](file://src/App.tsx#L1-L318)
+- [App.tsx:1-343](file://src/App.tsx#L1-L343)
 - [Canvas.tsx:1-182](file://src/components/Canvas.tsx#L1-L182)
 - [ComponentPalette.tsx:1-68](file://src/components/ComponentPalette.tsx#L1-L68)
 - [PropertyPanel.tsx:1-332](file://src/components/PropertyPanel.tsx#L1-L332)
 - [AnimationPanel.tsx:1-847](file://src/components/AnimationPanel.tsx#L1-L847)
-- [PreviewModal.tsx:1-174](file://src/components/PreviewModal.tsx#L1-L174)
+- [PreviewModal.tsx:1-355](file://src/components/PreviewModal.tsx#L1-L355)
 - [MoveableLayer.tsx:1-187](file://src/components/MoveableLayer.tsx#L1-L187)
 - [GuidesLayer.tsx:1-66](file://src/components/GuidesLayer.tsx#L1-L66)
 - [engine/index.ts:1-9](file://src/engine/index.ts#L1-L9)
 - [engine/engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
 - [engine/commands.ts:1-67](file://src/engine/commands.ts#L1-L67)
 - [engine/animationCommands.ts:1-44](file://src/engine/animationCommands.ts#L1-L44)
+- [engine/scene.ts:1-273](file://src/engine/scene.ts#L1-L273)
 - [animation/engine.ts:1-120](file://src/animation/engine.ts#L1-L120)
+- [animation/scheduler.ts:1-160](file://src/animation/scheduler.ts#L1-L160)
 - [animation/buildKeyframes.ts](file://src/animation/buildKeyframes.ts)
 - [renderer/index.tsx:1-135](file://src/renderer/index.tsx#L1-L135)
 - [store/index.ts:1-2](file://src/store/index.ts#L1-L2)
@@ -152,12 +162,12 @@ TSCONFIG --> MAIN
 - [tsconfig.json:1-8](file://tsconfig.json#L1-L8)
 
 **Section sources**
-- [App.tsx:1-318](file://src/App.tsx#L1-L318)
+- [App.tsx:1-343](file://src/App.tsx#L1-L343)
 - [Canvas.tsx:1-182](file://src/components/Canvas.tsx#L1-L182)
 - [ComponentPalette.tsx:1-68](file://src/components/ComponentPalette.tsx#L1-L68)
 - [PropertyPanel.tsx:1-332](file://src/components/PropertyPanel.tsx#L1-L332)
 - [AnimationPanel.tsx:1-847](file://src/components/AnimationPanel.tsx#L1-L847)
-- [PreviewModal.tsx:1-174](file://src/components/PreviewModal.tsx#L1-L174)
+- [PreviewModal.tsx:1-355](file://src/components/PreviewModal.tsx#L1-L355)
 - [MoveableLayer.tsx:1-187](file://src/components/MoveableLayer.tsx#L1-L187)
 - [GuidesLayer.tsx:1-66](file://src/components/GuidesLayer.tsx#L1-L66)
 - [engine/index.ts:1-9](file://src/engine/index.ts#L1-L9)
@@ -177,7 +187,7 @@ TSCONFIG --> MAIN
 - **AnimationPanel**: Comprehensive animation management system with drag-and-drop support for animation ordering, real-time preview, and step-based animation sequences.
 - **MoveableLayer**: Advanced selection and manipulation layer providing drag, rotate, and resize capabilities with snapping and visual feedback.
 - **GuidesLayer**: Visual snapping guides overlay providing center, spacing, and edge alignment assistance during element manipulation.
-- **PreviewModal**: Full-screen animation preview modal with step-by-step playback and keyboard controls for testing animations.
+- **PreviewModal**: Enhanced full-screen animation preview modal with multi-page navigation, keyboard controls for page transitions, step-by-step playback, and improved thumbnail rendering system.
 - **App**: Main application component that orchestrates layout with header, sidebar palette, canvas area, and dual-panel interface.
 
 Key characteristics:
@@ -193,8 +203,8 @@ Key characteristics:
 - [AnimationPanel.tsx:1-847](file://src/components/AnimationPanel.tsx#L1-L847)
 - [MoveableLayer.tsx:1-187](file://src/components/MoveableLayer.tsx#L1-L187)
 - [GuidesLayer.tsx:1-66](file://src/components/GuidesLayer.tsx#L1-L66)
-- [PreviewModal.tsx:1-174](file://src/components/PreviewModal.tsx#L1-L174)
-- [App.tsx:1-318](file://src/App.tsx#L1-L318)
+- [PreviewModal.tsx:1-355](file://src/components/PreviewModal.tsx#L1-L355)
+- [App.tsx:1-343](file://src/App.tsx#L1-L343)
 
 ## Architecture Overview
 The UI communicates with the engine through a command-driven model with enhanced component interactions and comprehensive animation system:
@@ -202,7 +212,7 @@ The UI communicates with the engine through a command-driven model with enhanced
 - Actions are translated into Commands and executed through the Engine.
 - Engine updates the Scene Graph and editor state.
 - Renderer queries the Scene Graph and produces React elements for display.
-- AnimationEngine manages animation lifecycle and keyframe generation.
+- AnimationEngine manages animation lifecycle and keyframe generation with scheduler integration.
 - Store holds editor state (selection, panels, viewport) separate from scene data.
 
 ```mermaid
@@ -213,6 +223,8 @@ participant C as "Canvas"
 participant MP as "MoveableLayer"
 participant AP as "AnimationPanel"
 participant PP as "PropertyPanel"
+participant PM as "PreviewModal"
+participant AS as "AnimationScheduler"
 participant R as "Renderer"
 participant AE as "AnimationEngine"
 participant E as "Engine"
@@ -230,7 +242,12 @@ E-->>R : "Scene Graph change"
 R-->>C : "React elements"
 U->>AP : "Add animation"
 AP->>AE : "Register animation config"
-AE-->>U : "Real-time preview"
+AE-->>AS : "Load animations"
+AS-->>U : "Step-based preview"
+U->>PM : "Open preview"
+PM->>AE : "Set scope root"
+PM->>AS : "Load page animations"
+AS-->>U : "Multi-page navigation"
 U->>PP : "Edit properties"
 PP->>E : "MoveElementCommand.execute()"
 E-->>S : "Update editor state"
@@ -244,6 +261,8 @@ R-->>C : "React elements"
 - [MoveableLayer.tsx:44-181](file://src/components/MoveableLayer.tsx#L44-L181)
 - [AnimationPanel.tsx:203-254](file://src/components/AnimationPanel.tsx#L203-L254)
 - [PropertyPanel.tsx:35-41](file://src/components/PropertyPanel.tsx#L35-L41)
+- [PreviewModal.tsx:13-140](file://src/components/PreviewModal.tsx#L13-L140)
+- [AnimationScheduler:66-77](file://src/animation/scheduler.ts#L66-L77)
 - [engine/commands.ts:4-18](file://src/engine/commands.ts#L4-L18)
 - [engine/engine.ts:29-32](file://src/engine/engine.ts#L29-L32)
 - [animation/engine.ts:32-70](file://src/animation/engine.ts#L32-L70)
@@ -355,28 +374,45 @@ The GuidesLayer provides visual snapping assistance:
 
 **Guide Types**:
 - **Center guides**: Horizontal and vertical lines at element centers for perfect alignment.
-- **Spacing guides**: Lines indicating equal spacing between elements.
+- **Spacing guides**: lines indicating equal spacing between elements.
 - **Edge guides**: Alignment lines at element edges for precise edge-to-edge positioning.
 
 **Section sources**
 - [GuidesLayer.tsx:19-66](file://src/components/GuidesLayer.tsx#L19-L66)
 
 ### PreviewModal Component
-The PreviewModal provides comprehensive animation preview capabilities:
+The PreviewModal provides comprehensive animation preview capabilities with enhanced multi-page navigation and keyboard controls:
 - **Full-screen overlay**: Fixed positioning covering entire viewport with semi-transparent background.
+- **Multi-page navigation**: Sequential page browsing with page ordering derived from structureItems.
+- **Keyboard controls**: Comprehensive keyboard navigation (Space/Enter for next step, Arrow keys for page navigation, Escape to exit).
 - **Step-by-step playback**: Interactive step-by-step animation preview with progress indication.
-- **Keyboard controls**: Space/Enter to advance, Escape to exit, click to navigate.
 - **Real-time rendering**: Direct rendering of slide elements without editor controls.
-- **Animation synchronization**: Integration with AnimationEngine for accurate playback timing.
+- **Animation synchronization**: Integration with AnimationEngine and AnimationScheduler for accurate playback timing.
+- **Preview state isolation**: Maintains its own previewPageId separate from editor state.
 
-**Preview Features**:
-- **Progress tracking**: Current step and total step count display.
-- **Interactive controls**: Manual step advancement and preview termination.
-- **Keyboard shortcuts**: Full keyboard navigation for efficient preview workflow.
-- **Clean interface**: Minimalist design focused purely on animation demonstration.
+**Enhanced Navigation Features**:
+- **Page ordering**: Derives ordered page list from structureItems for consistent navigation flow.
+- **Page state management**: Uses previewPageId state to track current page independently of editor state.
+- **Boundary handling**: Prevents navigation beyond first/last pages with disabled controls.
+- **Background handling**: Respects individual page background colors in preview mode.
+
+**Keyboard Control System**:
+- **Step navigation**: Space/Enter advances to next animation step, Arrow keys navigate pages.
+- **Page transition logic**: When no more steps available, automatically switches to next/previous page.
+- **Escape handling**: Immediate exit from preview mode.
+- **Prevent default**: Prevents browser default behaviors for navigation keys.
+
+**Animation Integration**:
+- **Scope root management**: Sets animationEngine scope root to slide container for proper DOM queries.
+- **Animation registration**: Registers all page animations into shared AnimationEngine instance.
+- **Scheduler integration**: Uses AnimationScheduler for step-based playback control.
+- **State synchronization**: Updates stepInfo state for UI re-rendering during playback.
 
 **Section sources**
-- [PreviewModal.tsx:13-174](file://src/components/PreviewModal.tsx#L13-L174)
+- [PreviewModal.tsx:13-140](file://src/components/PreviewModal.tsx#L13-L140)
+- [PreviewModal.tsx:144-355](file://src/components/PreviewModal.tsx#L144-L355)
+- [AnimationScheduler:66-159](file://src/animation/scheduler.ts#L66-L159)
+- [AnimationEngine:19-22](file://src/animation/engine.ts#L19-L22)
 
 ### App Component and Layout Structure
 The App component establishes the main application layout with comprehensive UI integration:
@@ -393,7 +429,7 @@ The App component establishes the main application layout with comprehensive UI 
 - **Animation controls**: Specialized controls for animation preview and step-by-step playback.
 
 **Section sources**
-- [App.tsx:11-318](file://src/App.tsx#L11-L318)
+- [App.tsx:11-343](file://src/App.tsx#L11-L343)
 - [types/index.ts:126-205](file://src/types/index.ts#L126-L205)
 
 ### Engine Integration Patterns
@@ -466,11 +502,18 @@ The animation system provides comprehensive animation management with advanced f
 - **Step-based sequencing**: Click steps with batched animations for coordinated playback.
 - **Real-time preview**: Individual animation preview and step-by-step playback.
 
+**Enhanced Scheduler Features**:
+- **Batch execution model**: Steps execute on user click with concurrent batch execution.
+- **Step management**: getCurrentStepIndex(), getStepCount(), canAdvance(), canGoBack().
+- **State persistence**: Maintains running controllers and step state during playback.
+- **Reset functionality**: Complete scheduler reset with controller cleanup.
+
 **Section sources**
 - [AnimationPanel.tsx:48-85](file://src/components/AnimationPanel.tsx#L48-L85)
 - [AnimationPanel.tsx:136-201](file://src/components/AnimationPanel.tsx#L136-L201)
 - [AnimationPanel.tsx:295-318](file://src/components/AnimationPanel.tsx#L295-L318)
-- [animation/engine.ts:52-70](file://src/animation/engine.ts#L52-L70)
+- [AnimationScheduler:56-159](file://src/animation/scheduler.ts#L56-L159)
+- [AnimationEngine:19-22](file://src/animation/engine.ts#L19-L22)
 - [types/animation.ts:26-70](file://src/types/animation.ts#L26-L70)
 
 ## Dependency Analysis
@@ -506,12 +549,15 @@ PROPERTY_PANEL --> ENGINE["engine/engine.ts"]
 ANIMATION_PANEL --> ENGINE
 ANIMATION_PANEL --> ANIMATION_ENGINE["animation/engine.ts"]
 PREVIEW_MODAL --> ANIMATION_ENGINE
+PREVIEW_MODAL --> ANIMATION_SCHEDULER["animation/scheduler.ts"]
 MOVEABLE_LAYER --> ENGINE
 MOVEABLE_LAYER --> GUIDES_LAYER
 RENDERER --> ENGINE
 ENGINE --> COMMANDS["engine/commands.ts"]
 ENGINE --> ANIMATION_COMMANDS["engine/animationCommands.ts"]
 ANIMATION_ENGINE --> BUILD_KEYFRAMES["animation/buildKeyframes.ts"]
+ANIMATION_SCHEDULER --> ANIMATION_ENGINE
+ANIMATION_SCHEDULER --> ANIMATION_TYPES["types/animation.ts"]
 ```
 
 **Diagram sources**
@@ -539,6 +585,7 @@ Enhanced performance strategies for the new component architecture with animatio
 - **Lazy loading**: Defer heavy assets until needed in the rendering pipeline.
 - **Component memoization**: Use useMemo and useCallback for expensive computations in animation panel.
 - **Animation batching**: Group animation updates to reduce reflow operations.
+- **Preview optimization**: Isolate preview state to prevent unnecessary re-renders of main editor.
 
 **Component-specific optimizations**:
 - **Canvas**: Efficient element mapping and conditional rendering with layer integration.
@@ -547,6 +594,7 @@ Enhanced performance strategies for the new component architecture with animatio
 - **AnimationPanel**: Optimized drag-and-drop with minimal re-renders during sorting.
 - **MoveableLayer**: Efficient transform updates and snap calculations.
 - **AnimationEngine**: Controller lifecycle management and memory cleanup.
+- **PreviewModal**: Scope root management and isolated state for performance.
 
 ## Troubleshooting Guide
 Common issues and remedies for the new component system:
@@ -559,6 +607,8 @@ Common issues and remedies for the new component system:
 - **Moveable controls not appearing**: Check element ID attributes and data-element-id selectors.
 - **Guides not showing**: Ensure GuidesLayer receives proper guide configurations.
 - **Animation preview not working**: Verify AnimationEngine scope root and element queries.
+- **Multi-page navigation issues**: Check structureItems ordering and pageId derivation logic.
+- **Keyboard controls not responding**: Verify event listener cleanup and scope root settings.
 - **Performance degradation**: Monitor animation frame rates and optimize expensive computations.
 
 **Section sources**
@@ -567,9 +617,10 @@ Common issues and remedies for the new component system:
 - [Canvas.tsx:31-56](file://src/components/Canvas.tsx#L31-L56)
 - [AnimationPanel.tsx:203-254](file://src/components/AnimationPanel.tsx#L203-L254)
 - [MoveableLayer.tsx:23-33](file://src/components/MoveableLayer.tsx#L23-L33)
+- [PreviewModal.tsx:101-140](file://src/components/PreviewModal.tsx#L101-L140)
 
 ## Conclusion
-The new React-based UI components provide a comprehensive foundation for the visual editor with advanced animation capabilities. The Canvas component with full drag-and-drop support, integrated MoveableLayer for advanced manipulation, and six specialized panels create an intuitive and powerful editing environment. The AnimationPanel with drag-and-drop support, real-time preview, and step-based animation sequences, combined with the PropertyPanel for detailed element editing, creates a complete animation workflow. By adhering to the engine-driven architecture, maintaining clean separation between UI, engine, animation, renderer, and store, and implementing proper performance optimizations, the system achieves scalability, maintainability, and a smooth user experience. Future enhancements should focus on advanced selection mechanics, expanded animation effects, accessibility improvements, performance optimizations for complex presentations, and enhanced collaboration features.
+The new React-based UI components provide a comprehensive foundation for the visual editor with advanced animation capabilities. The Canvas component with full drag-and-drop support, integrated MoveableLayer for advanced manipulation, and six specialized panels create an intuitive and powerful editing environment. The AnimationPanel with drag-and-drop support, real-time preview, and step-based animation sequences, combined with the PropertyPanel for detailed element editing, creates a complete animation workflow. The enhanced PreviewModal now provides sophisticated multi-page navigation with keyboard controls and improved animation scheduling. By adhering to the engine-driven architecture, maintaining clean separation between UI, engine, animation, renderer, and store, and implementing proper performance optimizations, the system achieves scalability, maintainability, and a smooth user experience. Future enhancements should focus on advanced selection mechanics, expanded animation effects, accessibility improvements, performance optimizations for complex presentations, and enhanced collaboration features.
 
 ## Appendices
 
@@ -592,6 +643,7 @@ The new React-based UI components provide a comprehensive foundation for the vis
 - **Drag accessibility**: Consider keyboard alternatives for drag-and-drop functionality.
 - **Animation controls**: Provide accessible controls for animation preview and step navigation.
 - **Property editing**: Ensure all form controls are properly labeled and accessible.
+- **Multi-page navigation**: Ensure page navigation buttons are accessible and keyboard-navigable.
 
 ### Cross-Browser Compatibility
 - **Drag-and-drop**: Test across modern browsers with fallbacks for older implementations.
@@ -600,6 +652,7 @@ The new React-based UI components provide a comprehensive foundation for the vis
 - **Animation support**: Verify Web Animations API compatibility and provide fallbacks when needed.
 - **TypeScript compilation**: Verify transpilation targets for desired browser support.
 - **Moveable library**: Ensure compatibility with various browser versions and touch devices.
+- **Keyboard events**: Test keyboard navigation across different browser key mappings.
 
 ### Animation System Architecture
 - **Adapter pattern**: AnimationEngine uses adapter pattern for different animation backends.
@@ -607,8 +660,11 @@ The new React-based UI components provide a comprehensive foundation for the vis
 - **Lifecycle management**: AnimationController interface for consistent animation lifecycle control.
 - **Batch operations**: Efficient handling of multiple animations with coordinated playback.
 - **Real-time preview**: Non-intrusive preview mode for testing animations without disrupting editing workflow.
+- **Scheduler integration**: AnimationScheduler provides step-based execution with batch concurrency.
+- **Scope management**: AnimationEngine supports scoped DOM queries for preview containers.
 
 **Section sources**
 - [animation/engine.ts:9-119](file://src/animation/engine.ts#L9-L119)
 - [types/animation.ts:72-98](file://src/types/animation.ts#L72-L98)
 - [AnimationPanel.tsx:256-293](file://src/components/AnimationPanel.tsx#L256-L293)
+- [AnimationScheduler:56-159](file://src/animation/scheduler.ts#L56-L159)

@@ -1,6 +1,13 @@
 import { useState, useCallback, useRef } from 'react';
 import type { DragEvent } from 'react';
 import type { Engine } from '../engine';
+import {
+  AddPageCommand,
+  RemovePageCommand,
+  AddNodeCommand,
+  RemoveNodeCommand,
+  ReorderStructureItemsCommand,
+} from '../engine';
 import { renderThumbnail } from '../renderer';
 
 interface StructurePanelProps {
@@ -41,14 +48,15 @@ export default function StructurePanel({ engine, onRefresh }: StructurePanelProp
   const handleAddPage = () => {
     const newId = `page-${Date.now()}`;
     const count = Object.keys(doc.pages).length + 1;
-    engine.scene.addPage({
-      id: newId,
-      name: `Page ${count}`,
-      background: '#ffffff',
-      elements: {},
-      animations: {},
-    });
-    engine.scene.setCurrentPageId(newId);
+    engine.execute(
+      new AddPageCommand(engine.scene, {
+        id: newId,
+        name: `Page ${count}`,
+        background: '#ffffff',
+        elements: {},
+        animations: {},
+      })
+    );
     onRefresh();
   };
 
@@ -56,9 +64,12 @@ export default function StructurePanel({ engine, onRefresh }: StructurePanelProp
     const currentPageId = doc.currentPageId;
     if (!currentPageId) return;
     const newId = `node-${Date.now()}`;
-    engine.scene.addNode(
-      { id: newId, name: `Section ${Object.keys(doc.nodes).length + 1}` },
-      currentPageId
+    engine.execute(
+      new AddNodeCommand(
+        engine.scene,
+        { id: newId, name: `Section ${Object.keys(doc.nodes).length + 1}` },
+        currentPageId
+      )
     );
     onRefresh();
   };
@@ -72,9 +83,9 @@ export default function StructurePanel({ engine, onRefresh }: StructurePanelProp
     const item = doc.structureItems[index];
     if (!item) return;
     if (item.type === 'page') {
-      engine.scene.removePage(item.id);
+      engine.execute(new RemovePageCommand(engine.scene, item.id));
     } else {
-      engine.scene.removeNode(item.id);
+      engine.execute(new RemoveNodeCommand(engine.scene, item.id));
     }
     onRefresh();
   };
@@ -127,7 +138,7 @@ export default function StructurePanel({ engine, onRefresh }: StructurePanelProp
     const [moved] = newOrder.splice(fromIndex, 1);
     const toIndex = dragOverIndex > fromIndex ? dragOverIndex - 1 : dragOverIndex;
     newOrder.splice(toIndex, 0, moved);
-    engine.scene.reorderStructureItems(newOrder);
+    engine.execute(new ReorderStructureItemsCommand(engine.scene, newOrder));
     setDraggingId(null);
     setDragOverIndex(null);
     onRefresh();

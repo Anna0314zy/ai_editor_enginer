@@ -12,7 +12,18 @@
 - [types.ts](file://src/types/index.ts)
 - [animation.ts](file://src/types/animation.ts)
 - [renderer.tsx](file://src/renderer/index.tsx)
+- [animationEngine.ts](file://src/animation/engine.ts)
+- [animationScheduler.ts](file://src/animation/scheduler.ts)
+- [PreviewModal.tsx](file://src/components/PreviewModal.tsx)
 </cite>
+
+## Update Summary
+**Changes Made**
+- Enhanced Canvas component with animation DOM scoping for proper element targeting
+- Added animation engine scope management for preview mode functionality
+- Updated architecture overview to include DOM scoping mechanism
+- Added new section on animation DOM scoping implementation
+- Updated troubleshooting guide with animation-related issues
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -20,16 +31,19 @@
 3. [Core Components](#core-components)
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
-6. [Dependency Analysis](#dependency-analysis)
-7. [Performance Considerations](#performance-considerations)
-8. [Troubleshooting Guide](#troubleshooting-guide)
-9. [Conclusion](#conclusion)
+6. [Animation DOM Scoping Enhancement](#animation-dom-scoping-enhancement)
+7. [Dependency Analysis](#dependency-analysis)
+8. [Performance Considerations](#performance-considerations)
+9. [Troubleshooting Guide](#troubleshooting-guide)
+10. [Conclusion](#conclusion)
 
 ## Introduction
 
 The Canvas Toolbar Component is a crucial part of the AI Editor Engine, providing drag-and-drop functionality for adding various element types to the canvas. This component enables users to quickly add shapes, text, and images to their presentations through intuitive drag-and-drop interactions.
 
 The toolbar serves as the primary interface for element creation, leveraging HTML5 drag-and-drop APIs combined with React's event handling to create a seamless user experience. It integrates tightly with the engine's command pattern architecture, ensuring all element additions are properly tracked in the application's history system.
+
+**Enhanced** The Canvas component now includes advanced animation DOM scoping capabilities that ensure proper element targeting during preview mode, preventing animations from affecting elements outside the intended container.
 
 ## Project Structure
 
@@ -41,11 +55,14 @@ subgraph "Application Layer"
 App[App.tsx]
 Canvas[Canvas.tsx]
 Toolbar[CanvasToolbar.tsx]
+Preview[PreviewModal.tsx]
 end
 subgraph "Engine Layer"
 Engine[engine.ts]
 Scene[scene.ts]
 Commands[commands.ts]
+AnimationEngine[animationEngine.ts]
+AnimationScheduler[animationScheduler.ts]
 end
 subgraph "Types & Renderer"
 Types[types.ts]
@@ -57,27 +74,38 @@ Export[index.ts]
 end
 App --> Toolbar
 App --> Canvas
+App --> Preview
 Canvas --> Engine
 Toolbar --> Engine
+Preview --> AnimationEngine
+Canvas --> AnimationEngine
 Engine --> Scene
 Engine --> Commands
+AnimationEngine --> AnimationScheduler
 Scene --> Types
 Commands --> Types
+AnimationEngine --> Types
 Renderer --> Types
 Export --> Engine
 Export --> Scene
 Export --> Commands
+Export --> AnimationEngine
+Export --> AnimationScheduler
 ```
 
 **Diagram sources**
 - [App.tsx:11-338](file://src/App.tsx#L11-L338)
 - [CanvasToolbar.tsx:18-66](file://src/components/CanvasToolbar.tsx#L18-L66)
 - [Canvas.tsx:22-182](file://src/components/Canvas.tsx#L22-L182)
+- [PreviewModal.tsx:13-355](file://src/components/PreviewModal.tsx#L13-L355)
+- [animationEngine.ts:9-120](file://src/animation/engine.ts#L9-L120)
+- [animationScheduler.ts:56-160](file://src/animation/scheduler.ts#L56-L160)
 
 **Section sources**
 - [App.tsx:11-338](file://src/App.tsx#L11-L338)
 - [CanvasToolbar.tsx:18-66](file://src/components/CanvasToolbar.tsx#L18-L66)
 - [Canvas.tsx:22-182](file://src/components/Canvas.tsx#L22-L182)
+- [PreviewModal.tsx:13-355](file://src/components/PreviewModal.tsx#L13-L355)
 
 ## Core Components
 
@@ -117,6 +145,7 @@ participant User as User
 participant Toolbar as CanvasToolbar
 participant Canvas as Canvas
 participant Engine as Engine
+participant AnimationEngine as AnimationEngine
 participant Scene as Scene
 participant Renderer as Renderer
 User->>Toolbar : Drag element from toolbar
@@ -130,14 +159,16 @@ Canvas->>Engine : execute(AddElementCommand)
 Engine->>Scene : addElement(pageId, element)
 Scene->>Engine : state updated
 Engine->>Canvas : onRefresh callback
+Canvas->>AnimationEngine : setScopeRoot(slideRef.current)
 Canvas->>Renderer : renderElement(element)
-Renderer->>Canvas : JSX element
+Renderer->>Canvas : JSX element with data-element-id
 Canvas->>User : Updated canvas with new element
 ```
 
 **Diagram sources**
 - [CanvasToolbar.tsx:18-26](file://src/components/CanvasToolbar.tsx#L18-L26)
 - [Canvas.tsx:35-59](file://src/components/Canvas.tsx#L35-L59)
+- [Canvas.tsx:25-32](file://src/components/Canvas.tsx#L25-L32)
 - [commands.ts:4-18](file://src/engine/commands.ts#L4-L18)
 - [engine.ts:29-32](file://src/engine/engine.ts#L29-L32)
 
@@ -147,6 +178,7 @@ The architecture demonstrates several key principles:
 2. **Separation of Concerns**: Toolbar handles UI interactions, Engine manages state
 3. **Event-Driven Design**: Uses React events and HTML5 drag-and-drop APIs
 4. **Immutable Data Flow**: Updates flow through the command system
+5. **Animation DOM Scoping**: AnimationEngine uses scoped DOM queries for proper targeting
 
 ## Detailed Component Analysis
 
@@ -199,7 +231,7 @@ The toolbar supports three primary element types:
 
 ### Canvas Integration
 
-The Canvas component serves as the drop zone for toolbar elements:
+The Canvas component serves as the drop zone for toolbar elements and now includes animation DOM scoping:
 
 #### Drop Zone Implementation
 ```mermaid
@@ -214,13 +246,15 @@ ParseSuccess --> |Yes| GetPosition["Calculate Mouse Position"]
 GetPosition --> CreateElement["Create Element Instance"]
 CreateElement --> ExecuteCommand["Execute AddElementCommand"]
 ExecuteCommand --> UpdateState["Update Editor State"]
-UpdateState --> RefreshCanvas["Trigger Canvas Refresh"]
+UpdateState --> SetScopeRoot["Set Animation Scope Root"]
+SetScopeRoot --> RefreshCanvas["Trigger Canvas Refresh"]
 RefreshCanvas --> End([Element Added])
 ```
 
 **Diagram sources**
 - [Canvas.tsx:35-59](file://src/components/Canvas.tsx#L35-L59)
 - [Canvas.tsx:121-181](file://src/components/Canvas.tsx#L121-L181)
+- [Canvas.tsx:25-32](file://src/components/Canvas.tsx#L25-L32)
 
 #### Element Creation Logic
 The Canvas component handles element creation based on toolbar data:
@@ -228,10 +262,12 @@ The Canvas component handles element creation based on toolbar data:
 1. **Position Calculation**: Converts mouse coordinates to canvas-relative positions
 2. **Element Factory**: Creates appropriate element instances based on type
 3. **Command Execution**: Uses the engine's command system for state changes
+4. **Animation Scope Setup**: Configures DOM scoping for animation targeting
 
 **Section sources**
 - [Canvas.tsx:35-59](file://src/components/Canvas.tsx#L35-L59)
 - [Canvas.tsx:121-181](file://src/components/Canvas.tsx#L121-L181)
+- [Canvas.tsx:25-32](file://src/components/Canvas.tsx#L25-L32)
 
 ### Engine Integration
 
@@ -279,6 +315,90 @@ The integration ensures proper state management through the command pattern:
 - [engine.ts:29-32](file://src/engine/engine.ts#L29-L32)
 - [commands.ts:4-18](file://src/engine/commands.ts#L4-L18)
 
+## Animation DOM Scoping Enhancement
+
+**New Section** The Canvas component now includes sophisticated animation DOM scoping capabilities that ensure proper element targeting during preview mode and prevent animations from affecting unintended elements.
+
+### DOM Scoping Mechanism
+
+The animation DOM scoping system works through several key components:
+
+#### AnimationEngine Scope Management
+The AnimationEngine maintains a scope root that restricts DOM element queries:
+
+```mermaid
+classDiagram
+class AnimationEngine {
+-private Map~String, AnimationConfig~ configs
+-private AnimationAdapter adapter
+-private HTMLElement scopeRoot
++setScopeRoot(root) void
++queryElement(elementId) HTMLElement
++play(configId) AnimationController
++stop(elementId) void
+}
+class Canvas {
+-ref slideRef
+-useEffect(setScopeRoot) void
+}
+class PreviewModal {
+-ref slideRef
+-useEffect(setScopeRoot) void
+}
+Canvas --> AnimationEngine : "sets scope"
+PreviewModal --> AnimationEngine : "sets scope"
+```
+
+**Diagram sources**
+- [animationEngine.ts:9-120](file://src/animation/engine.ts#L9-L120)
+- [Canvas.tsx:25-32](file://src/components/Canvas.tsx#L25-L32)
+- [PreviewModal.tsx:92-140](file://src/components/PreviewModal.tsx#L92-L140)
+
+#### Scope Root Implementation
+The scope root mechanism ensures DOM queries are restricted to specific containers:
+
+1. **Edit Mode**: AnimationEngine.setScopeRoot(slideRef.current) scopes queries to the main canvas
+2. **Preview Mode**: AnimationEngine.setScopeRoot(slideRef.current) scopes queries to the preview modal
+3. **Cleanup**: AnimationEngine.setScopeRoot(null) clears scoping when components unmount
+
+#### Element Targeting Strategy
+Elements are uniquely identified using data attributes for precise targeting:
+
+```mermaid
+sequenceDiagram
+participant EditMode as Edit Mode
+participant PreviewMode as Preview Mode
+participant AnimationEngine as AnimationEngine
+EditMode->>AnimationEngine : setScopeRoot(canvasSlideRef)
+PreviewMode->>AnimationEngine : setScopeRoot(previewSlideRef)
+AnimationEngine->>AnimationEngine : queryElement(elementId)
+AnimationEngine->>AnimationEngine : scopeRoot.querySelector(selector)
+AnimationEngine->>AnimationEngine : element.querySelectorAll(selector)
+```
+
+**Diagram sources**
+- [animationEngine.ts:24-30](file://src/animation/engine.ts#L24-L30)
+- [renderer.tsx:78](file://src/renderer/index.tsx#L78)
+- [renderer.tsx:113](file://src/renderer/index.tsx#L113)
+- [renderer.tsx:137](file://src/renderer/index.tsx#L137)
+
+#### Data Attribute Implementation
+The renderer system adds data-element-id attributes to all elements for proper targeting:
+
+| Element Type | Data Attribute | Purpose |
+|--------------|----------------|---------|
+| Shape | data-element-id | Identifies SVG shape elements |
+| Text | data-element-id | Identifies text container elements |
+| Image | data-element-id | Identifies image container elements |
+
+**Section sources**
+- [Canvas.tsx:25-32](file://src/components/Canvas.tsx#L25-L32)
+- [PreviewModal.tsx:92-140](file://src/components/PreviewModal.tsx#L92-L140)
+- [animationEngine.ts:12-30](file://src/animation/engine.ts#L12-L30)
+- [renderer.tsx:78](file://src/renderer/index.tsx#L78)
+- [renderer.tsx:113](file://src/renderer/index.tsx#L113)
+- [renderer.tsx:137](file://src/renderer/index.tsx#L137)
+
 ## Dependency Analysis
 
 The Canvas Toolbar Component has well-defined dependencies that support its functionality:
@@ -293,6 +413,8 @@ subgraph "Engine Dependencies"
 EngineClass[Engine Class]
 SceneClass[Scene Class]
 CommandInterface[Command Interface]
+AnimationEngineClass[AnimationEngine Class]
+AnimationSchedulerClass[AnimationScheduler Class]
 end
 subgraph "Renderer Dependencies"
 RendererFunction[renderElement Function]
@@ -303,6 +425,8 @@ CanvasToolbar --> Types
 CanvasToolbar --> EngineClass
 CanvasToolbar --> SceneClass
 CanvasToolbar --> CommandInterface
+CanvasToolbar --> AnimationEngineClass
+CanvasToolbar --> AnimationSchedulerClass
 CanvasToolbar --> RendererFunction
 CanvasToolbar --> ElementTypes
 ```
@@ -312,6 +436,8 @@ CanvasToolbar --> ElementTypes
 - [Canvas.tsx:1-8](file://src/components/Canvas.tsx#L1-L8)
 - [engine.ts:1-6](file://src/engine/engine.ts#L1-L6)
 - [types.ts:1-54](file://src/types/index.ts#L1-L54)
+- [animationEngine.ts:1-4](file://src/animation/engine.ts#L1-L4)
+- [animationScheduler.ts:1-3](file://src/animation/scheduler.ts#L1-L3)
 
 ### External Dependencies
 The component relies on minimal external dependencies:
@@ -322,13 +448,17 @@ The component relies on minimal external dependencies:
 The component integrates with several internal systems:
 - **Engine**: For state management and command execution
 - **Scene**: For document manipulation
-- **Renderer**: For element visualization
+- **AnimationEngine**: For animation scoping and DOM targeting
+- **AnimationScheduler**: For preview mode animation playback
+- **Renderer**: For element visualization with data attributes
 - **Types**: For type definitions and validation
 
 **Section sources**
 - [CanvasToolbar.tsx:1-8](file://src/components/CanvasToolbar.tsx#L1-L8)
 - [Canvas.tsx:1-8](file://src/components/Canvas.tsx#L1-L8)
 - [engine.ts:1-6](file://src/engine/engine.ts#L1-L6)
+- [animationEngine.ts:1-4](file://src/animation/engine.ts#L1-L4)
+- [animationScheduler.ts:1-3](file://src/animation/scheduler.ts#L1-L3)
 
 ## Performance Considerations
 
@@ -348,6 +478,11 @@ The Canvas Toolbar Component is designed for optimal performance through several
 - **Efficient Data Transfer**: JSON serialization is lightweight and fast
 - **Immediate Feedback**: Visual feedback is provided without blocking operations
 - **Event Prevention**: Prevents unnecessary browser default behaviors
+
+### Animation DOM Scoping Performance
+- **Scoped Queries**: DOM queries are limited to specific containers
+- **Efficient Element Lookup**: Uses data-element-id attributes for fast targeting
+- **Memory Cleanup**: Scope roots are properly cleared when components unmount
 
 ## Troubleshooting Guide
 
@@ -389,22 +524,39 @@ Common issues and their solutions when working with the Canvas Toolbar Component
 - Verify scene state before command execution
 - Ensure all required element properties are provided
 
+### Animation Targeting Issues
+**Symptoms**: Animations affect wrong elements or fail to target elements
+**Causes**:
+- Missing data-element-id attributes on elements
+- Incorrect animation configuration
+- Scope root not properly set for preview mode
+
+**Solutions**:
+- Verify renderer adds data-element-id attributes to all elements
+- Check animation configuration references correct element IDs
+- Ensure AnimationEngine.setScopeRoot() is called with correct container reference
+- Verify scope root is cleared when components unmount
+
 ### Performance Issues
-**Symptoms**: Slow response to drag operations
+**Symptoms**: Slow response to drag operations or animation playback
 **Causes**:
 - Excessive re-renders
 - Heavy event handlers
 - Large DOM trees
+- Inefficient DOM queries
 
 **Solutions**:
 - Optimize event handler implementations
 - Use React.memo for expensive components
 - Minimize DOM tree depth
+- Ensure DOM scoping prevents unnecessary element searches
 
 **Section sources**
 - [CanvasToolbar.tsx:18-26](file://src/components/CanvasToolbar.tsx#L18-L26)
 - [Canvas.tsx:30-60](file://src/components/Canvas.tsx#L30-L60)
 - [commands.ts:4-18](file://src/engine/commands.ts#L4-L18)
+- [animationEngine.ts:19-30](file://src/animation/engine.ts#L19-L30)
+- [renderer.tsx:78](file://src/renderer/index.tsx#L78)
 
 ## Conclusion
 
@@ -412,10 +564,14 @@ The Canvas Toolbar Component represents a well-designed solution for drag-and-dr
 
 The component successfully integrates with the broader application ecosystem through the engine's command pattern, ensuring all user interactions are properly tracked and reversible. The use of React's event system combined with HTML5 drag-and-drop APIs provides a smooth and responsive user experience.
 
+**Enhanced** The recent addition of animation DOM scoping capabilities significantly improves the component's reliability and precision during preview mode. The scope root mechanism ensures animations target only elements within their intended containers, preventing conflicts between edit mode and preview mode animations.
+
 Key strengths of the implementation include:
 - Clean separation between toolbar and canvas functionality
 - Robust command pattern integration for state management
 - Efficient event handling and memory management
 - Extensible design supporting future element types
+- Advanced animation DOM scoping for precise element targeting
+- Proper cleanup mechanisms for animation scope management
 
-The component serves as a foundation for the editor's interactive capabilities while maintaining performance and usability standards essential for a professional editing application.
+The component serves as a foundation for the editor's interactive capabilities while maintaining performance and usability standards essential for a professional editing application. The animation DOM scoping enhancement makes it particularly robust for complex scenarios involving multiple preview sessions and animation-heavy presentations.

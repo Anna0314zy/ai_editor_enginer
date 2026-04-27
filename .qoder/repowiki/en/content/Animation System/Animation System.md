@@ -22,12 +22,12 @@
 
 ## Update Summary
 **Changes Made**
-- Updated animation system to work with page-specific animation collections instead of slide-specific ones
-- Enhanced AnimationPanel to use page-based animation management with currentPageId
-- Updated PreviewModal to support page navigation with page-specific animation previews
-- Modified animation commands to track page associations for page-scoped animations
-- Updated Scene engine with page-specific animation CRUD operations
-- Enhanced step-based execution model with page-aware navigation
+- Enhanced PreviewModal with multi-page animation navigation capabilities
+- Added keyboard shortcuts for page navigation (Arrow keys, PageUp/PageDown)
+- Improved animation engine integration for preview mode with separate page state
+- Added page-specific animation loading and preview functionality
+- Enhanced keyboard controls for animation preview (Space/Enter for advance, Escape for exit)
+- Implemented page navigation buttons with proper state management
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -49,7 +49,7 @@ The animation system follows a modular architecture with clear separation betwee
 - Animation core: AnimationEngine, AnimationAdapter interface, keyframe builders
 - Adapter implementations: WebAnimationAdapter and GSAPAdapter
 - Scheduler system: Enhanced step-based execution model with bidirectional navigation
-- UI components: AnimationPanel with drag-and-drop functionality and PreviewModal with step progress tracking
+- UI components: AnimationPanel with drag-and-drop functionality and PreviewModal with step progress tracking and multi-page navigation
 - Scene engine: Page-specific animation CRUD operations and management
 - Type definitions: Comprehensive animation configuration and controller interfaces
 
@@ -113,7 +113,7 @@ DOC_TYPES --> SCENE
 - [src/animation/scheduler.ts:1-160](file://src/animation/scheduler.ts#L1-L160)
 - [src/engine/scene.ts:175-233](file://src/engine/scene.ts#L175-L233)
 - [src/components/AnimationPanel.tsx:1-856](file://src/components/AnimationPanel.tsx#L1-L856)
-- [src/components/PreviewModal.tsx:1-252](file://src/components/PreviewModal.tsx#L1-L252)
+- [src/components/PreviewModal.tsx:1-355](file://src/components/PreviewModal.tsx#L1-L355)
 - [src/engine/animationCommands.ts:1-44](file://src/engine/animationCommands.ts#L1-L44)
 - [src/types/animation.ts:1-113](file://src/types/animation.ts#L1-L113)
 - [src/types/index.ts:69-84](file://src/types/index.ts#L69-L84)
@@ -128,7 +128,7 @@ DOC_TYPES --> SCENE
 - [src/animation/scheduler.ts:1-160](file://src/animation/scheduler.ts#L1-L160)
 - [src/engine/scene.ts:175-233](file://src/engine/scene.ts#L175-L233)
 - [src/components/AnimationPanel.tsx:1-856](file://src/components/AnimationPanel.tsx#L1-L856)
-- [src/components/PreviewModal.tsx:1-252](file://src/components/PreviewModal.tsx#L1-L252)
+- [src/components/PreviewModal.tsx:1-355](file://src/components/PreviewModal.tsx#L1-L355)
 - [src/engine/animationCommands.ts:1-44](file://src/engine/animationCommands.ts#L1-L44)
 - [src/types/animation.ts:1-113](file://src/types/animation.ts#L1-L113)
 - [src/types/index.ts:69-84](file://src/types/index.ts#L69-L84)
@@ -141,7 +141,7 @@ DOC_TYPES --> SCENE
 - **AnimationScheduler**: Enhanced step-based execution model with bidirectional navigation, progress tracking, and page-aware operations
 - **Scene Engine**: Page-specific animation management with CRUD operations for animation collections
 - **AnimationPanel**: Interactive UI for creating, editing, and managing animations with drag-and-drop support and step progress visualization
-- **PreviewModal**: Enhanced preview interface with step navigation controls, page navigation, and progress indicators
+- **PreviewModal**: Enhanced preview interface with step navigation controls, page navigation, progress indicators, and multi-page animation support
 - **Keyframe Builder**: Generates WAAPI-compatible keyframes from animation configurations
 - **Animation Types**: Comprehensive type definitions for animation configurations, effects, and controller interfaces
 
@@ -216,6 +216,76 @@ SCHEDULER->>SCHEDULER : "replay previous step"
 
 ## Detailed Component Analysis
 
+### Enhanced PreviewModal UI Component
+The PreviewModal provides an enhanced interface for animation preview with step navigation controls, progress tracking, page navigation capabilities, and multi-page animation support.
+
+**Enhanced Features:**
+- Step navigation controls with Previous Step and Next Step buttons
+- Real-time step progress display with current/total step indicators
+- Bidirectional navigation with canGoBack() and canAdvance() validation
+- Enhanced keyboard controls (Space/Enter for advance, Escape for exit, Arrow keys for page navigation)
+- Step progress synchronization with AnimationScheduler
+- Reset functionality to restart animation sequence
+- Multi-page navigation controls for moving between pages
+- Page-specific animation loading and preview with separate preview state
+- Separate previewPageId state that doesn't mutate editor state
+- Page order derived from document structureItems for consistent navigation
+
+**Enhanced Playback Controls:**
+- Previous Step button with disabled state when canGoBack() returns false
+- Next Step button with disabled state when canAdvance() returns false
+- Reset button to restart the entire animation sequence
+- Progress indicator showing current step position
+- Step count display (e.g., "Step 2 / 5")
+- Page navigation buttons for moving between pages with proper state management
+- Page counter showing current page position (e.g., "Page 2 / 4")
+
+**Enhanced Keyboard Shortcuts:**
+- Space/Enter: Advance to next step or next page if at end
+- Arrow keys (Right/Down/PageDown): Navigate to next page when at end of steps
+- Arrow keys (Left/Up/PageUp): Navigate to previous page when at beginning of steps
+- Escape: Close preview modal
+- Click anywhere: Advance to next step
+
+**Enhanced Page Navigation:**
+- Automatic page ordering based on document structureItems
+- Current page tracking with previewPageId state
+- Navigation buttons with proper disabled states
+- Page-specific animation loading and preview
+- Proper cleanup of animation controllers when changing pages
+
+```mermaid
+flowchart TD
+PREVIEW_START["PreviewModal Load"] --> LOAD_PAGE["Load Page Animations"]
+LOAD_PAGE --> LOAD_SCHEDULER["Load AnimationScheduler"]
+LOAD_SCHEDULER --> RENDER_CONTROLS["Render Navigation Controls"]
+RENDER_CONTROLS --> USER_INTERACTION{"User Action"}
+USER_INTERACTION --> |"Previous Step"| PREVIOUS["playPreviousStep()"]
+USER_INTERACTION --> |"Next Step"| NEXT["playNextStep()"]
+USER_INTERACTION --> |"Reset"| RESET["Reset Scheduler"]
+USER_INTERACTION --> |"Next Page"| NEXT_PAGE["Load Next Page Animations"]
+USER_INTERACTION --> |"Prev Page"| PREV_PAGE["Load Previous Page Animations"]
+USER_INTERACTION --> |"Keyboard Input"| KEYBOARD["Handle Keyboard Events"]
+KEYBOARD --> |"Arrow Keys"| PAGE_NAV["Page Navigation"]
+KEYBOARD --> |"Space/Enter"| STEP_NAV["Step Navigation"]
+PREVIOUS --> UPDATE_PROGRESS["Update Step Progress"]
+NEXT --> UPDATE_PROGRESS
+RESET --> UPDATE_PROGRESS
+NEXT_PAGE --> LOAD_PAGE
+PREV_PAGE --> LOAD_PAGE
+PAGE_NAV --> LOAD_PAGE
+STEP_NAV --> UPDATE_PROGRESS
+UPDATE_PROGRESS --> RENDER_CONTROLS
+```
+
+**Diagram sources**
+- [src/components/PreviewModal.tsx:18-53](file://src/components/PreviewModal.tsx#L18-L53)
+- [src/components/PreviewModal.tsx:76-140](file://src/components/PreviewModal.tsx#L76-L140)
+- [src/components/PreviewModal.tsx:175-355](file://src/components/PreviewModal.tsx#L175-L355)
+
+**Section sources**
+- [src/components/PreviewModal.tsx:1-355](file://src/components/PreviewModal.tsx#L1-L355)
+
 ### Enhanced AnimationScheduler
 The AnimationScheduler implements a sophisticated execution model for click-triggered animations using steps and batches with enhanced bidirectional navigation capabilities and page awareness.
 
@@ -262,53 +332,6 @@ Reset --> Idle
 
 **Section sources**
 - [src/animation/scheduler.ts:13-159](file://src/animation/scheduler.ts#L13-L159)
-
-### Enhanced PreviewModal UI Component
-The PreviewModal provides an enhanced interface for animation preview with step navigation controls, progress tracking, and page navigation capabilities.
-
-**Enhanced Features:**
-- Step navigation controls with Previous Step and Next Step buttons
-- Real-time step progress display with current/total step indicators
-- Bidirectional navigation with canGoBack() and canAdvance() validation
-- Enhanced keyboard controls (Space/Enter for advance, Escape for exit)
-- Step progress synchronization with AnimationScheduler
-- Reset functionality to restart animation sequence
-- Page navigation controls for moving between pages
-- Page-specific animation loading and preview
-
-**Enhanced Playback Controls:**
-- Previous Step button with disabled state when canGoBack() returns false
-- Next Step button with disabled state when canAdvance() returns false
-- Reset button to restart the entire animation sequence
-- Progress indicator showing current step position
-- Step count display (e.g., "Step 2 / 5")
-- Page navigation buttons for moving between pages
-
-```mermaid
-flowchart TD
-PREVIEW_START["PreviewModal Load"] --> LOAD_PAGE["Load Page Animations"]
-LOAD_PAGE --> LOAD_SCHEDULER["Load AnimationScheduler"]
-LOAD_SCHEDULER --> RENDER_CONTROLS["Render Navigation Controls"]
-RENDER_CONTROLS --> USER_INTERACTION{"User Action"}
-USER_INTERACTION --> |"Previous Step"| PREVIOUS["playPreviousStep()"]
-USER_INTERACTION --> |"Next Step"| NEXT["playNextStep()"]
-USER_INTERACTION --> |"Reset"| RESET["Reset Scheduler"]
-USER_INTERACTION --> |"Next Page"| NEXT_PAGE["Load Next Page Animations"]
-USER_INTERACTION --> |"Prev Page"| PREV_PAGE["Load Previous Page Animations"]
-PREVIOUS --> UPDATE_PROGRESS["Update Step Progress"]
-NEXT --> UPDATE_PROGRESS
-RESET --> UPDATE_PROGRESS
-NEXT_PAGE --> LOAD_PAGE
-PREV_PAGE --> LOAD_PAGE
-UPDATE_PROGRESS --> RENDER_CONTROLS
-```
-
-**Diagram sources**
-- [src/components/PreviewModal.tsx:19-57](file://src/components/PreviewModal.tsx#L19-L57)
-- [src/components/PreviewModal.tsx:175-251](file://src/components/PreviewModal.tsx#L175-L251)
-
-**Section sources**
-- [src/components/PreviewModal.tsx:1-252](file://src/components/PreviewModal.tsx#L1-L252)
 
 ### Enhanced App Component Integration
 The App component provides enhanced integration with the AnimationScheduler and step progress tracking system.
@@ -513,7 +536,7 @@ END
 - [src/animation/webAnimationAdapter.ts:1-67](file://src/animation/webAnimationAdapter.ts#L1-L67)
 - [src/animation/gsapAdapter.ts:1-140](file://src/animation/gsapAdapter.ts#L1-L140)
 - [src/components/AnimationPanel.tsx:1-856](file://src/components/AnimationPanel.tsx#L1-L856)
-- [src/components/PreviewModal.tsx:1-252](file://src/components/PreviewModal.tsx#L1-L252)
+- [src/components/PreviewModal.tsx:1-355](file://src/components/PreviewModal.tsx#L1-L355)
 - [src/engine/animationCommands.ts:1-44](file://src/engine/animationCommands.ts#L1-L44)
 - [src/engine/scene.ts:175-233](file://src/engine/scene.ts#L175-L233)
 - [package.json:12-20](file://package.json#L12-L20)
@@ -524,7 +547,7 @@ END
 - [src/animation/webAnimationAdapter.ts:1-67](file://src/animation/webAnimationAdapter.ts#L1-L67)
 - [src/animation/gsapAdapter.ts:1-140](file://src/animation/gsapAdapter.ts#L1-L140)
 - [src/components/AnimationPanel.tsx:1-856](file://src/components/AnimationPanel.tsx#L1-L856)
-- [src/components/PreviewModal.tsx:1-252](file://src/components/PreviewModal.tsx#L1-L252)
+- [src/components/PreviewModal.tsx:1-355](file://src/components/PreviewModal.tsx#L1-L355)
 - [src/engine/animationCommands.ts:1-44](file://src/engine/animationCommands.ts#L1-L44)
 - [src/engine/scene.ts:175-233](file://src/engine/scene.ts#L175-L233)
 - [package.json:12-20](file://package.json#L12-L20)
@@ -600,6 +623,13 @@ Common issues and solutions for the enhanced adapter-based animation system with
 - Animation ordering problems: Verify orderedIds array matches page animations keys
 - Memory leaks with animations: Ensure proper cleanup in page removal
 
+**Enhanced PreviewModal Issues:**
+- Multi-page navigation not working: Verify pageIds array is properly derived from structureItems
+- Keyboard shortcuts not responding: Check event listener registration and key handling
+- Page state not updating: Verify previewPageId state management and useEffect dependencies
+- Animation controllers not stopping: Check cleanup in useEffect return function
+- Step progress not synchronizing: Verify syncStepInfo() is called after step changes
+
 **Debugging Techniques:**
 - Enable browser developer tools to inspect animation controllers
 - Use console logging in AnimationEngine for operation tracking
@@ -608,17 +638,19 @@ Common issues and solutions for the enhanced adapter-based animation system with
 - Check step progress state updates in PreviewModal and App components
 - Verify page-specific animation collections are properly maintained
 - Debug page navigation with console logs for currentPageId changes
+- Test keyboard shortcuts with browser developer tools console
+- Verify previewPageId state isolation from editor state
 
 **Section sources**
 - [src/animation/webAnimationAdapter.ts:12-66](file://src/animation/webAnimationAdapter.ts#L12-L66)
 - [src/animation/gsapAdapter.ts:13-139](file://src/animation/gsapAdapter.ts#L13-L139)
 - [src/animation/scheduler.ts:115-159](file://src/animation/scheduler.ts#L115-L159)
 - [src/components/AnimationPanel.tsx:87-539](file://src/components/AnimationPanel.tsx#L87-L539)
-- [src/components/PreviewModal.tsx:175-251](file://src/components/PreviewModal.tsx#L175-L251)
+- [src/components/PreviewModal.tsx:175-355](file://src/components/PreviewModal.tsx#L175-L355)
 - [src/engine/scene.ts:175-233](file://src/engine/scene.ts#L175-L233)
 
 ## Conclusion
-The Animation System represents a comprehensive, modern approach to animation orchestration with its enhanced adapter-based architecture, sophisticated scheduler with bidirectional navigation, and rich UI integration. The system successfully abstracts different animation libraries while providing powerful scheduling capabilities for user-triggered animations with step progress tracking. With enhanced page-specific animation management, bidirectional navigation, real-time progress monitoring, and improved user interface controls, the system delivers smooth, performant animations that integrate seamlessly with the React-based editor interface. The addition of page-specific animation collections, playPreviousStep(), canGoBack(), and step progress tracking significantly improves the animation authoring and preview experience across multiple pages.
+The Animation System represents a comprehensive, modern approach to animation orchestration with its enhanced adapter-based architecture, sophisticated scheduler with bidirectional navigation, and rich UI integration. The system successfully abstracts different animation libraries while providing powerful scheduling capabilities for user-triggered animations with step progress tracking. With enhanced page-specific animation management, bidirectional navigation, real-time progress monitoring, and improved user interface controls, the system delivers smooth, performant animations that integrate seamlessly with the React-based editor interface. The addition of page-specific animation collections, playPreviousStep(), canGoBack(), step progress tracking, multi-page navigation, and enhanced keyboard shortcuts significantly improves the animation authoring and preview experience across multiple pages.
 
 ## Appendices
 
@@ -706,13 +738,13 @@ The Animation System represents a comprehensive, modern approach to animation or
 - Real-time step progress display and synchronization
 - Enhanced keyboard controls for animation preview
 - Reset functionality for restarting animation sequences
-- Page navigation controls for moving between pages
-- Page-specific animation loading and preview
+- Multi-page navigation controls for moving between pages
+- Page-specific animation loading and preview with separate state management
 
 **Section sources**
 - [src/components/AnimationPanel.tsx:87-539](file://src/components/AnimationPanel.tsx#L87-L539)
 - [src/App.tsx:291-317](file://src/App.tsx#L291-L317)
-- [src/components/PreviewModal.tsx:175-251](file://src/components/PreviewModal.tsx#L175-L251)
+- [src/components/PreviewModal.tsx:175-355](file://src/components/PreviewModal.tsx#L175-L355)
 
 ### Build and Runtime Configuration
 **Package Dependencies:**

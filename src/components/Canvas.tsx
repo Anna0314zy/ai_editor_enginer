@@ -180,7 +180,7 @@ function createElement(
         name: 'Image',
         width: 200,
         height: 150,
-        src: 'https://picsum.photos/id/10/200x150',
+        src: 'https://placehold.co/200x150/e5e7eb/6b7280?text=Image',
         objectFit: 'cover',
       } as ImageElement;
 
