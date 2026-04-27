@@ -9,9 +9,10 @@ interface MoveableLayerProps {
   engine: Engine;
   onRefresh: () => void;
   version: number;
+  containerRef: React.RefObject<HTMLDivElement>;
 }
 
-export default function MoveableLayer({ engine, onRefresh, version }: MoveableLayerProps) {
+export default function MoveableLayer({ engine, onRefresh, version, containerRef }: MoveableLayerProps) {
   const [targets, setTargets] = useState<(HTMLElement | SVGElement)[]>([]);
   const [guides, setGuides] = useState<Guide[]>([]);
   const moveableRef = useRef<Moveable>(null);
@@ -22,8 +23,9 @@ export default function MoveableLayer({ engine, onRefresh, version }: MoveableLa
 
   useEffect(() => {
     const ids = engine.getEditorState().selectedElementIds;
+    const container = containerRef.current;
     const elements = ids
-      .map((id) => document.querySelector(`[data-element-id="${id}"]`))
+      .map((id) => container?.querySelector(`[data-element-id="${id}"]`))
       .filter((el): el is HTMLElement => el !== null);
     setTargets(elements);
     // Sync moveable frame after any external state change (undo/redo, property panel, etc.)
@@ -34,7 +36,7 @@ export default function MoveableLayer({ engine, onRefresh, version }: MoveableLa
 
   const getOtherRects = (excludeId: string) => {
     return engine.scene
-      .getSlideElements(engine.scene.getDocument().currentSlideId)
+      .getPageElements(engine.scene.getDocument().currentPageId)
       .filter((e) => e.id !== excludeId)
       .map((e) => ({ id: e.id, x: e.x, y: e.y, width: e.width, height: e.height }));
   };

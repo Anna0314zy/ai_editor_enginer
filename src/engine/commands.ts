@@ -4,12 +4,12 @@ import type { Scene } from './scene';
 export class AddElementCommand implements Command {
   constructor(
     private scene: Scene,
-    private slideId: string,
+    private pageId: string,
     private element: Element
   ) {}
 
   execute(): void {
-    this.scene.addElement(this.slideId, this.element);
+    this.scene.addElement(this.pageId, this.element);
   }
 
   undo(): void {
@@ -45,13 +45,15 @@ export class MoveElementCommand implements Command {
 
 export class DeleteElementCommand implements Command {
   private deletedElement: Element | undefined;
+  private pageId: string;
 
   constructor(
     private scene: Scene,
     private elementId: string,
-    private slideId: string
+    pageId: string
   ) {
     this.deletedElement = this.scene.getElement(this.elementId);
+    this.pageId = pageId;
   }
 
   execute(): void {
@@ -60,7 +62,7 @@ export class DeleteElementCommand implements Command {
 
   undo(): void {
     if (this.deletedElement) {
-      this.scene.addElement(this.slideId, this.deletedElement);
+      this.scene.addElement(this.pageId, this.deletedElement);
     }
   }
 }
@@ -72,12 +74,12 @@ export class DeleteElementCommand implements Command {
 export class AddAnimationCommand implements Command {
   constructor(
     private scene: Scene,
-    private slideId: string,
+    private pageId: string,
     private config: AnimationConfig
   ) {}
 
   execute(): void {
-    this.scene.addAnimation(this.slideId, this.config);
+    this.scene.addAnimation(this.pageId, this.config);
   }
 
   undo(): void {
@@ -87,25 +89,17 @@ export class AddAnimationCommand implements Command {
 
 export class RemoveAnimationCommand implements Command {
   private removedConfig: AnimationConfig | undefined;
-  private slideId: string;
-  private prevIndex: number;
+  private pageId: string = '';
 
   constructor(private scene: Scene, private configId: string) {
-    const doc = scene.getDocument();
-    this.removedConfig = doc.animations[configId];
-    // Find which slide owns this animation
-    let foundSlideId = '';
-    let foundIndex = -1;
-    for (const slide of Object.values(doc.slides)) {
-      const idx = slide.animationIds.indexOf(configId);
-      if (idx >= 0) {
-        foundSlideId = slide.id;
-        foundIndex = idx;
+    for (const page of Object.values(scene.getDocument().pages)) {
+      const config = page.animations[configId];
+      if (config) {
+        this.removedConfig = config;
+        this.pageId = page.id;
         break;
       }
     }
-    this.slideId = foundSlideId;
-    this.prevIndex = foundIndex;
   }
 
   execute(): void {
@@ -114,13 +108,7 @@ export class RemoveAnimationCommand implements Command {
 
   undo(): void {
     if (!this.removedConfig) return;
-    this.scene.addAnimation(this.slideId, this.removedConfig);
-    // Restore original position
-    const slide = this.scene.getDocument().slides[this.slideId];
-    if (slide && this.prevIndex >= 0) {
-      slide.animationIds = slide.animationIds.filter((id) => id !== this.configId);
-      slide.animationIds.splice(this.prevIndex, 0, this.configId);
-    }
+    this.scene.addAnimation(this.pageId, this.removedConfig);
   }
 }
 
@@ -155,18 +143,18 @@ export class ReorderAnimationsCommand implements Command {
 
   constructor(
     private scene: Scene,
-    private slideId: string,
+    private pageId: string,
     private afterIds: string[]
   ) {
-    const slide = scene.getDocument().slides[slideId];
-    this.beforeIds = slide ? [...slide.animationIds] : [];
+    const page = scene.getDocument().pages[pageId];
+    this.beforeIds = page ? Object.keys(page.animations) : [];
   }
 
   execute(): void {
-    this.scene.reorderAnimations(this.slideId, this.afterIds);
+    this.scene.reorderAnimations(this.pageId, this.afterIds);
   }
 
   undo(): void {
-    this.scene.reorderAnimations(this.slideId, this.beforeIds);
+    this.scene.reorderAnimations(this.pageId, this.beforeIds);
   }
 }

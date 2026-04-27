@@ -1,15 +1,15 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createEngine, DeleteElementCommand } from './engine';
-import { createMockDocument } from './types';
 import { AnimationEngine, WebAnimationAdapter, AnimationScheduler } from './animation';
-import ComponentPalette from './components/ComponentPalette';
+import StructurePanel from './components/StructurePanel';
+import CanvasToolbar from './components/CanvasToolbar';
 import Canvas from './components/Canvas';
 import PropertyPanel from './components/PropertyPanel';
 import AnimationPanel from './components/AnimationPanel';
 import PreviewModal from './components/PreviewModal';
 
 function App() {
-  const engine = useMemo(() => createEngine(createMockDocument()), []);
+  const engine = useMemo(() => createEngine(), []);
   const animationEngine = useMemo(
     () => new AnimationEngine(new WebAnimationAdapter()),
     []
@@ -27,8 +27,8 @@ function App() {
 
   // Sync scene animations to animationEngine
   useEffect(() => {
-    const slideId = engine.scene.getDocument().currentSlideId;
-    const anims = engine.scene.getSlideAnimations(slideId);
+    const pageId = engine.scene.getDocument().currentPageId;
+    const anims = engine.scene.getPageAnimations(pageId);
     animationEngine.reset();
     for (const anim of anims) {
       if (anim.enable) animationEngine.register(anim);
@@ -38,8 +38,8 @@ function App() {
   // Auto-manage step scheduler: create when on animation tab, destroy when leaving
   useEffect(() => {
     if (rightPanelTab === 'animation' && !isPreviewOpen) {
-      const slideId = engine.scene.getDocument().currentSlideId;
-      const anims = engine.scene.getSlideAnimations(slideId).filter((a) => a.enable);
+      const pageId = engine.scene.getDocument().currentPageId;
+      const anims = engine.scene.getPageAnimations(pageId).filter((a) => a.enable);
       const scheduler = new AnimationScheduler(animationEngine);
       scheduler.load(anims);
       schedulerRef.current = scheduler;
@@ -59,8 +59,8 @@ function App() {
   // Reload scheduler when animations change while on animation tab
   useEffect(() => {
     if (rightPanelTab === 'animation' && !isPreviewOpen && schedulerRef.current) {
-      const slideId = engine.scene.getDocument().currentSlideId;
-      const anims = engine.scene.getSlideAnimations(slideId).filter((a) => a.enable);
+      const pageId = engine.scene.getDocument().currentPageId;
+      const anims = engine.scene.getPageAnimations(pageId).filter((a) => a.enable);
       schedulerRef.current.reset();
       schedulerRef.current.load(anims);
       setStepProgress({ current: 0, total: schedulerRef.current.getStepCount() });
@@ -71,8 +71,8 @@ function App() {
     animationEngine.stopAll();
     if (schedulerRef.current) {
       schedulerRef.current.reset();
-      const slideId = engine.scene.getDocument().currentSlideId;
-      const anims = engine.scene.getSlideAnimations(slideId).filter((a) => a.enable);
+      const pageId = engine.scene.getDocument().currentPageId;
+      const anims = engine.scene.getPageAnimations(pageId).filter((a) => a.enable);
       schedulerRef.current.load(anims);
       setStepProgress({ current: 0, total: schedulerRef.current.getStepCount() });
     }
@@ -130,8 +130,8 @@ function App() {
           const selectedIds = engine.getEditorState().selectedElementIds;
           if (selectedIds.length > 0) {
             e.preventDefault();
-            const slideId = engine.scene.getDocument().currentSlideId;
-            engine.execute(new DeleteElementCommand(engine.scene, selectedIds[0], slideId));
+            const pageId = engine.scene.getDocument().currentPageId;
+            engine.execute(new DeleteElementCommand(engine.scene, selectedIds[0], pageId));
             engine.setEditorState({ selectedElementIds: [] });
             refresh();
           }
@@ -142,6 +142,9 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [engine]);
+
+  const currentPageId = engine.scene.getDocument().currentPageId;
+  const elementCount = engine.scene.getPageElements(currentPageId).length;
 
   return (
     <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -265,13 +268,18 @@ function App() {
             Full Preview
           </button>
           <div style={{ fontSize: 12, color: '#6b7280', marginLeft: 8 }}>
-            {engine.scene.getSlideElements(engine.scene.getDocument().currentSlideId).length} elements
+            {elementCount} elements
           </div>
         </div>
       </header>
       <main style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        <ComponentPalette />
-        <Canvas engine={engine} animationEngine={animationEngine} onRefresh={refresh} version={version} />
+        <StructurePanel engine={engine} onRefresh={refresh} />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <CanvasToolbar />
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <Canvas engine={engine} animationEngine={animationEngine} onRefresh={refresh} version={version} />
+          </div>
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', width: 400, borderLeft: '1px solid #e5e7eb', flexShrink: 0 }}>
           <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', backgroundColor: '#ffffff' }}>
             <button

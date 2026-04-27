@@ -1,4 +1,4 @@
-import type { Document, Element, Slide, AnimationConfig } from '../types';
+import type { Document, Element, Page, Node, StructureItem, AnimationConfig } from '../types';
 
 export class Scene {
   private document: Document;
@@ -12,72 +12,93 @@ export class Scene {
   }
 
   // ============================================================================
-  // Animation CRUD
+  // Page CRUD
   // ============================================================================
 
-  addAnimation(slideId: string, config: AnimationConfig): void {
-    const slide = this.document.slides[slideId];
-    if (!slide) return;
-
-    this.document.animations[config.id] = config;
-    if (!slide.animationIds.includes(config.id)) {
-      slide.animationIds.push(config.id);
+  addPage(page: Page, insertIndex?: number): void {
+    this.document.pages[page.id] = page;
+    const item: StructureItem = { type: 'page', id: page.id };
+    if (insertIndex !== undefined && insertIndex >= 0) {
+      this.document.structureItems.splice(insertIndex, 0, item);
+    } else {
+      this.document.structureItems.push(item);
+    }
+    if (!this.document.currentPageId) {
+      this.document.currentPageId = page.id;
     }
   }
 
-  removeAnimation(configId: string): void {
-    const config = this.document.animations[configId];
-    if (!config) return;
-
-    delete this.document.animations[configId];
-
-    for (const slide of Object.values(this.document.slides)) {
-      slide.animationIds = slide.animationIds.filter((id) => id !== configId);
+  removePage(pageId: string): void {
+    delete this.document.pages[pageId];
+    this.document.structureItems = this.document.structureItems.filter(
+      (item) => !(item.type === 'page' && item.id === pageId)
+    );
+    if (this.document.currentPageId === pageId) {
+      const firstPageItem = this.document.structureItems.find((item) => item.type === 'page');
+      this.document.currentPageId = firstPageItem?.id ?? '';
     }
   }
 
-  updateAnimation(configId: string, updates: Partial<AnimationConfig>): void {
-    const config = this.document.animations[configId];
-    if (!config) return;
-    Object.assign(config, updates);
+  getPage(pageId: string): Page | undefined {
+    return this.document.pages[pageId];
   }
 
-  getAnimation(configId: string): AnimationConfig | undefined {
-    return this.document.animations[configId];
-  }
-
-  getSlideAnimations(slideId: string): AnimationConfig[] {
-    const slide = this.document.slides[slideId];
-    if (!slide) return [];
-
-    return slide.animationIds
-      .map((id) => this.document.animations[id])
-      .filter((c): c is AnimationConfig => c !== undefined);
-  }
-
-  reorderAnimations(slideId: string, orderedIds: string[]): void {
-    const slide = this.document.slides[slideId];
-    if (!slide) return;
-    slide.animationIds = orderedIds;
-  }
-
-  addElement(slideId: string, element: Element): void {
-    const slide = this.document.slides[slideId];
-    if (!slide) {
-      return;
+  setCurrentPageId(pageId: string): void {
+    if (this.document.pages[pageId]) {
+      this.document.currentPageId = pageId;
     }
+  }
 
-    // Store element
-    this.document.elements[element.id] = element;
+  // ============================================================================
+  // Node CRUD
+  // ============================================================================
 
-    // Add to slide
-    if (!slide.elementIds.includes(element.id)) {
-      slide.elementIds.push(element.id);
+  addNode(node: Node, targetPageId?: string): void {
+    this.document.nodes[node.id] = node;
+    const item: StructureItem = { type: 'node', id: node.id };
+    if (targetPageId) {
+      const targetIndex = this.document.structureItems.findIndex(
+        (si) => si.type === 'page' && si.id === targetPageId
+      );
+      if (targetIndex >= 0) {
+        this.document.structureItems.splice(targetIndex, 0, item);
+        return;
+      }
     }
+    this.document.structureItems.push(item);
+  }
 
-    // Maintain group hierarchy consistency
+  removeNode(nodeId: string): void {
+    delete this.document.nodes[nodeId];
+    this.document.structureItems = this.document.structureItems.filter(
+      (item) => !(item.type === 'node' && item.id === nodeId)
+    );
+  }
+
+  getNode(nodeId: string): Node | undefined {
+    return this.document.nodes[nodeId];
+  }
+
+  // ============================================================================
+  // Structure Ordering
+  // ============================================================================
+
+  reorderStructureItems(newOrder: StructureItem[]): void {
+    this.document.structureItems = newOrder;
+  }
+
+  // ============================================================================
+  // Element CRUD (operates on current page's elements map)
+  // ============================================================================
+
+  addElement(pageId: string, element: Element): void {
+    const page = this.document.pages[pageId];
+    if (!page) return;
+
+    page.elements[element.id] = element;
+
     if (element.parentId) {
-      const parent = this.document.elements[element.parentId];
+      const parent = page.elements[element.parentId];
       if (parent && parent.type === 'group' && !parent.childrenIds.includes(element.id)) {
         parent.childrenIds.push(element.id);
       }
@@ -88,29 +109,24 @@ export class Scene {
     elementId: string,
     updates: Partial<Omit<Element, 'id' | 'type'>>
   ): void {
-    const element = this.document.elements[elementId];
-    if (!element) {
-      return;
-    }
+    const page = this.findPageContainingElement(elementId);
+    if (!page) return;
+
+    const element = page.elements[elementId];
+    if (!element) return;
 
     const prevParentId = element.parentId;
-
-    // Apply updates
     Object.assign(element, updates);
 
-    // Handle parentId change for group hierarchy consistency
     if ('parentId' in updates && updates.parentId !== prevParentId) {
-      // Remove from old parent's childrenIds
       if (prevParentId) {
-        const oldParent = this.document.elements[prevParentId];
+        const oldParent = page.elements[prevParentId];
         if (oldParent) {
           oldParent.childrenIds = oldParent.childrenIds.filter((id) => id !== elementId);
         }
       }
-
-      // Add to new parent's childrenIds
       if (element.parentId) {
-        const newParent = this.document.elements[element.parentId];
+        const newParent = page.elements[element.parentId];
         if (newParent && newParent.type === 'group' && !newParent.childrenIds.includes(elementId)) {
           newParent.childrenIds.push(elementId);
         }
@@ -119,76 +135,135 @@ export class Scene {
   }
 
   deleteElement(elementId: string): void {
-    const element = this.document.elements[elementId];
-    if (!element) {
-      return;
-    }
+    const page = this.findPageContainingElement(elementId);
+    if (!page) return;
 
-    // Remove from parent group's childrenIds
+    const element = page.elements[elementId];
+    if (!element) return;
+
     if (element.parentId) {
-      const parent = this.document.elements[element.parentId];
+      const parent = page.elements[element.parentId];
       if (parent) {
         parent.childrenIds = parent.childrenIds.filter((id) => id !== elementId);
       }
     }
 
-    // Remove from any child elements' parentId
     for (const childId of element.childrenIds) {
-      const child = this.document.elements[childId];
+      const child = page.elements[childId];
       if (child) {
         child.parentId = null;
       }
     }
 
-    // Remove from all slides that reference it
-    for (const slide of Object.values(this.document.slides)) {
-      slide.elementIds = slide.elementIds.filter((id) => id !== elementId);
-    }
-
-    // Remove element itself
-    delete this.document.elements[elementId];
+    delete page.elements[elementId];
   }
 
   getElement(elementId: string): Element | undefined {
-    return this.document.elements[elementId];
-  }
-
-  getSlideElements(slideId: string): Element[] {
-    const slide = this.document.slides[slideId];
-    if (!slide) {
-      return [];
+    for (const page of Object.values(this.document.pages)) {
+      const el = page.elements[elementId];
+      if (el) return el;
     }
-
-    return slide.elementIds
-      .map((id) => this.document.elements[id])
-      .filter((el): el is Element => el !== undefined);
+    return undefined;
   }
 
-  // Additional utility for internal use or consumers
-  getSlide(slideId: string): Slide | undefined {
-    return this.document.slides[slideId];
+  getPageElements(pageId: string): Element[] {
+    const page = this.document.pages[pageId];
+    if (!page) return [];
+    return Object.values(page.elements);
+  }
+
+  // ============================================================================
+  // Animation CRUD (operates on current page's animations map)
+  // ============================================================================
+
+  addAnimation(pageId: string, config: AnimationConfig): void {
+    const page = this.document.pages[pageId];
+    if (!page) return;
+    page.animations[config.id] = config;
+  }
+
+  removeAnimation(configId: string): void {
+    for (const page of Object.values(this.document.pages)) {
+      if (page.animations[configId]) {
+        delete page.animations[configId];
+        break;
+      }
+    }
+  }
+
+  updateAnimation(configId: string, updates: Partial<AnimationConfig>): void {
+    for (const page of Object.values(this.document.pages)) {
+      const config = page.animations[configId];
+      if (config) {
+        Object.assign(config, updates);
+        break;
+      }
+    }
+  }
+
+  getAnimation(configId: string): AnimationConfig | undefined {
+    for (const page of Object.values(this.document.pages)) {
+      const config = page.animations[configId];
+      if (config) return config;
+    }
+    return undefined;
+  }
+
+  getPageAnimations(pageId: string): AnimationConfig[] {
+    const page = this.document.pages[pageId];
+    if (!page) return [];
+    return Object.values(page.animations);
+  }
+
+  reorderAnimations(pageId: string, orderedIds: string[]): void {
+    const page = this.document.pages[pageId];
+    if (!page) return;
+    const reordered: Record<string, AnimationConfig> = {};
+    for (const id of orderedIds) {
+      if (page.animations[id]) {
+        reordered[id] = page.animations[id];
+      }
+    }
+    for (const id of Object.keys(page.animations)) {
+      if (!reordered[id]) {
+        reordered[id] = page.animations[id];
+      }
+    }
+    page.animations = reordered;
+  }
+
+  // ============================================================================
+  // Internal Helpers
+  // ============================================================================
+
+  private findPageContainingElement(elementId: string): Page | undefined {
+    for (const page of Object.values(this.document.pages)) {
+      if (page.elements[elementId]) {
+        return page;
+      }
+    }
+    return undefined;
   }
 }
 
 function createEmptyDocument(): Document {
-  const defaultSlideId = 'slide-default';
+  const defaultPageId = 'page-default';
+  const defaultPage: Page = {
+    id: defaultPageId,
+    name: 'Page 1',
+    background: '#ffffff',
+    elements: {},
+    animations: {},
+  };
   return {
     id: 'doc-default',
     name: 'Untitled',
-    elements: {},
-    slides: {
-      [defaultSlideId]: {
-        id: defaultSlideId,
-        name: 'Slide 1',
-        elementIds: [],
-        animationIds: [],
-        order: 0,
-        background: '#ffffff',
-      },
+    pages: {
+      [defaultPageId]: defaultPage,
     },
-    animations: {},
-    currentSlideId: defaultSlideId,
-    slideOrder: [defaultSlideId],
+    nodes: {},
+    structureItems: [{ type: 'page', id: defaultPageId }],
+    currentPageId: defaultPageId,
   };
 }
 

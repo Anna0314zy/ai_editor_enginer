@@ -12,8 +12,8 @@ interface PreviewModalProps {
 
 export default function PreviewModal({ engine, animationEngine, onClose }: PreviewModalProps) {
   const doc = engine.scene.getDocument();
-  const currentSlideId = doc.currentSlideId;
-  const elements = engine.scene.getSlideElements(currentSlideId);
+  const currentPageId = doc.currentPageId;
+  const elements = engine.scene.getPageElements(currentPageId);
   const slideRef = useRef<HTMLDivElement>(null);
 
   const scheduler = useMemo(() => new AnimationScheduler(animationEngine), [animationEngine]);
@@ -29,11 +29,11 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
   }, [scheduler]);
 
   useEffect(() => {
-    const anims = engine.scene.getSlideAnimations(currentSlideId).filter((a) => a.enable);
+    const anims = engine.scene.getPageAnimations(currentPageId).filter((a) => a.enable);
     scheduler.load(anims);
     setStepInfo({ current: 0, total: scheduler.getStepCount() });
     return () => scheduler.reset();
-  }, [currentSlideId, engine, scheduler]);
+  }, [currentPageId, engine, scheduler]);
 
   const handleAdvance = useCallback((): void => {
     if (scheduler.canAdvance()) {
@@ -51,10 +51,10 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
 
   const handleReset = useCallback((): void => {
     scheduler.reset();
-    const anims = engine.scene.getSlideAnimations(currentSlideId).filter((a) => a.enable);
+    const anims = engine.scene.getPageAnimations(currentPageId).filter((a) => a.enable);
     scheduler.load(anims);
     syncStepInfo();
-  }, [scheduler, engine, currentSlideId, syncStepInfo]);
+  }, [scheduler, engine, currentPageId, syncStepInfo]);
 
   const handleCanvasClick = useCallback((): void => {
     handleAdvance();
@@ -64,8 +64,8 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
     animationEngine.setScopeRoot(slideRef.current);
 
     // Stop any running animations from edit mode
-    const slideElements = engine.scene.getSlideElements(currentSlideId);
-    for (const el of slideElements) {
+    const pageElements = engine.scene.getPageElements(currentPageId);
+    for (const el of pageElements) {
       animationEngine.stop(el.id);
     }
 
@@ -82,13 +82,13 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      const slideElements = engine.scene.getSlideElements(currentSlideId);
-      for (const el of slideElements) {
+      const pageElements = engine.scene.getPageElements(currentPageId);
+      for (const el of pageElements) {
         animationEngine.stop(el.id);
       }
       animationEngine.setScopeRoot(null);
     };
-  }, [currentSlideId, animationEngine, engine, onClose, handleAdvance]);
+  }, [currentPageId, animationEngine, engine, onClose, handleAdvance]);
 
   const { current: currentStep, total: stepCount } = stepInfo;
 
@@ -158,7 +158,7 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
         style={{
           width: 960,
           height: 540,
-          backgroundColor: doc.slides[currentSlideId]?.background ?? '#ffffff',
+          backgroundColor: doc.pages[currentPageId]?.background ?? '#ffffff',
           boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
           position: 'relative',
           overflow: 'hidden',

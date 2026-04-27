@@ -54,26 +54,33 @@ export interface GroupElement extends BaseElement {
 export type Element = ShapeElement | TextElement | ImageElement | GroupElement;
 
 // ============================================================================
-// Document & Slide Types
+// Document, Node, Page & Structure Types
 // ============================================================================
 
-export interface Slide {
+export type StructureItem =
+  | { type: 'node'; id: string }
+  | { type: 'page'; id: string };
+
+export interface Node {
   id: string;
   name: string;
-  elementIds: string[];
-  animationIds: string[]; // array order = playback order
-  order: number;
+}
+
+export interface Page {
+  id: string;
+  name: string;
   background: string;
+  elements: Record<string, Element>;
+  animations: Record<string, AnimationConfig>;
 }
 
 export interface Document {
   id: string;
   name: string;
-  elements: Record<string, Element>;
-  slides: Record<string, Slide>;
-  animations: Record<string, AnimationConfig>; // NEW — data store, keyed by id
-  currentSlideId: string;
-  slideOrder: string[];
+  pages: Record<string, Page>;
+  nodes: Record<string, Node>;
+  structureItems: StructureItem[];
+  currentPageId: string;
 }
 
 // ============================================================================
@@ -139,116 +146,6 @@ export interface EditorState {
   viewport: Viewport;
   toolMode: ToolMode;
   hoveredElementId: string | null;
-}
-
-// ============================================================================
-// Mock Data
-// ============================================================================
-
-export function createMockDocument(): Document {
-  const shapeEl: ShapeElement = {
-    id: 'el-1',
-    type: 'shape',
-    name: 'Blue Rectangle',
-    x: 100,
-    y: 100,
-    width: 200,
-    height: 150,
-    rotation: 0,
-    opacity: 1,
-    visible: true,
-    parentId: null,
-    childrenIds: [],
-    shapeType: 'rectangle',
-    fill: '#3b82f6',
-    stroke: '#1d4ed8',
-    strokeWidth: 2,
-  };
-
-  const textEl: TextElement = {
-    id: 'el-2',
-    type: 'text',
-    name: 'Title Text',
-    x: 120,
-    y: 120,
-    width: 160,
-    height: 40,
-    rotation: 0,
-    opacity: 1,
-    visible: true,
-    parentId: null,
-    childrenIds: [],
-    text: 'Hello Slides',
-    fontSize: 24,
-    fontFamily: 'Inter, sans-serif',
-    color: '#ffffff',
-    align: 'center',
-  };
-
-  const imageEl: ImageElement = {
-    id: 'el-3',
-    type: 'image',
-    name: 'Hero Image',
-    x: 400,
-    y: 100,
-    width: 300,
-    height: 200,
-    rotation: 0,
-    opacity: 1,
-    visible: true,
-    parentId: null,
-    childrenIds: [],
-    src: 'https://picsum.photos/id/10/300/200',
-    objectFit: 'cover',
-  };
-
-  const slide1: Slide = {
-    id: 'slide-1',
-    name: 'Slide 1',
-    elementIds: [shapeEl.id, textEl.id, imageEl.id],
-    animationIds: [],
-    order: 0,
-    background: '#f8fafc',
-  };
-
-  return {
-    id: 'doc-1',
-    name: 'My Presentation',
-    elements: {
-      [shapeEl.id]: shapeEl,
-      [textEl.id]: textEl,
-      [imageEl.id]: imageEl,
-    },
-    slides: {
-      [slide1.id]: slide1,
-    },
-    animations: {},
-    currentSlideId: slide1.id,
-    slideOrder: [slide1.id],
-  };
-}
-
-export function createMockAnimations(): Animation[] {
-  return [
-    {
-      id: 'anim-1',
-      elementId: 'el-1',
-      property: 'x',
-      keyframes: [
-        { id: 'kf-1', time: 0, value: 100, easing: 'linear' },
-        { id: 'kf-2', time: 1000, value: 400, easing: 'ease-out' },
-      ],
-    },
-    {
-      id: 'anim-2',
-      elementId: 'el-2',
-      property: 'opacity',
-      keyframes: [
-        { id: 'kf-3', time: 0, value: 0, easing: 'linear' },
-        { id: 'kf-4', time: 500, value: 1, easing: 'ease-in' },
-      ],
-    },
-  ];
 }
 
 export function createMockEditorState(): EditorState {

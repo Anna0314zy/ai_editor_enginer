@@ -86,9 +86,9 @@ function fixStartType(index: number, prev: AnimationConfig | undefined): StartTy
 
 export default function AnimationPanel({ engine, animationEngine, onRefresh }: AnimationPanelProps) {
   const doc = engine.scene.getDocument();
-  const slideId = doc.currentSlideId;
-  const slide = doc.slides[slideId];
-  const animations = engine.scene.getSlideAnimations(slideId);
+  const pageId = doc.currentPageId;
+  const page = doc.pages[pageId];
+  const animations = engine.scene.getPageAnimations(pageId);
   const steps = buildClickSteps(animations);
 
   const selectedIds = engine.getEditorState().selectedElementIds;
@@ -207,12 +207,12 @@ export default function AnimationPanel({ engine, animationEngine, onRefresh }: A
     const elementAnimations = animations.filter((a) => a.elementId === selectedId);
     const defaultStartType = elementAnimations.length === 0 ? 'click' : 'afterPrev';
     config.startType = defaultStartType;
-    engine.execute(new AddAnimationCommand(engine.scene, slideId, config));
+    engine.execute(new AddAnimationCommand(engine.scene, pageId, config));
     animationEngine.register(config);
     onRefresh();
     // Keep form open for rapid multi-add, but reset some fields
     setName('');
-  }, [selectedId, buildConfig, animations, engine, slideId, animationEngine, onRefresh]);
+  }, [selectedId, buildConfig, animations, engine, pageId, animationEngine, onRefresh]);
 
   // Reset form startType to 'click' when switching elements (unless editing)
   useEffect(() => {
@@ -305,10 +305,11 @@ export default function AnimationPanel({ engine, animationEngine, onRefresh }: A
     (event: DragEndEvent) => {
       const { active, over } = event;
       if (!over || active.id === over.id) return;
-      const oldIndex = slide.animationIds.indexOf(active.id as string);
-      const newIndex = slide.animationIds.indexOf(over.id as string);
+      const animIds = Object.keys(page?.animations ?? {});
+      const oldIndex = animIds.indexOf(active.id as string);
+      const newIndex = animIds.indexOf(over.id as string);
       if (oldIndex < 0 || newIndex < 0) return;
-      const reorderedIds = arrayMove(slide.animationIds, oldIndex, newIndex);
+      const reorderedIds = arrayMove(animIds, oldIndex, newIndex);
       // Auto-fix startType for moved item
       const movedId = active.id as string;
       const movedIndex = reorderedIds.indexOf(movedId);
@@ -320,10 +321,10 @@ export default function AnimationPanel({ engine, animationEngine, onRefresh }: A
           engine.execute(new UpdateAnimationCommand(engine.scene, movedId, { startType: newStartType }));
         }
       }
-      engine.execute(new ReorderAnimationsCommand(engine.scene, slideId, reorderedIds));
+      engine.execute(new ReorderAnimationsCommand(engine.scene, pageId, reorderedIds));
       onRefresh();
     },
-    [slide, slideId, engine, onRefresh]
+    [page, pageId, engine, onRefresh]
   );
 
   const sensors = useSensors(
@@ -354,8 +355,8 @@ export default function AnimationPanel({ engine, animationEngine, onRefresh }: A
     return map;
   }, [animations]);
 
-  const slideElements = engine.scene.getSlideElements(slideId);
-  const elementNameMap = useMemo(() => new Map(slideElements.map((el) => [el.id, el.name])), [slideElements]);
+  const pageElements = engine.scene.getPageElements(pageId);
+  const elementNameMap = useMemo(() => new Map(pageElements.map((el) => [el.id, el.name])), [pageElements]);
 
   return (
     <div
@@ -379,7 +380,7 @@ export default function AnimationPanel({ engine, animationEngine, onRefresh }: A
           </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={slide?.animationIds ?? []} strategy={verticalListSortingStrategy}>
+            <SortableContext items={Object.keys(page?.animations ?? {})} strategy={verticalListSortingStrategy}>
               {animations.map((anim, index) => (
                 <SortableAnimationRow
                   key={anim.id}

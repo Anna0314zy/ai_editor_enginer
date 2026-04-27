@@ -23,8 +23,8 @@ export default function Canvas({ engine, animationEngine, onRefresh, version }: 
   const slideRef = useRef<HTMLDivElement>(null);
 
   const doc = engine.scene.getDocument();
-  const currentSlideId = doc.currentSlideId;
-  const elements = engine.scene.getSlideElements(currentSlideId);
+  const currentPageId = doc.currentPageId;
+  const elements = engine.scene.getPageElements(currentPageId);
   const selectedIds = engine.getEditorState().selectedElementIds;
 
   const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>): void => {
@@ -52,11 +52,11 @@ export default function Canvas({ engine, animationEngine, onRefresh, version }: 
       const y = e.clientY - rect.top;
       const element = createElement(data.type, x, y, data.shapeType);
 
-      engine.execute(new AddElementCommand(engine.scene, currentSlideId, element));
+      engine.execute(new AddElementCommand(engine.scene, currentPageId, element));
       engine.setEditorState({ selectedElementIds: [element.id] });
       onRefresh();
     },
-    [engine, currentSlideId, onRefresh]
+    [engine, currentPageId, onRefresh]
   );
 
   const handleElementClick = useCallback(
@@ -99,7 +99,7 @@ export default function Canvas({ engine, animationEngine, onRefresh, version }: 
         style={{
           width: 960,
           height: 540,
-          backgroundColor: doc.slides[currentSlideId]?.background ?? '#ffffff',
+          backgroundColor: doc.pages[currentPageId]?.background ?? '#ffffff',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
           position: 'relative',
           overflow: 'hidden',
@@ -112,7 +112,7 @@ export default function Canvas({ engine, animationEngine, onRefresh, version }: 
             isSelected: selectedIds.includes(el.id),
           })
         )}
-        <MoveableLayer engine={engine} onRefresh={onRefresh} version={version} />
+        <MoveableLayer engine={engine} onRefresh={onRefresh} version={version} containerRef={slideRef} />
       </div>
     </div>
   );
