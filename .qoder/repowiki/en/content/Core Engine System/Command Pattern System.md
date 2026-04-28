@@ -8,17 +8,20 @@
 - [engine/history.ts](file://src/engine/history.ts)
 - [engine/scene.ts](file://src/engine/scene.ts)
 - [engine/timeline.ts](file://src/engine/timeline.ts)
+- [engine/animationCommands.ts](file://src/engine/animationCommands.ts)
 - [types/index.ts](file://src/types/index.ts)
 - [App.tsx](file://src/App.tsx)
+- [StructurePanel.tsx](file://src/components/StructurePanel.tsx)
 </cite>
 
 ## Update Summary
 **Changes Made**
 - Complete implementation of command pattern with concrete command classes
-- Added History management system with undo/redo functionality
-- Implemented Scene graph mutation methods for element operations
-- Created Timeline system for animation playback
-- Added comprehensive type definitions for commands and animations
+- Added comprehensive multi-page management commands (AddPageCommand, RemovePageCommand, AddNodeCommand, RemoveNodeCommand, ReorderStructureItemsCommand)
+- Enhanced state management with full redo functionality for page and node operations
+- Implemented Scene graph mutation methods for page and node operations
+- Added Timeline system for animation playback
+- Added comprehensive type definitions for commands, animations, pages, and nodes
 - Integrated Engine as central coordinator for all operations
 
 ## Table of Contents
@@ -28,16 +31,17 @@
 4. [Architecture Overview](#architecture-overview)
 5. [Detailed Component Analysis](#detailed-component-analysis)
 6. [Command Implementation Details](#command-implementation-details)
-7. [History Management System](#history-management-system)
-8. [Scene Graph Operations](#scene-graph-operations)
-9. [Timeline Integration](#timeline-integration)
-10. [Type System and Interfaces](#type-system-and-interfaces)
-11. [Performance Considerations](#performance-considerations)
-12. [Integration Examples](#integration-examples)
-13. [Conclusion](#conclusion)
+7. [Multi-Page Management Commands](#multi-page-management-commands)
+8. [History Management System](#history-management-system)
+9. [Scene Graph Operations](#scene-graph-operations)
+10. [Timeline Integration](#timeline-integration)
+11. [Type System and Interfaces](#type-system-and-interfaces)
+12. [Performance Considerations](#performance-considerations)
+13. [Integration Examples](#integration-examples)
+14. [Conclusion](#conclusion)
 
 ## Introduction
-This document describes the fully implemented command pattern system that enables undo/redo functionality and centralized state management for a presentation editor. The system provides a robust framework where all state changes flow through a central engine, ensuring consistency across the scene graph and enabling comprehensive history management. The implementation includes concrete command classes, a sophisticated history management system, and seamless integration with the timeline for animation playback.
+This document describes the fully implemented command pattern system that enables undo/redo functionality and centralized state management for a presentation editor. The system provides a robust framework where all state changes flow through a central engine, ensuring consistency across the scene graph and enabling comprehensive history management. The implementation includes concrete command classes, a sophisticated history management system, and seamless integration with the timeline for animation playback. Recent enhancements include comprehensive multi-page management commands with full redo functionality and enhanced state management capabilities.
 
 ## Project Structure
 The repository follows a clean layered architecture with the engine module serving as the central coordination point:
@@ -48,6 +52,7 @@ subgraph "Application Layer"
 App["App.tsx<br/>React Application"]
 Canvas["Canvas Component"]
 Palette["Component Palette"]
+StructurePanel["Structure Panel<br/>Page/Node Management"]
 end
 subgraph "Engine Layer"
 Engine["Engine<br/>Central Coordinator"]
@@ -62,6 +67,7 @@ end
 App --> Engine
 Canvas --> Engine
 Palette --> Engine
+StructurePanel --> Engine
 Engine --> History
 Engine --> Timeline
 Engine --> Scene
@@ -70,11 +76,13 @@ Commands --> Scene
 Scene --> Types
 History --> Types
 Timeline --> Types
+StructurePanel --> Commands
 ```
 
 **Diagram sources**
 - [engine/index.ts:1-9](file://src/engine/index.ts#L1-L9)
 - [App.tsx:1-41](file://src/App.tsx#L1-L41)
+- [StructurePanel.tsx:1-400](file://src/components/StructurePanel.tsx#L1-L400)
 
 ## Core Components
 
@@ -105,6 +113,8 @@ Persistent document representation with comprehensive element management:
 - **Element Operations**: Add, update, delete elements with parent-child relationships
 - **Group Hierarchy**: Maintains consistent group and parent-child relationships
 - **Slide Management**: Handles element membership within slides
+- **Page Management**: Comprehensive page CRUD operations with structure tracking
+- **Node Management**: Hierarchical node organization with page association
 
 ### Timeline System
 Animation playback and keyframe management:
@@ -152,6 +162,26 @@ class DeleteElementCommand {
 +execute() : void
 +undo() : void
 }
+class AddPageCommand {
++execute() : void
++undo() : void
+}
+class RemovePageCommand {
++execute() : void
++undo() : void
+}
+class AddNodeCommand {
++execute() : void
++undo() : void
+}
+class RemoveNodeCommand {
++execute() : void
++undo() : void
+}
+class ReorderStructureItemsCommand {
++execute() : void
++undo() : void
+}
 class History {
 +undoStack : Command[]
 +redoStack : Command[]
@@ -168,6 +198,11 @@ class Scene {
 +deleteElement(elementId : string)
 +getElement(elementId : string) : Element
 +getSlideElements(slideId : string) : Element[]
++addPage(page : Page, insertIndex? : number)
++removePage(pageId : string)
++addNode(node : Node, targetPageId? : string)
++removeNode(nodeId : string)
++reorderStructureItems(newOrder : StructureItem[])
 }
 Engine --> Command : "executes"
 Engine --> History : "manages"
@@ -175,14 +210,19 @@ Engine --> Scene : "mutates"
 AddElementCommand --|> Command
 MoveElementCommand --|> Command
 DeleteElementCommand --|> Command
+AddPageCommand --|> Command
+RemovePageCommand --|> Command
+AddNodeCommand --|> Command
+RemoveNodeCommand --|> Command
+ReorderStructureItemsCommand --|> Command
 History --> Command : "stores"
 ```
 
 **Diagram sources**
 - [engine/engine.ts:7-49](file://src/engine/engine.ts#L7-L49)
-- [engine/commands.ts:4-66](file://src/engine/commands.ts#L4-L66)
+- [engine/commands.ts:4-279](file://src/engine/commands.ts#L4-L279)
 - [engine/history.ts:3-44](file://src/engine/history.ts#L3-L44)
-- [engine/scene.ts:3-121](file://src/engine/scene.ts#L3-L121)
+- [engine/scene.ts:3-247](file://src/engine/scene.ts#L3-L247)
 
 ## Detailed Component Analysis
 
@@ -205,7 +245,7 @@ The Command interface defines the contract for all reversible operations:
 - **Type Safety**: Strongly typed with TypeScript interfaces
 
 **Section sources**
-- [types/index.ts:78-81](file://src/types/index.ts#L78-L81)
+- [types/index.ts:107-110](file://src/types/index.ts#L107-L110)
 
 ## Command Implementation Details
 
@@ -241,6 +281,51 @@ Removes elements from the scene graph:
 
 **Section sources**
 - [engine/commands.ts:46-66](file://src/engine/commands.ts#L46-L66)
+
+## Multi-Page Management Commands
+
+### AddPageCommand
+Creates new pages with comprehensive state management:
+
+- **Construction**: Captures scene reference, page data, and setCurrent flag
+- **Execute**: Adds page to document and optionally sets as current page
+- **Undo**: Removes page and restores previous current page state
+- **State Preservation**: Maintains document structure and current page tracking
+
+### RemovePageCommand
+Deletes pages with full state restoration:
+
+- **State Capture**: Captures removed page data and structure index
+- **Current Page Handling**: Preserves current page state during deletion
+- **Structure Restoration**: Restores page to original position during undo
+- **Cleanup**: Removes page from document structure items
+
+### AddNodeCommand
+Manages hierarchical node organization:
+
+- **Construction**: Captures scene reference, node data, and optional target page
+- **Target Page Association**: Associates node with specific page when provided
+- **Structure Integration**: Adds node to document structure items
+- **Undo Support**: Removes node and associated structure items
+
+### RemoveNodeCommand
+Handles node deletion with intelligent page association:
+
+- **State Capture**: Captures removed node and determines target page
+- **Page Detection**: Automatically finds target page for node restoration
+- **Structure Cleanup**: Removes node from document structure items
+- **Undo Restoration**: Re-adds node with proper page association
+
+### ReorderStructureItemsCommand
+Manages document structure ordering:
+
+- **State Capture**: Captures current structure order before reordering
+- **Flexible Ordering**: Supports arbitrary reordering of pages and nodes
+- **Undo Restoration**: Restores original structure order during undo
+- **Consistency**: Maintains document structure integrity
+
+**Section sources**
+- [engine/commands.ts:166-279](file://src/engine/commands.ts#L166-L279)
 
 ## History Management System
 
@@ -290,6 +375,29 @@ The Scene class provides comprehensive element manipulation:
 - **Delete Element**: Removes elements with cascade cleanup
 - **Query Operations**: Retrieves elements and slide contents
 
+### Page Management
+Enhanced page operations with structure tracking:
+
+- **Add Page**: Creates new pages with optional insertion index
+- **Remove Page**: Deletes pages with current page state preservation
+- **Page Query**: Retrieves pages by ID with structure validation
+- **Current Page Tracking**: Maintains active page state
+
+### Node Management
+Hierarchical node organization:
+
+- **Add Node**: Creates nodes with optional target page association
+- **Remove Node**: Deletes nodes with structure item cleanup
+- **Node Query**: Retrieves nodes by ID with structure validation
+- **Structure Integration**: Automatically adds nodes to document structure
+
+### Structure Ordering
+Document structure management:
+
+- **Reorder Items**: Supports arbitrary reordering of pages and nodes
+- **Structure Validation**: Maintains document structure integrity
+- **State Preservation**: Captures and restores structure order
+
 ### Parent-Child Relationships
 Maintains consistency in hierarchical structures:
 
@@ -298,7 +406,9 @@ Maintains consistency in hierarchical structures:
 - **Relationship Cleanup**: Automatic cleanup when parents or children change
 
 **Section sources**
-- [engine/scene.ts:14-100](file://src/engine/scene.ts#L14-L100)
+- [engine/scene.ts:18-88](file://src/engine/scene.ts#L18-L88)
+- [engine/scene.ts:94-167](file://src/engine/scene.ts#L94-L167)
+- [engine/scene.ts:179-233](file://src/engine/scene.ts#L179-L233)
 
 ## Timeline Integration
 
@@ -317,9 +427,17 @@ Supports complex animation sequences:
 - **Animation Properties**: Supports various element properties
 - **Easing Functions**: Built-in timing functions for smooth motion
 
+### Animation Commands
+Batch animation operations for performance:
+
+- **BatchAnimationCommand**: Groups multiple animation changes into single commands
+- **Snapshot Management**: Captures before/after states for undo/redo
+- **Efficient Updates**: Minimizes animation engine registration/unregistration calls
+
 **Section sources**
-- [engine/timeline.ts:23-67](file://src/engine/timeline.ts#L23-L67)
-- [types/index.ts:89-101](file://src/types/index.ts#L89-L101)
+- [engine/timeline.ts:25-66](file://src/engine/timeline.ts#L25-L66)
+- [engine/animationCommands.ts:9-44](file://src/engine/animationCommands.ts#L9-L44)
+- [types/index.ts:118-130](file://src/types/index.ts#L118-L130)
 
 ## Type System and Interfaces
 
@@ -332,16 +450,26 @@ Comprehensive type definitions for different element types:
 - **ImageElement**: Image assets with positioning
 - **GroupElement**: Container elements for grouping
 
+### Document Structure Types
+Enhanced document structure with pages and nodes:
+
+- **StructureItem**: Union type for page and node references
+- **Node**: Hierarchical organizational units
+- **Page**: Individual presentation slides with elements and animations
+- **Document**: Complete presentation with pages, nodes, and structure
+
 ### Command Types
 Strongly typed command implementations:
 
 - **Command Interface**: Defines execute/undo contracts
 - **Generic Commands**: Support partial property updates
+- **Multi-Page Commands**: Handle page and node operations
 - **Type Safety**: Compile-time validation of operations
 
 **Section sources**
-- [types/index.ts:7-51](file://src/types/index.ts#L7-L51)
-- [types/index.ts:78-81](file://src/types/index.ts#L78-L81)
+- [types/index.ts:7-55](file://src/types/index.ts#L7-L55)
+- [types/index.ts:60-84](file://src/types/index.ts#L60-L84)
+- [types/index.ts:107-110](file://src/types/index.ts#L107-L110)
 
 ## Performance Considerations
 
@@ -349,11 +477,13 @@ Strongly typed command implementations:
 - **Command Lifecycle**: Commands are garbage collected after undo/redo operations
 - **History Limits**: Consider implementing history depth limits for large documents
 - **Scene Optimization**: Efficient element lookup using id-based indexing
+- **Structure Tracking**: Optimized structure item management for large documents
 
 ### Execution Efficiency
 - **Batch Operations**: Consider batching multiple commands for better performance
 - **Delta Updates**: Only store necessary state changes in commands
 - **Lazy Evaluation**: Defer expensive operations until needed
+- **Animation Batching**: Use BatchAnimationCommand to minimize animation engine calls
 
 ### Timeline Performance
 - **Request Animation Frame**: Uses browser optimization for smooth playback
@@ -373,6 +503,35 @@ engine.undo();
 
 // Redo the undone operation
 engine.redo();
+```
+
+### Multi-Page Management
+```typescript
+// Add a new page
+const addPageCommand = new AddPageCommand(engine.scene, {
+  id: 'page-new',
+  name: 'New Page',
+  background: '#ffffff',
+  elements: {},
+  animations: {}
+});
+engine.execute(addPageCommand);
+
+// Add a node under a specific page
+const addNodeCommand = new AddNodeCommand(
+  engine.scene,
+  { id: 'node-new', name: 'New Section' },
+  'page-existing'
+);
+engine.execute(addNodeCommand);
+
+// Reorder structure items
+const reorderCommand = new ReorderStructureItemsCommand(engine.scene, [
+  { type: 'node', id: 'node-new' },
+  { type: 'page', id: 'page-new' },
+  { type: 'page', id: 'page-existing' }
+]);
+engine.execute(reorderCommand);
 ```
 
 ### Complex Operations
@@ -404,7 +563,8 @@ engine.timeline.seek(1000); // 1 second
 
 **Section sources**
 - [App.tsx:8-34](file://src/App.tsx#L8-L34)
+- [StructurePanel.tsx:48-91](file://src/components/StructurePanel.tsx#L48-L91)
 - [types/index.ts:207-228](file://src/types/index.ts#L207-L228)
 
 ## Conclusion
-The implemented command pattern system provides a robust foundation for state management, undo/redo functionality, and timeline-driven animation in the presentation editor. The system's architecture ensures consistency through centralized command execution, maintains precise history stacks for reliable operations, and integrates seamlessly with the timeline for complex animation scenarios. The concrete implementations demonstrate practical applications of the pattern while maintaining type safety and performance considerations. This foundation enables extensible development of additional commands and advanced features while preserving the system's reliability and user experience.
+The implemented command pattern system provides a robust foundation for state management, undo/redo functionality, and timeline-driven animation in the presentation editor. The system's architecture ensures consistency through centralized command execution, maintains precise history stacks for reliable operations, and integrates seamlessly with the timeline for complex animation scenarios. Recent enhancements include comprehensive multi-page management commands with full redo functionality, enabling sophisticated document structure operations while maintaining type safety and performance considerations. The concrete implementations demonstrate practical applications of the pattern while preserving the system's reliability and user experience. This foundation enables extensible development of additional commands and advanced features while preserving the system's scalability and maintainability.

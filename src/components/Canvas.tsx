@@ -180,7 +180,7 @@ function createElement(
         name: 'Image',
         width: 200,
         height: 150,
-        src: 'https://placehold.co/200x150/e5e7eb/6b7280?text=Image',
+        src: 'https://pics3.baidu.com/feed/d788d43f8794a4c218c5e6387507a6daaf6e39c5.jpeg@f_auto?token=e16daccc9973446fd67c78e05b0dfd94',
         objectFit: 'cover',
       } as ImageElement;
 
