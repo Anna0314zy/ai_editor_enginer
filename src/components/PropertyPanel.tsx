@@ -6,11 +6,19 @@ import type { Element, ShapeElement, TextElement, ImageElement } from '../types'
 
 interface PropertyPanelProps {
   engine: Engine;
-  onRefresh: () => void;
 }
 
-export default function PropertyPanel({ engine, onRefresh }: PropertyPanelProps) {
+export default function PropertyPanel({ engine }: PropertyPanelProps) {
   const selectedIds = engine.getEditorState().selectedElementIds;
+  const element = selectedIds.length > 0 ? engine.scene.getElement(selectedIds[0]) : null;
+
+  const commit = useCallback(
+    (updates: Record<string, unknown>) => {
+      if (!element) return;
+      engine.execute(new MoveElementCommand(engine.scene, element.id, updates as Partial<Omit<Element, 'id' | 'type'>>));
+    },
+    [engine, element?.id]
+  );
 
   if (selectedIds.length === 0) {
     return (
@@ -29,16 +37,7 @@ export default function PropertyPanel({ engine, onRefresh }: PropertyPanelProps)
     );
   }
 
-  const element = engine.scene.getElement(selectedIds[0]);
   if (!element) return null;
-
-  const commit = useCallback(
-    (updates: Record<string, unknown>) => {
-      engine.execute(new MoveElementCommand(engine.scene, element.id, updates as Partial<Omit<Element, 'id' | 'type'>>));
-      onRefresh();
-    },
-    [engine, element.id, onRefresh]
-  );
 
   return (
     <div

@@ -1,18 +1,26 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Moveable from 'react-moveable';
 import type { Engine } from '../engine';
-import { MoveElementCommand, snapEngine } from '../engine';
-import type { Guide } from '../types';
+import { MoveElementCommand, BatchMoveCommand, snapEngine } from '../engine';
+import { useEngineSnapshot } from '../hooks/useEngineSnapshot';
+import type { Guide, Element } from '../types';
 import GuidesLayer from './GuidesLayer';
 
 interface MoveableLayerProps {
   engine: Engine;
-  onRefresh: () => void;
-  version: number;
   containerRef: React.RefObject<HTMLDivElement>;
 }
 
-export default function MoveableLayer({ engine, onRefresh, version, containerRef }: MoveableLayerProps) {
+interface CachedRect {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export default function MoveableLayer({ engine, containerRef }: MoveableLayerProps) {
+  const version = useEngineSnapshot(engine);
   const [targets, setTargets] = useState<(HTMLElement | SVGElement)[]>([]);
   const [guides, setGuides] = useState<Guide[]>([]);
   const moveableRef = useRef<Moveable>(null);
@@ -20,6 +28,9 @@ export default function MoveableLayer({ engine, onRefresh, version, containerRef
   const snapResultRef = useRef<Record<string, { x: number; y: number }>>({});
   const rotateStartRef = useRef<Record<string, number>>({});
   const resizeStartRef = useRef<Record<string, { x: number; y: number; width: number; height: number }>>({});
+  const otherRectsRef = useRef<CachedRect[]>([]);
+  const batchRef = useRef<{ id: string; updates: Partial<Omit<Element, 'id' | 'type'>> }[]>([]);
+  const batchPromiseRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     const ids = engine.getEditorState().selectedElementIds;
@@ -32,14 +43,29 @@ export default function MoveableLayer({ engine, onRefresh, version, containerRef
     requestAnimationFrame(() => {
       moveableRef.current?.updateRect();
     });
+
+    // Pre-compute rects for snapEngine; rebuild only when engine data changes
+    const pageId = engine.scene.getDocument().currentPageId;
+    otherRectsRef.current = engine.scene
+      .getPageElements(pageId)
+      .map((e) => ({ id: e.id, x: e.x, y: e.y, width: e.width, height: e.height }));
   }, [engine, version]);
 
-  const getOtherRects = (excludeId: string) => {
-    return engine.scene
-      .getPageElements(engine.scene.getDocument().currentPageId)
-      .filter((e) => e.id !== excludeId)
-      .map((e) => ({ id: e.id, x: e.x, y: e.y, width: e.width, height: e.height }));
-  };
+  const queueMove = useCallback((id: string, updates: Partial<Omit<Element, 'id' | 'type'>>) => {
+    batchRef.current.push({ id, updates });
+    if (!batchPromiseRef.current) {
+      batchPromiseRef.current = Promise.resolve().then(() => {
+        const moves = batchRef.current;
+        if (moves.length === 1) {
+          engine.execute(new MoveElementCommand(engine.scene, moves[0].id, moves[0].updates));
+        } else if (moves.length > 1) {
+          engine.execute(new BatchMoveCommand(engine.scene, moves));
+        }
+        batchRef.current = [];
+        batchPromiseRef.current = null;
+      });
+    }
+  }, [engine]);
 
   return (
     <>
@@ -64,10 +90,20 @@ export default function MoveableLayer({ engine, onRefresh, version, containerRef
           const el = engine.scene.getElement(id);
           if (!el) return;
 
+          // Viewport culling: only nearby rects participate in snapping
+          const RANGE = 500;
+          const nearbyRects = otherRectsRef.current.filter((r) => {
+            if (r.id === id) return false;
+            return (
+              Math.abs(r.x - el.x) < RANGE + r.width + el.width &&
+              Math.abs(r.y - el.y) < RANGE + r.height + el.height
+            );
+          });
+
           const nextRect = { id, x: left, y: top, width: el.width, height: el.height };
           const result = snapEngine({
             currentRect: nextRect,
-            otherRects: getOtherRects(id),
+            otherRects: nearbyRects,
             canvasSize: { width: 960, height: 540 },
           });
 
@@ -98,15 +134,9 @@ export default function MoveableLayer({ engine, onRefresh, version, containerRef
             target.style.transform = `rotate(${el.rotation}deg)`;
           }
 
-          engine.execute(
-            new MoveElementCommand(engine.scene, id, {
-              x: finalX,
-              y: finalY,
-            })
-          );
+          queueMove(id, { x: finalX, y: finalY });
           setGuides([]);
           delete snapResultRef.current[id];
-          onRefresh();
           // updateRect is handled by the useEffect watching `version`
         }}
         onRotateStart={({ target }) => {
@@ -124,12 +154,7 @@ export default function MoveableLayer({ engine, onRefresh, version, containerRef
         onRotateEnd={({ target, lastEvent }) => {
           const id = target.getAttribute('data-element-id');
           if (!id || !lastEvent) return;
-          engine.execute(
-            new MoveElementCommand(engine.scene, id, {
-              rotation: lastEvent.rotate,
-            })
-          );
-          onRefresh();
+          queueMove(id, { rotation: lastEvent.rotate });
           // updateRect is handled by the useEffect watching `version`
         }}
         onResizeStart={({ target }) => {
@@ -170,15 +195,12 @@ export default function MoveableLayer({ engine, onRefresh, version, containerRef
             target.style.transform = `rotate(${el.rotation}deg)`;
           }
 
-          engine.execute(
-            new MoveElementCommand(engine.scene, id, {
-              x: newX,
-              y: newY,
-              width: lastEvent.width,
-              height: lastEvent.height,
-            })
-          );
-          onRefresh();
+          queueMove(id, {
+            x: newX,
+            y: newY,
+            width: lastEvent.width,
+            height: lastEvent.height,
+          });
           // updateRect is handled by the useEffect watching `version`
         }}
       />

@@ -37,7 +37,6 @@ import { CSS } from '@dnd-kit/utilities';
 interface AnimationPanelProps {
   engine: Engine;
   animationEngine: AnimationEngine;
-  onRefresh: () => void;
 }
 
 let animIdCounter = 0;
@@ -84,7 +83,7 @@ function fixStartType(index: number, prev: AnimationConfig | undefined): StartTy
   return 'afterPrev';
 }
 
-export default function AnimationPanel({ engine, animationEngine, onRefresh }: AnimationPanelProps) {
+export default function AnimationPanel({ engine, animationEngine }: AnimationPanelProps) {
   const doc = engine.scene.getDocument();
   const pageId = doc.currentPageId;
   const page = doc.pages[pageId];
@@ -209,10 +208,9 @@ export default function AnimationPanel({ engine, animationEngine, onRefresh }: A
     config.startType = defaultStartType;
     engine.execute(new AddAnimationCommand(engine.scene, pageId, config));
     animationEngine.register(config);
-    onRefresh();
     // Keep form open for rapid multi-add, but reset some fields
     setName('');
-  }, [selectedId, buildConfig, animations, engine, pageId, animationEngine, onRefresh]);
+  }, [selectedId, buildConfig, animations, engine, pageId, animationEngine]);
 
   // Reset form startType to 'click' when switching elements (unless editing)
   useEffect(() => {
@@ -241,8 +239,7 @@ export default function AnimationPanel({ engine, animationEngine, onRefresh }: A
     if (updated) animationEngine.register(updated);
     setEditingId(null);
     resetForm();
-    onRefresh();
-  }, [editingId, name, effect, startType, duration, delay, easing, repeatCount, enable, buildParams, engine, resetForm, onRefresh, animationEngine]);
+  }, [editingId, name, effect, startType, duration, delay, easing, repeatCount, enable, buildParams, engine, resetForm, animationEngine]);
 
   const handleCancel = useCallback(() => {
     setEditingId(null);
@@ -257,9 +254,8 @@ export default function AnimationPanel({ engine, animationEngine, onRefresh }: A
         setEditingId(null);
         resetForm();
       }
-      onRefresh();
     },
-    [engine, animationEngine, editingId, resetForm, onRefresh]
+    [engine, animationEngine, editingId, resetForm]
   );
 
   const handlePlay = useCallback(
@@ -322,9 +318,8 @@ export default function AnimationPanel({ engine, animationEngine, onRefresh }: A
         }
       }
       engine.execute(new ReorderAnimationsCommand(engine.scene, pageId, reorderedIds));
-      onRefresh();
     },
-    [page, pageId, engine, onRefresh]
+    [page, pageId, engine]
   );
 
   const sensors = useSensors(

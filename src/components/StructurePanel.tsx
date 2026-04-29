@@ -12,7 +12,6 @@ import { renderThumbnail } from '../renderer';
 
 interface StructurePanelProps {
   engine: Engine;
-  onRefresh: () => void;
 }
 
 interface ProcessedItem {
@@ -29,7 +28,7 @@ const CANVAS_WIDTH = 960;
 const CANVAS_HEIGHT = 540;
 const SCALE = THUMB_WIDTH / CANVAS_WIDTH;
 
-export default function StructurePanel({ engine, onRefresh }: StructurePanelProps) {
+export default function StructurePanel({ engine }: StructurePanelProps) {
   const doc = engine.scene.getDocument();
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -57,7 +56,6 @@ export default function StructurePanel({ engine, onRefresh }: StructurePanelProp
         animations: {},
       })
     );
-    onRefresh();
   };
 
   const handleAddNode = () => {
@@ -71,12 +69,10 @@ export default function StructurePanel({ engine, onRefresh }: StructurePanelProp
         currentPageId
       )
     );
-    onRefresh();
   };
 
   const handleSelectPage = (pageId: string) => {
-    engine.scene.setCurrentPageId(pageId);
-    onRefresh();
+    engine.setCurrentPageId(pageId);
   };
 
   const handleDeleteItem = (index: number) => {
@@ -87,7 +83,6 @@ export default function StructurePanel({ engine, onRefresh }: StructurePanelProp
     } else {
       engine.execute(new RemoveNodeCommand(engine.scene, item.id));
     }
-    onRefresh();
   };
 
   const handleDragStart = (e: DragEvent<HTMLDivElement>, id: string, index: number) => {
@@ -141,7 +136,6 @@ export default function StructurePanel({ engine, onRefresh }: StructurePanelProp
     engine.execute(new ReorderStructureItemsCommand(engine.scene, newOrder));
     setDraggingId(null);
     setDragOverIndex(null);
-    onRefresh();
   };
 
   // Pre-process structureItems to compute visibility and indentation

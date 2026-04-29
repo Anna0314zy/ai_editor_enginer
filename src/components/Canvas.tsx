@@ -15,11 +15,9 @@ function uid(): string {
 interface CanvasProps {
   engine: Engine;
   animationEngine: AnimationEngine;
-  onRefresh: () => void;
-  version: number;
 }
 
-export default function Canvas({ engine, animationEngine, onRefresh, version }: CanvasProps) {
+export default function Canvas({ engine, animationEngine }: CanvasProps) {
   const slideRef = useRef<HTMLDivElement>(null);
 
   // Scope animation DOM queries to the canvas slide container so
@@ -63,17 +61,15 @@ export default function Canvas({ engine, animationEngine, onRefresh, version }: 
 
       engine.execute(new AddElementCommand(engine.scene, currentPageId, element));
       engine.setEditorState({ selectedElementIds: [element.id] });
-      onRefresh();
     },
-    [engine, currentPageId, onRefresh]
+    [engine, currentPageId]
   );
 
   const handleElementClick = useCallback(
     (id: string): void => {
       engine.setEditorState({ selectedElementIds: [id] });
-      onRefresh();
     },
-    [engine, onRefresh]
+    [engine]
   );
 
   const handleCanvasPointerDown = useCallback(
@@ -83,10 +79,9 @@ export default function Canvas({ engine, animationEngine, onRefresh, version }: 
       const clickedMoveable = target.closest('.moveable-control-box');
       if (!clickedElement && !clickedMoveable) {
         engine.setEditorState({ selectedElementIds: [] });
-        onRefresh();
       }
     },
-    [engine, onRefresh]
+    [engine]
   );
 
   return (
@@ -121,7 +116,7 @@ export default function Canvas({ engine, animationEngine, onRefresh, version }: 
             isSelected: selectedIds.includes(el.id),
           })
         )}
-        <MoveableLayer engine={engine} onRefresh={onRefresh} version={version} containerRef={slideRef} />
+        <MoveableLayer engine={engine} containerRef={slideRef} />
       </div>
     </div>
   );

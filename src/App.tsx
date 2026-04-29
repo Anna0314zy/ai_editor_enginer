@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { createEngine, DeleteElementCommand } from './engine';
 import { AnimationEngine, WebAnimationAdapter, AnimationScheduler } from './animation';
+import { useEngineSnapshot } from './hooks/useEngineSnapshot';
 import StructurePanel from './components/StructurePanel';
 import CanvasToolbar from './components/CanvasToolbar';
 import Canvas from './components/Canvas';
@@ -10,20 +11,17 @@ import PreviewModal from './components/PreviewModal';
 
 function App() {
   const engine = useMemo(() => createEngine(), []);
+  (window as any)._engine = engine;
   const animationEngine = useMemo(
     () => new AnimationEngine(new WebAnimationAdapter()),
     []
   );
-  const [version, setVersion] = useState(0);
+  const snapshot = useEngineSnapshot(engine);
   const [rightPanelTab, setRightPanelTab] = useState<'properties' | 'animation'>('properties');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [stepScheduler, setStepScheduler] = useState<AnimationScheduler | null>(null);
   const [stepProgress, setStepProgress] = useState({ current: 0, total: 0 });
   const schedulerRef = useRef<AnimationScheduler | null>(null);
-
-  const refresh = (): void => {
-    setVersion((v) => v + 1);
-  };
 
   // Sync scene animations to animationEngine
   useEffect(() => {
@@ -33,7 +31,7 @@ function App() {
     for (const anim of anims) {
       if (anim.enable) animationEngine.register(anim);
     }
-  }, [version, engine, animationEngine]);
+  }, [snapshot, engine, animationEngine]);
 
   // Auto-manage step scheduler: create when on animation tab, destroy when leaving
   useEffect(() => {
@@ -71,7 +69,7 @@ function App() {
       schedulerRef.current.load(anims);
       setStepProgress({ current: 0, total: schedulerRef.current.getStepCount() });
     }
-  }, [version, rightPanelTab, isPreviewOpen, engine]);
+  }, [snapshot, rightPanelTab, isPreviewOpen, engine]);
 
   const handleReset = useCallback(() => {
     animationEngine.stopAll();
@@ -112,7 +110,6 @@ function App() {
         e.preventDefault();
         if (engine.canUndo()) {
           engine.undo();
-          refresh();
         }
       }
 
@@ -120,7 +117,6 @@ function App() {
         e.preventDefault();
         if (engine.canRedo()) {
           engine.redo();
-          refresh();
         }
       }
 
@@ -139,7 +135,6 @@ function App() {
             const pageId = engine.scene.getDocument().currentPageId;
             engine.execute(new DeleteElementCommand(engine.scene, selectedIds[0], pageId));
             engine.setEditorState({ selectedElementIds: [] });
-            refresh();
           }
         }
       }
@@ -170,7 +165,6 @@ function App() {
             onClick={() => {
               if (engine.canUndo()) {
                 engine.undo();
-                refresh();
               }
             }}
             disabled={!engine.canUndo()}
@@ -190,7 +184,6 @@ function App() {
             onClick={() => {
               if (engine.canRedo()) {
                 engine.redo();
-                refresh();
               }
             }}
             disabled={!engine.canRedo()}
@@ -258,7 +251,6 @@ function App() {
             onClick={() => {
               engine.setEditorState({ selectedElementIds: [] });
               setIsPreviewOpen(true);
-              refresh();
             }}
             style={{
               padding: '6px 12px',
@@ -279,11 +271,11 @@ function App() {
         </div>
       </header>
       <main style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        <StructurePanel engine={engine} onRefresh={refresh} />
+        <StructurePanel engine={engine} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <CanvasToolbar />
           <div style={{ flex: 1, overflow: 'hidden' }}>
-            <Canvas engine={engine} animationEngine={animationEngine} onRefresh={refresh} version={version} />
+            <Canvas engine={engine} animationEngine={animationEngine} />
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', width: 400, borderLeft: '1px solid #e5e7eb', flexShrink: 0 }}>
@@ -322,9 +314,9 @@ function App() {
             </button>
           </div>
           {rightPanelTab === 'properties' ? (
-            <PropertyPanel engine={engine} onRefresh={refresh} />
+            <PropertyPanel engine={engine} />
           ) : (
-            <AnimationPanel engine={engine} animationEngine={animationEngine} onRefresh={refresh} />
+            <AnimationPanel engine={engine} animationEngine={animationEngine} />
           )}
         </div>
       </main>

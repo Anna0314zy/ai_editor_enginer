@@ -67,6 +67,38 @@ export class DeleteElementCommand implements Command {
   }
 }
 
+export class BatchMoveCommand implements Command {
+  private befores: Map<string, Partial<Element>>;
+
+  constructor(
+    private scene: Scene,
+    private moves: { id: string; updates: Partial<Omit<Element, 'id' | 'type'>> }[]
+  ) {
+    this.befores = new Map();
+    for (const move of moves) {
+      const el = scene.getElement(move.id);
+      if (!el) continue;
+      const before: Partial<Element> = {};
+      for (const key of Object.keys(move.updates) as Array<keyof typeof move.updates>) {
+        (before as Record<string, unknown>)[key] = (el as unknown as Record<string, unknown>)[key];
+      }
+      this.befores.set(move.id, before);
+    }
+  }
+
+  execute(): void {
+    for (const move of this.moves) {
+      this.scene.updateElement(move.id, move.updates);
+    }
+  }
+
+  undo(): void {
+    for (const [id, before] of this.befores) {
+      this.scene.updateElement(id, before);
+    }
+  }
+}
+
 // ============================================================================
 // Animation Commands
 // ============================================================================

@@ -6,7 +6,7 @@ export { History } from './history';
 export { Timeline } from './timeline';
 export { Engine, createEngine } from './engine';
 export {
-  AddElementCommand, MoveElementCommand, DeleteElementCommand,
+  AddElementCommand, MoveElementCommand, DeleteElementCommand, BatchMoveCommand,
   AddAnimationCommand, RemoveAnimationCommand, UpdateAnimationCommand, ReorderAnimationsCommand,
   AddPageCommand, RemovePageCommand, AddNodeCommand, RemoveNodeCommand, ReorderStructureItemsCommand,
 } from './commands';
