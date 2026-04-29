@@ -89,6 +89,7 @@ export class Engine {
     command.execute();
     this.history.push(command);
     this.notify('scene');
+    this.notify('history');
   }
 
   undo(): void {

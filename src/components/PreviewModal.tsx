@@ -1,29 +1,30 @@
 import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
-import type { Engine } from '../engine';
 import type { AnimationEngine } from '../animation';
 import { AnimationScheduler } from '../animation';
 import { renderElement } from '../renderer';
+import { useStores, useSceneStore, useAnimationStore } from '../store';
 
 interface PreviewModalProps {
-  engine: Engine;
   animationEngine: AnimationEngine;
   onClose: () => void;
 }
 
-export default function PreviewModal({ engine, animationEngine, onClose }: PreviewModalProps) {
-  const doc = engine.scene.getDocument();
+export default function PreviewModal({ animationEngine, onClose }: PreviewModalProps) {
+  const { sceneStore, animationStore } = useStores();
+  const sceneSnapshot = useSceneStore(sceneStore);
+  const animSnapshot = useAnimationStore(animationStore);
   const slideRef = useRef<HTMLDivElement>(null);
 
   // Derive ordered page list from structureItems (preview-local ordering)
   const pageIds = useMemo(
-    () => doc.structureItems.filter((item) => item.type === 'page').map((item) => item.id),
-    [doc.structureItems]
+    () => sceneSnapshot.document.structureItems.filter((item) => item.type === 'page').map((item) => item.id),
+    [sceneSnapshot.document.structureItems]
   );
 
   // Preview maintains its own current page so it doesn't mutate editor state
-  const [previewPageId, setPreviewPageId] = useState(doc.currentPageId);
+  const [previewPageId, setPreviewPageId] = useState(sceneSnapshot.currentPageId);
   const currentPageIndex = pageIds.indexOf(previewPageId);
-  const elements = engine.scene.getPageElements(previewPageId);
+  const elements = sceneStore.getPageElements(previewPageId);
 
   const scheduler = useMemo(() => new AnimationScheduler(animationEngine), [animationEngine]);
 
@@ -41,7 +42,7 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
     // Register the preview page's animations into the shared engine
     // so the scheduler can actually play them.
     animationEngine.reset();
-    const allAnims = engine.scene.getPageAnimations(previewPageId);
+    const allAnims = sceneStore.getPageAnimations(previewPageId);
     for (const anim of allAnims) {
       if (anim.enable) animationEngine.register(anim);
     }
@@ -50,7 +51,7 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
     scheduler.load(anims);
     setStepInfo({ current: 0, total: scheduler.getStepCount() });
     return () => scheduler.reset();
-  }, [previewPageId, engine, scheduler, animationEngine]);
+  }, [previewPageId, sceneStore, scheduler, animationEngine]);
 
   const handleAdvance = useCallback((): void => {
     if (scheduler.canAdvance()) {
@@ -68,10 +69,10 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
 
   const handleReset = useCallback((): void => {
     scheduler.reset();
-    const anims = engine.scene.getPageAnimations(previewPageId).filter((a) => a.enable);
+    const anims = sceneStore.getPageAnimations(previewPageId).filter((a) => a.enable);
     scheduler.load(anims);
     syncStepInfo();
-  }, [scheduler, engine, previewPageId, syncStepInfo]);
+  }, [scheduler, sceneStore, previewPageId, syncStepInfo]);
 
   const handleNextPage = useCallback((): void => {
     if (currentPageIndex < pageIds.length - 1) {
@@ -93,7 +94,7 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
     animationEngine.setScopeRoot(slideRef.current);
 
     // Stop any running animations from edit mode
-    const pageElements = engine.scene.getPageElements(previewPageId);
+    const pageElements = sceneStore.getPageElements(previewPageId);
     for (const el of pageElements) {
       animationEngine.stop(el.id);
     }
@@ -131,13 +132,13 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      const pageElements = engine.scene.getPageElements(previewPageId);
+      const pageElements = sceneStore.getPageElements(previewPageId);
       for (const el of pageElements) {
         animationEngine.stop(el.id);
       }
       animationEngine.setScopeRoot(null);
     };
-  }, [previewPageId, animationEngine, engine, onClose, handleAdvance, handlePrevious, handleNextPage, handlePrevPage, scheduler, currentPageIndex, pageIds.length]);
+  }, [previewPageId, animationEngine, sceneStore, onClose, handleAdvance, handlePrevious, handleNextPage, handlePrevPage, scheduler, currentPageIndex, pageIds.length]);
 
   const { current: currentStep, total: stepCount } = stepInfo;
 
@@ -214,7 +215,7 @@ export default function PreviewModal({ engine, animationEngine, onClose }: Previ
         style={{
           width: 960,
           height: 540,
-          backgroundColor: doc.pages[previewPageId]?.background ?? '#ffffff',
+          backgroundColor: sceneSnapshot.document.pages[previewPageId]?.background ?? '#ffffff',
           boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
           position: 'relative',
           overflow: 'hidden',

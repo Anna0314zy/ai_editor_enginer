@@ -5,6 +5,7 @@ import { AddElementCommand } from '../engine';
 import type { AnimationEngine } from '../animation';
 import { renderElement } from '../renderer';
 import type { Element, ShapeElement, TextElement, ImageElement } from '../types';
+import { useStores, useSceneStore, useSelectionStore } from '../store';
 import MoveableLayer from './MoveableLayer';
 
 let uidCounter = 0;
@@ -18,6 +19,9 @@ interface CanvasProps {
 }
 
 export default function Canvas({ engine, animationEngine }: CanvasProps) {
+  const { sceneStore, selectionStore } = useStores();
+  const sceneSnapshot = useSceneStore(sceneStore);
+  const selectionSnapshot = useSelectionStore(selectionStore);
   const slideRef = useRef<HTMLDivElement>(null);
 
   // Scope animation DOM queries to the canvas slide container so
@@ -29,10 +33,9 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
     };
   }, [animationEngine]);
 
-  const doc = engine.scene.getDocument();
-  const currentPageId = doc.currentPageId;
-  const elements = engine.scene.getPageElements(currentPageId);
-  const selectedIds = engine.getEditorState().selectedElementIds;
+  const currentPageId = sceneSnapshot.currentPageId;
+  const elements = sceneSnapshot.currentPageElements;
+  const selectedIds = selectionSnapshot.selectedIds;
 
   const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
@@ -60,16 +63,16 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
       const element = createElement(data.type, x, y, data.shapeType);
 
       engine.execute(new AddElementCommand(engine.scene, currentPageId, element));
-      engine.setEditorState({ selectedElementIds: [element.id] });
+      selectionStore.select(element.id);
     },
-    [engine, currentPageId]
+    [engine, currentPageId, selectionStore]
   );
 
   const handleElementClick = useCallback(
     (id: string): void => {
-      engine.setEditorState({ selectedElementIds: [id] });
+      selectionStore.select(id);
     },
-    [engine]
+    [selectionStore]
   );
 
   const handleCanvasPointerDown = useCallback(
@@ -78,10 +81,10 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
       const clickedElement = target.closest('[data-element-id]');
       const clickedMoveable = target.closest('.moveable-control-box');
       if (!clickedElement && !clickedMoveable) {
-        engine.setEditorState({ selectedElementIds: [] });
+        selectionStore.clear();
       }
     },
-    [engine]
+    [selectionStore]
   );
 
   return (
@@ -103,7 +106,7 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
         style={{
           width: 960,
           height: 540,
-          backgroundColor: doc.pages[currentPageId]?.background ?? '#ffffff',
+          backgroundColor: sceneSnapshot.currentPage?.background ?? '#ffffff',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
           position: 'relative',
           overflow: 'hidden',

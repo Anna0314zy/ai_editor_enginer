@@ -1,7 +1,9 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { createEngine, DeleteElementCommand } from './engine';
-import { AnimationEngine, WebAnimationAdapter, AnimationScheduler } from './animation';
-import { useEngineSnapshot } from './hooks/useEngineSnapshot';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { Engine } from './engine';
+import { DeleteElementCommand } from './engine';
+import type { AnimationEngine } from './animation';
+import { AnimationScheduler } from './animation';
+import { useStores, useSceneStore, useSelectionStore, useHistoryStore, useAnimationStore } from './store';
 import StructurePanel from './components/StructurePanel';
 import CanvasToolbar from './components/CanvasToolbar';
 import Canvas from './components/Canvas';
@@ -9,14 +11,17 @@ import PropertyPanel from './components/PropertyPanel';
 import AnimationPanel from './components/AnimationPanel';
 import PreviewModal from './components/PreviewModal';
 
-function App() {
-  const engine = useMemo(() => createEngine(), []);
-  (window as any)._engine = engine;
-  const animationEngine = useMemo(
-    () => new AnimationEngine(new WebAnimationAdapter()),
-    []
-  );
-  const snapshot = useEngineSnapshot(engine);
+interface AppProps {
+  engine: Engine;
+  animationEngine: AnimationEngine;
+}
+
+function App({ engine, animationEngine }: AppProps) {
+  const { sceneStore, selectionStore, historyStore, animationStore } = useStores();
+  const sceneSnapshot = useSceneStore(sceneStore);
+  const selectionSnapshot = useSelectionStore(selectionStore);
+  const historySnapshot = useHistoryStore(historyStore);
+  const animSnapshot = useAnimationStore(animationStore);
   const [rightPanelTab, setRightPanelTab] = useState<'properties' | 'animation'>('properties');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [stepScheduler, setStepScheduler] = useState<AnimationScheduler | null>(null);
@@ -25,13 +30,11 @@ function App() {
 
   // Sync scene animations to animationEngine
   useEffect(() => {
-    const pageId = engine.scene.getDocument().currentPageId;
-    const anims = engine.scene.getPageAnimations(pageId);
     animationEngine.reset();
-    for (const anim of anims) {
+    for (const anim of animSnapshot.currentPageAnimations) {
       if (anim.enable) animationEngine.register(anim);
     }
-  }, [snapshot, engine, animationEngine]);
+  }, [sceneSnapshot.currentPageId, animSnapshot.currentPageAnimations, animationEngine]);
 
   // Auto-manage step scheduler: create when on animation tab, destroy when leaving
   useEffect(() => {
@@ -63,13 +66,12 @@ function App() {
   // Reload scheduler when animations change while on animation tab
   useEffect(() => {
     if (rightPanelTab === 'animation' && !isPreviewOpen && schedulerRef.current) {
-      const pageId = engine.scene.getDocument().currentPageId;
-      const anims = engine.scene.getPageAnimations(pageId).filter((a) => a.enable);
+      const anims = animSnapshot.currentPageAnimations.filter((a) => a.enable);
       schedulerRef.current.reset();
       schedulerRef.current.load(anims);
       setStepProgress({ current: 0, total: schedulerRef.current.getStepCount() });
     }
-  }, [snapshot, rightPanelTab, isPreviewOpen, engine]);
+  }, [animSnapshot.currentPageAnimations, rightPanelTab, isPreviewOpen]);
 
   const handleReset = useCallback(() => {
     animationEngine.stopAll();
@@ -108,15 +110,15 @@ function App() {
 
       if (isMeta && e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
-        if (engine.canUndo()) {
-          engine.undo();
+        if (historySnapshot.canUndo) {
+          historyStore.undo();
         }
       }
 
       if ((isMeta && e.key === 'y') || (isMeta && e.shiftKey && e.key === 'z')) {
         e.preventDefault();
-        if (engine.canRedo()) {
-          engine.redo();
+        if (historySnapshot.canRedo) {
+          historyStore.redo();
         }
       }
 
@@ -129,12 +131,10 @@ function App() {
           target.isContentEditable;
 
         if (!isEditing) {
-          const selectedIds = engine.getEditorState().selectedElementIds;
-          if (selectedIds.length > 0) {
+          if (selectionSnapshot.selectedIds.length > 0) {
             e.preventDefault();
-            const pageId = engine.scene.getDocument().currentPageId;
-            engine.execute(new DeleteElementCommand(engine.scene, selectedIds[0], pageId));
-            engine.setEditorState({ selectedElementIds: [] });
+            engine.execute(new DeleteElementCommand(engine.scene, selectionSnapshot.selectedIds[0], sceneSnapshot.currentPageId));
+            selectionStore.clear();
           }
         }
       }
@@ -142,10 +142,10 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [engine]);
+  }, [engine, historySnapshot, historyStore, selectionSnapshot, selectionStore, sceneSnapshot.currentPageId]);
 
-  const currentPageId = engine.scene.getDocument().currentPageId;
-  const elementCount = engine.scene.getPageElements(currentPageId).length;
+  const currentPageId = sceneSnapshot.currentPageId;
+  const elementCount = sceneSnapshot.currentPageElements.length;
 
   return (
     <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -163,38 +163,38 @@ function App() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button
             onClick={() => {
-              if (engine.canUndo()) {
-                engine.undo();
+              if (historySnapshot.canUndo) {
+                historyStore.undo();
               }
             }}
-            disabled={!engine.canUndo()}
+            disabled={!historySnapshot.canUndo}
             style={{
               padding: '6px 12px',
               fontSize: 12,
               border: '1px solid #d1d5db',
               borderRadius: 4,
-              backgroundColor: engine.canUndo() ? '#ffffff' : '#f3f4f6',
-              color: engine.canUndo() ? '#374151' : '#9ca3af',
-              cursor: engine.canUndo() ? 'pointer' : 'not-allowed',
+              backgroundColor: historySnapshot.canUndo ? '#ffffff' : '#f3f4f6',
+              color: historySnapshot.canUndo ? '#374151' : '#9ca3af',
+              cursor: historySnapshot.canUndo ? 'pointer' : 'not-allowed',
             }}
           >
             Undo
           </button>
           <button
             onClick={() => {
-              if (engine.canRedo()) {
-                engine.redo();
+              if (historySnapshot.canRedo) {
+                historyStore.redo();
               }
             }}
-            disabled={!engine.canRedo()}
+            disabled={!historySnapshot.canRedo}
             style={{
               padding: '6px 12px',
               fontSize: 12,
               border: '1px solid #d1d5db',
               borderRadius: 4,
-              backgroundColor: engine.canRedo() ? '#ffffff' : '#f3f4f6',
-              color: engine.canRedo() ? '#374151' : '#9ca3af',
-              cursor: engine.canRedo() ? 'pointer' : 'not-allowed',
+              backgroundColor: historySnapshot.canRedo ? '#ffffff' : '#f3f4f6',
+              color: historySnapshot.canRedo ? '#374151' : '#9ca3af',
+              cursor: historySnapshot.canRedo ? 'pointer' : 'not-allowed',
             }}
           >
             Redo
@@ -249,7 +249,7 @@ function App() {
           )}
           <button
             onClick={() => {
-              engine.setEditorState({ selectedElementIds: [] });
+              selectionStore.clear();
               setIsPreviewOpen(true);
             }}
             style={{
@@ -323,7 +323,6 @@ function App() {
 
       {isPreviewOpen && (
         <PreviewModal
-          engine={engine}
           animationEngine={animationEngine}
           onClose={() => setIsPreviewOpen(false)}
         />

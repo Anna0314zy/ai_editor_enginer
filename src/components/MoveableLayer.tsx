@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Moveable from 'react-moveable';
 import type { Engine } from '../engine';
 import { MoveElementCommand, BatchMoveCommand, snapEngine } from '../engine';
-import { useEngineSnapshot } from '../hooks/useEngineSnapshot';
+import { useStores, useSelectionStore, useSceneStore } from '../store';
 import type { Guide, Element } from '../types';
 import GuidesLayer from './GuidesLayer';
 
@@ -20,7 +20,9 @@ interface CachedRect {
 }
 
 export default function MoveableLayer({ engine, containerRef }: MoveableLayerProps) {
-  const version = useEngineSnapshot(engine);
+  const { selectionStore, sceneStore } = useStores();
+  const selectionSnapshot = useSelectionStore(selectionStore);
+  const sceneSnapshot = useSceneStore(sceneStore);
   const [targets, setTargets] = useState<(HTMLElement | SVGElement)[]>([]);
   const [guides, setGuides] = useState<Guide[]>([]);
   const moveableRef = useRef<Moveable>(null);
@@ -33,7 +35,7 @@ export default function MoveableLayer({ engine, containerRef }: MoveableLayerPro
   const batchPromiseRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
-    const ids = engine.getEditorState().selectedElementIds;
+    const ids = selectionSnapshot.selectedIds;
     const container = containerRef.current;
     const elements = ids
       .map((id) => container?.querySelector(`[data-element-id="${id}"]`))
@@ -45,11 +47,9 @@ export default function MoveableLayer({ engine, containerRef }: MoveableLayerPro
     });
 
     // Pre-compute rects for snapEngine; rebuild only when engine data changes
-    const pageId = engine.scene.getDocument().currentPageId;
-    otherRectsRef.current = engine.scene
-      .getPageElements(pageId)
+    otherRectsRef.current = sceneSnapshot.currentPageElements
       .map((e) => ({ id: e.id, x: e.x, y: e.y, width: e.width, height: e.height }));
-  }, [engine, version]);
+  }, [selectionSnapshot, sceneSnapshot, containerRef]);
 
   const queueMove = useCallback((id: string, updates: Partial<Omit<Element, 'id' | 'type'>>) => {
     batchRef.current.push({ id, updates });
@@ -80,14 +80,14 @@ export default function MoveableLayer({ engine, containerRef }: MoveableLayerPro
         onDragStart={({ target }) => {
           const id = target.getAttribute('data-element-id');
           if (!id) return;
-          const el = engine.scene.getElement(id);
+          const el = sceneStore.getElement(id);
           if (!el) return;
           dragStartRef.current[id] = { x: el.x, y: el.y };
         }}
         onDrag={({ target, left, top }) => {
           const id = target.getAttribute('data-element-id');
           if (!id) return;
-          const el = engine.scene.getElement(id);
+          const el = sceneStore.getElement(id);
           if (!el) return;
 
           // Viewport culling: only nearby rects participate in snapping
@@ -120,7 +120,7 @@ export default function MoveableLayer({ engine, containerRef }: MoveableLayerPro
         onDragEnd={({ target, lastEvent }) => {
           const id = target.getAttribute('data-element-id');
           if (!id || !lastEvent) return;
-          const el = engine.scene.getElement(id);
+          const el = sceneStore.getElement(id);
 
           // Use snapped position (moveable's lastEvent doesn't know about our snap override)
           const snapped = snapResultRef.current[id];
@@ -142,7 +142,7 @@ export default function MoveableLayer({ engine, containerRef }: MoveableLayerPro
         onRotateStart={({ target }) => {
           const id = target.getAttribute('data-element-id');
           if (!id) return;
-          const el = engine.scene.getElement(id);
+          const el = sceneStore.getElement(id);
           if (!el) return;
           rotateStartRef.current[id] = el.rotation;
         }}
@@ -160,7 +160,7 @@ export default function MoveableLayer({ engine, containerRef }: MoveableLayerPro
         onResizeStart={({ target }) => {
           const id = target.getAttribute('data-element-id');
           if (!id) return;
-          const el = engine.scene.getElement(id);
+          const el = sceneStore.getElement(id);
           if (!el) return;
           resizeStartRef.current[id] = {
             x: el.x,
@@ -181,7 +181,7 @@ export default function MoveableLayer({ engine, containerRef }: MoveableLayerPro
           if (!id || !lastEvent) return;
           const start = resizeStartRef.current[id];
           if (!start) return;
-          const el = engine.scene.getElement(id);
+          const el = sceneStore.getElement(id);
 
           const newX = start.x + lastEvent.drag.translate[0];
           const newY = start.y + lastEvent.drag.translate[1];

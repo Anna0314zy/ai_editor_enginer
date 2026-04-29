@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { ChangeEvent } from 'react';
 import type { Engine } from '../engine';
 import { MoveElementCommand } from '../engine';
+import { useStores, useSelectionStore, useSceneStore } from '../store';
 import type { Element, ShapeElement, TextElement, ImageElement } from '../types';
 
 interface PropertyPanelProps {
@@ -9,8 +10,10 @@ interface PropertyPanelProps {
 }
 
 export default function PropertyPanel({ engine }: PropertyPanelProps) {
-  const selectedIds = engine.getEditorState().selectedElementIds;
-  const element = selectedIds.length > 0 ? engine.scene.getElement(selectedIds[0]) : null;
+  const { selectionStore, sceneStore } = useStores();
+  const selectionSnapshot = useSelectionStore(selectionStore);
+  const selectedIds = selectionSnapshot.selectedIds;
+  const element = selectedIds.length > 0 ? sceneStore.getElement(selectionSnapshot.firstSelectedId ?? '') : null;
 
   const commit = useCallback(
     (updates: Record<string, unknown>) => {

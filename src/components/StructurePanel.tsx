@@ -9,6 +9,7 @@ import {
   ReorderStructureItemsCommand,
 } from '../engine';
 import { renderThumbnail } from '../renderer';
+import { useStores, useSceneStore } from '../store';
 
 interface StructurePanelProps {
   engine: Engine;
@@ -29,7 +30,9 @@ const CANVAS_HEIGHT = 540;
 const SCALE = THUMB_WIDTH / CANVAS_WIDTH;
 
 export default function StructurePanel({ engine }: StructurePanelProps) {
-  const doc = engine.scene.getDocument();
+  const { sceneStore } = useStores();
+  const sceneSnapshot = useSceneStore(sceneStore);
+  const doc = sceneSnapshot.document;
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());

@@ -8,6 +8,7 @@ import {
 } from '../engine';
 import type { AnimationEngine } from '../animation';
 import { buildClickSteps } from '../animation';
+import { useStores, useSceneStore, useSelectionStore, useAnimationStore } from '../store';
 import type {
   AnimationConfig,
   AnimationEffect,
@@ -84,14 +85,17 @@ function fixStartType(index: number, prev: AnimationConfig | undefined): StartTy
 }
 
 export default function AnimationPanel({ engine, animationEngine }: AnimationPanelProps) {
-  const doc = engine.scene.getDocument();
-  const pageId = doc.currentPageId;
-  const page = doc.pages[pageId];
-  const animations = engine.scene.getPageAnimations(pageId);
+  const { sceneStore, selectionStore, animationStore } = useStores();
+  const sceneSnapshot = useSceneStore(sceneStore);
+  const selectionSnapshot = useSelectionStore(selectionStore);
+  const animSnapshot = useAnimationStore(animationStore);
+
+  const pageId = sceneSnapshot.currentPageId;
+  const page = sceneSnapshot.currentPage;
+  const animations = animSnapshot.currentPageAnimations;
   const steps = buildClickSteps(animations);
 
-  const selectedIds = engine.getEditorState().selectedElementIds;
-  const selectedId = selectedIds[0] ?? null;
+  const selectedId = selectionSnapshot.firstSelectedId ?? null;
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -235,7 +239,7 @@ export default function AnimationPanel({ engine, animationEngine }: AnimationPan
     };
     engine.execute(new UpdateAnimationCommand(engine.scene, editingId, updates));
     // Sync to animationEngine
-    const updated = engine.scene.getAnimation(editingId);
+    const updated = sceneStore.getAnimation(editingId);
     if (updated) animationEngine.register(updated);
     setEditingId(null);
     resetForm();
@@ -309,9 +313,9 @@ export default function AnimationPanel({ engine, animationEngine }: AnimationPan
       // Auto-fix startType for moved item
       const movedId = active.id as string;
       const movedIndex = reorderedIds.indexOf(movedId);
-      const movedAnim = engine.scene.getAnimation(movedId);
+      const movedAnim = sceneStore.getAnimation(movedId);
       if (movedAnim && movedIndex >= 0) {
-        const prevAnim = movedIndex > 0 ? engine.scene.getAnimation(reorderedIds[movedIndex - 1]) : undefined;
+        const prevAnim = movedIndex > 0 ? sceneStore.getAnimation(reorderedIds[movedIndex - 1]) : undefined;
         const newStartType = fixStartType(movedIndex, prevAnim);
         if (newStartType !== movedAnim.startType) {
           engine.execute(new UpdateAnimationCommand(engine.scene, movedId, { startType: newStartType }));
@@ -350,7 +354,7 @@ export default function AnimationPanel({ engine, animationEngine }: AnimationPan
     return map;
   }, [animations]);
 
-  const pageElements = engine.scene.getPageElements(pageId);
+  const pageElements = sceneStore.getPageElements(pageId);
   const elementNameMap = useMemo(() => new Map(pageElements.map((el) => [el.id, el.name])), [pageElements]);
 
   return (

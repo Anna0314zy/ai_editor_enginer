@@ -5,6 +5,7 @@ export class Timeline {
   // private animations: Animation[] = [];
   private rafId: number | null = null;
   private lastTimestamp = 0;
+  private listeners = new Set<() => void>();
 
   getCurrentTime(): number {
     return this.currentTime;
@@ -22,12 +23,24 @@ export class Timeline {
   //   this.animations = animations;
   // }
 
+  subscribe(callback: () => void): () => void {
+    this.listeners.add(callback);
+    return () => this.listeners.delete(callback);
+  }
+
+  private notify(): void {
+    for (const cb of this.listeners) {
+      cb();
+    }
+  }
+
   play(): void {
     if (this.playing) {
       return;
     }
     this.playing = true;
     this.lastTimestamp = performance.now();
+    this.notify();
     this.tick();
   }
 
@@ -37,16 +50,17 @@ export class Timeline {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;
     }
+    this.notify();
   }
 
   seek(time: number): void {
     this.currentTime = Math.max(0, Math.min(time, this.duration));
+    this.notify();
   }
 
   private tick = (): void => {
     if (!this.playing) {
       return;
-
     }
     const now = performance.now();
     const delta = now - this.lastTimestamp;
@@ -57,6 +71,8 @@ export class Timeline {
       this.currentTime = this.duration;
       this.playing = false;
     }
+
+    this.notify();
 
     if (this.playing) {
       this.rafId = requestAnimationFrame(this.tick);
