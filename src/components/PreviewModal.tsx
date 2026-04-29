@@ -3,6 +3,30 @@ import type { AnimationEngine } from '../animation';
 import { AnimationScheduler } from '../animation';
 import { renderElement } from '../renderer';
 import { useStores, useSceneStore, useAnimationStore } from '../store';
+import { PAGE_DEFAULT_WIDTH, PAGE_DEFAULT_HEIGHT } from '../types';
+import type { PageBackground } from '../types';
+
+function getBackgroundStyle(background: PageBackground | undefined): React.CSSProperties {
+  if (!background) return { backgroundColor: '#ffffff' };
+  switch (background.type) {
+    case 'solid':
+      return { backgroundColor: background.color };
+    case 'gradient': {
+      const stops = background.stops.map((s) => `${s.color} ${s.offset * 100}%`).join(', ');
+      return { backgroundImage: `linear-gradient(${background.angle}deg, ${stops})` };
+    }
+    case 'image':
+      return {
+        backgroundImage: `url(${background.src})`,
+        backgroundSize: background.fit,
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        opacity: background.opacity,
+      };
+    default:
+      return { backgroundColor: '#ffffff' };
+  }
+}
 
 interface PreviewModalProps {
   animationEngine: AnimationEngine;
@@ -213,15 +237,23 @@ export default function PreviewModal({ animationEngine, onClose }: PreviewModalP
       <div
         ref={slideRef}
         style={{
-          width: 960,
-          height: 540,
-          backgroundColor: sceneSnapshot.document.pages[previewPageId]?.background ?? '#ffffff',
+          width: PAGE_DEFAULT_WIDTH,
+          height: PAGE_DEFAULT_HEIGHT,
+          backgroundColor: '#ffffff',
           boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
           position: 'relative',
           overflow: 'hidden',
           flexShrink: 0,
         }}
       >
+        {/* Background layer */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            ...getBackgroundStyle(sceneSnapshot.document.pages[previewPageId]?.background ?? sceneSnapshot.document.background),
+          }}
+        />
         {elements.map((el) =>
           renderElement(el, {
             onClick: () => {}, // No element-specific triggers in preview

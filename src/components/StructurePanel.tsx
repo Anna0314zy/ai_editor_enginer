@@ -10,6 +10,8 @@ import {
 } from '../engine';
 import { renderThumbnail } from '../renderer';
 import { useStores, useSceneStore } from '../store';
+import { PAGE_DEFAULT_WIDTH, PAGE_DEFAULT_HEIGHT } from '../types';
+import type { PageBackground } from '../types';
 
 interface StructurePanelProps {
   engine: Engine;
@@ -25,9 +27,31 @@ interface ProcessedItem {
 
 const THUMB_WIDTH = 160;
 const THUMB_HEIGHT = 90;
-const CANVAS_WIDTH = 960;
-const CANVAS_HEIGHT = 540;
+const CANVAS_WIDTH = PAGE_DEFAULT_WIDTH;
+const CANVAS_HEIGHT = PAGE_DEFAULT_HEIGHT;
 const SCALE = THUMB_WIDTH / CANVAS_WIDTH;
+
+function getThumbBackgroundStyle(background: PageBackground | undefined): React.CSSProperties {
+  if (!background) return { backgroundColor: '#ffffff' };
+  switch (background.type) {
+    case 'solid':
+      return { backgroundColor: background.color };
+    case 'gradient': {
+      const stops = background.stops.map((s) => `${s.color} ${s.offset * 100}%`).join(', ');
+      return { backgroundImage: `linear-gradient(${background.angle}deg, ${stops})` };
+    }
+    case 'image':
+      return {
+        backgroundImage: `url(${background.src})`,
+        backgroundSize: background.fit,
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        opacity: background.opacity,
+      };
+    default:
+      return { backgroundColor: '#ffffff' };
+  }
+}
 
 export default function StructurePanel({ engine }: StructurePanelProps) {
   const { sceneStore } = useStores();
@@ -54,7 +78,6 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
       new AddPageCommand(engine.scene, {
         id: newId,
         name: `Page ${count}`,
-        background: '#ffffff',
         elements: {},
         animations: {},
       })
@@ -319,7 +342,7 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
                         height: THUMB_HEIGHT,
                         overflow: 'hidden',
                         position: 'relative',
-                        backgroundColor: doc.pages[proc.id]?.background ?? '#ffffff',
+                        ...getThumbBackgroundStyle(doc.pages[proc.id]?.background ?? doc.background),
                         borderRadius: 4,
                         border: '1px solid #e5e7eb',
                       }}

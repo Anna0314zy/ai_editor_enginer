@@ -4,9 +4,32 @@ import type { Engine } from '../engine';
 import { AddElementCommand } from '../engine';
 import type { AnimationEngine } from '../animation';
 import { renderElement } from '../renderer';
-import type { Element, ShapeElement, TextElement, ImageElement } from '../types';
+import type { Element, ShapeElement, TextElement, ImageElement, PageBackground } from '../types';
+import { PAGE_DEFAULT_WIDTH, PAGE_DEFAULT_HEIGHT } from '../types';
 import { useStores, useSceneStore, useSelectionStore } from '../store';
 import MoveableLayer from './MoveableLayer';
+
+function getBackgroundStyle(background: PageBackground | undefined): React.CSSProperties {
+  if (!background) return { backgroundColor: '#ffffff' };
+  switch (background.type) {
+    case 'solid':
+      return { backgroundColor: background.color };
+    case 'gradient': {
+      const stops = background.stops.map((s) => `${s.color} ${s.offset * 100}%`).join(', ');
+      return { backgroundImage: `linear-gradient(${background.angle}deg, ${stops})` };
+    }
+    case 'image':
+      return {
+        backgroundImage: `url(${background.src})`,
+        backgroundSize: background.fit,
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        opacity: background.opacity,
+      };
+    default:
+      return { backgroundColor: '#ffffff' };
+  }
+}
 
 let uidCounter = 0;
 function uid(): string {
@@ -104,15 +127,51 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
       <div
         ref={slideRef}
         style={{
-          width: 960,
-          height: 540,
-          backgroundColor: sceneSnapshot.currentPage?.background ?? '#ffffff',
+          width: PAGE_DEFAULT_WIDTH,
+          height: PAGE_DEFAULT_HEIGHT,
+          backgroundColor: '#ffffff',
           boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
           position: 'relative',
           overflow: 'hidden',
         }}
         onPointerDown={handleCanvasPointerDown}
       >
+        {/* Background layer */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            ...getBackgroundStyle(sceneSnapshot.currentPage?.background ?? sceneSnapshot.document.background),
+          }}
+        />
+        {/* Safe area visual guide */}
+        {(() => {
+          const sa = sceneSnapshot.document.safeArea;
+          if (!sa || (sa.top === 0 && sa.right === 0 && sa.bottom === 0 && sa.left === 0)) return null;
+          return (
+            <>
+              {/* Unsafe zone overlays (subtle red tint) */}
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: sa.top, backgroundColor: 'rgba(239, 68, 68, 0.08)', pointerEvents: 'none', zIndex: 1 }} />
+              <div style={{ position: 'absolute', top: sa.top, right: 0, width: sa.right, bottom: sa.bottom, backgroundColor: 'rgba(239, 68, 68, 0.08)', pointerEvents: 'none', zIndex: 1 }} />
+              <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: sa.bottom, backgroundColor: 'rgba(239, 68, 68, 0.08)', pointerEvents: 'none', zIndex: 1 }} />
+              <div style={{ position: 'absolute', top: sa.top, left: 0, width: sa.left, bottom: sa.bottom, backgroundColor: 'rgba(239, 68, 68, 0.08)', pointerEvents: 'none', zIndex: 1 }} />
+              {/* Safe area boundary (dashed blue) */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: sa.top,
+                  left: sa.left,
+                  right: sa.right,
+                  bottom: sa.bottom,
+                  border: '1px dashed rgba(59, 130, 246, 0.5)',
+                  pointerEvents: 'none',
+                  zIndex: 2,
+                }}
+              />
+            </>
+          );
+        })()}
+        {/* Elements */}
         {elements.map((el) =>
           renderElement(el, {
             onClick: handleElementClick,

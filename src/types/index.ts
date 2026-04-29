@@ -66,10 +66,40 @@ export interface Node {
   name: string;
 }
 
+export const PAGE_DEFAULT_WIDTH = 960;
+export const PAGE_DEFAULT_HEIGHT = 540;
+
+export interface PageBackgroundSolid {
+  type: 'solid';
+  color: string;
+}
+
+export interface PageBackgroundGradient {
+  type: 'gradient';
+  angle: number;
+  stops: { offset: number; color: string }[];
+}
+
+export interface PageBackgroundImage {
+  type: 'image';
+  src: string;
+  fit: 'cover' | 'contain' | 'fill';
+  opacity: number;
+}
+
+export type PageBackground = PageBackgroundSolid | PageBackgroundGradient | PageBackgroundImage;
+
+export interface SafeArea {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
 export interface Page {
   id: string;
   name: string;
-  background: string;
+  background?: PageBackground;
   elements: Record<string, Element>;
   animations: Record<string, AnimationConfig>;
 }
@@ -81,6 +111,8 @@ export interface Document {
   nodes: Record<string, Node>;
   structureItems: StructureItem[];
   currentPageId: string;
+  background: PageBackground;
+  safeArea: SafeArea;
 }
 
 // ============================================================================

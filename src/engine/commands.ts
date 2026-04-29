@@ -1,4 +1,4 @@
-import type { Command, Element, AnimationConfig, Page, Node, StructureItem } from '../types';
+import type { Command, Element, AnimationConfig, Page, Node, StructureItem, SafeArea, PageBackground } from '../types';
 import type { Scene } from './scene';
 
 export class AddElementCommand implements Command {
@@ -194,6 +194,64 @@ export class ReorderAnimationsCommand implements Command {
 // ============================================================================
 // Page / Node / Structure Commands
 // ============================================================================
+
+export class UpdatePageCommand implements Command {
+  private before: Partial<Page>;
+
+  constructor(
+    private scene: Scene,
+    private pageId: string,
+    private updates: Partial<Omit<Page, 'id'>>
+  ) {
+    const page = scene.getPage(pageId);
+    this.before = {};
+    if (page) {
+      for (const key of Object.keys(updates) as Array<keyof typeof updates>) {
+        (this.before as Record<string, unknown>)[key] = (page as unknown as Record<string, unknown>)[key];
+      }
+    }
+  }
+
+  execute(): void {
+    this.scene.updatePage(this.pageId, this.updates);
+  }
+
+  undo(): void {
+    this.scene.updatePage(this.pageId, this.before);
+  }
+}
+
+export class UpdateDocumentBackgroundCommand implements Command {
+  private before: PageBackground;
+
+  constructor(private scene: Scene, private background: PageBackground) {
+    this.before = scene.getDocument().background;
+  }
+
+  execute(): void {
+    this.scene.updateDocumentBackground(this.background);
+  }
+
+  undo(): void {
+    this.scene.updateDocumentBackground(this.before);
+  }
+}
+
+export class UpdateDocumentSafeAreaCommand implements Command {
+  private before: SafeArea;
+
+  constructor(private scene: Scene, private safeArea: SafeArea) {
+    this.before = { ...scene.getDocument().safeArea };
+  }
+
+  execute(): void {
+    this.scene.updateDocumentSafeArea(this.safeArea);
+  }
+
+  undo(): void {
+    this.scene.updateDocumentSafeArea(this.before);
+  }
+}
 
 export class AddPageCommand implements Command {
   private prevCurrentPageId: string;

@@ -8,6 +8,7 @@ import StructurePanel from './components/StructurePanel';
 import CanvasToolbar from './components/CanvasToolbar';
 import Canvas from './components/Canvas';
 import PropertyPanel from './components/PropertyPanel';
+import GlobalSettingsPanel from './components/GlobalSettingsPanel';
 import AnimationPanel from './components/AnimationPanel';
 import PreviewModal from './components/PreviewModal';
 
@@ -22,7 +23,7 @@ function App({ engine, animationEngine }: AppProps) {
   const selectionSnapshot = useSelectionStore(selectionStore);
   const historySnapshot = useHistoryStore(historyStore);
   const animSnapshot = useAnimationStore(animationStore);
-  const [rightPanelTab, setRightPanelTab] = useState<'properties' | 'animation'>('properties');
+  const [rightPanelTab, setRightPanelTab] = useState<'properties' | 'global' | 'animation'>('properties');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [stepScheduler, setStepScheduler] = useState<AnimationScheduler | null>(null);
   const [stepProgress, setStepProgress] = useState({ current: 0, total: 0 });
@@ -297,6 +298,22 @@ function App({ engine, animationEngine }: AppProps) {
               Properties
             </button>
             <button
+              onClick={() => setRightPanelTab('global')}
+              style={{
+                flex: 1,
+                padding: '10px 0',
+                fontSize: 12,
+                border: 'none',
+                borderBottom: rightPanelTab === 'global' ? '2px solid #3b82f6' : '2px solid transparent',
+                backgroundColor: 'transparent',
+                color: rightPanelTab === 'global' ? '#3b82f6' : '#6b7280',
+                cursor: 'pointer',
+                fontWeight: rightPanelTab === 'global' ? 600 : 400,
+              }}
+            >
+              Global
+            </button>
+            <button
               onClick={() => setRightPanelTab('animation')}
               style={{
                 flex: 1,
@@ -313,11 +330,9 @@ function App({ engine, animationEngine }: AppProps) {
               Animation
             </button>
           </div>
-          {rightPanelTab === 'properties' ? (
-            <PropertyPanel engine={engine} />
-          ) : (
-            <AnimationPanel engine={engine} animationEngine={animationEngine} />
-          )}
+          {rightPanelTab === 'properties' && <PropertyPanel engine={engine} />}
+          {rightPanelTab === 'global' && <GlobalSettingsPanel engine={engine} />}
+          {rightPanelTab === 'animation' && <AnimationPanel engine={engine} animationEngine={animationEngine} />}
         </div>
       </main>
 

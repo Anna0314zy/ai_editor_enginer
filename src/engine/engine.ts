@@ -1,4 +1,4 @@
-import type { Command, Document, EditorState } from '../types';
+import type { Command, Document, EditorState, PageBackground, SafeArea } from '../types';
 import { createMockEditorState } from '../types';
 import { Scene, createScene } from './scene';
 import { History } from './history';
@@ -82,6 +82,16 @@ export class Engine {
 
   setCurrentPageId(pageId: string): void {
     this.scene.setCurrentPageId(pageId);
+    this.notify('scene');
+  }
+
+  updateDocumentBackground(background: PageBackground): void {
+    this.scene.updateDocumentBackground(background);
+    this.notify('scene');
+  }
+
+  updateDocumentSafeArea(safeArea: SafeArea): void {
+    this.scene.updateDocumentSafeArea(safeArea);
     this.notify('scene');
   }
 

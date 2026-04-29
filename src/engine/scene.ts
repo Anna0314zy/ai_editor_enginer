@@ -1,4 +1,4 @@
-import type { Document, Element, Page, Node, StructureItem, AnimationConfig } from '../types';
+import type { Document, Element, Page, Node, StructureItem, AnimationConfig, SafeArea, PageBackground } from '../types';
 
 export class Scene {
   private document: Document;
@@ -9,6 +9,14 @@ export class Scene {
 
   getDocument(): Document {
     return this.document;
+  }
+
+  updateDocumentBackground(background: PageBackground): void {
+    this.document.background = background;
+  }
+
+  updateDocumentSafeArea(safeArea: SafeArea): void {
+    this.document.safeArea = safeArea;
   }
 
   // ============================================================================
@@ -41,6 +49,12 @@ export class Scene {
 
   getPage(pageId: string): Page | undefined {
     return this.document.pages[pageId];
+  }
+
+  updatePage(pageId: string, updates: Partial<Omit<Page, 'id'>>): void {
+    const page = this.document.pages[pageId];
+    if (!page) return;
+    Object.assign(page, updates);
   }
 
   setCurrentPageId(pageId: string): void {
@@ -251,7 +265,6 @@ function createEmptyDocument(): Document {
   const defaultPage: Page = {
     id: defaultPageId,
     name: 'Page 1',
-    background: '#ffffff',
     elements: {},
     animations: {},
   };
@@ -264,6 +277,8 @@ function createEmptyDocument(): Document {
     nodes: {},
     structureItems: [{ type: 'page', id: defaultPageId }],
     currentPageId: defaultPageId,
+    background: { type: 'solid', color: '#ffffff' },
+    safeArea: { top: 0, right: 0, bottom: 0, left: 0 },
   };
 }
 

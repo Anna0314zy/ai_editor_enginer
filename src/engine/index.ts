@@ -9,7 +9,9 @@ export type { EngineTopic, SelectorFn, ComparatorFn } from './engine';
 export {
   AddElementCommand, MoveElementCommand, DeleteElementCommand, BatchMoveCommand,
   AddAnimationCommand, RemoveAnimationCommand, UpdateAnimationCommand, ReorderAnimationsCommand,
-  AddPageCommand, RemovePageCommand, AddNodeCommand, RemoveNodeCommand, ReorderStructureItemsCommand,
+  AddPageCommand, RemovePageCommand, UpdatePageCommand,
+  UpdateDocumentBackgroundCommand, UpdateDocumentSafeAreaCommand,
+  AddNodeCommand, RemoveNodeCommand, ReorderStructureItemsCommand,
 } from './commands';
 export { BatchAnimationCommand } from './animationCommands';
 export { snapEngine } from './snapEngine';
