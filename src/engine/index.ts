@@ -5,6 +5,7 @@ export { Scene, createScene } from './scene';
 export { History } from './history';
 export { Timeline } from './timeline';
 export { Engine, createEngine } from './engine';
+export type { EngineTopic, SelectorFn, ComparatorFn } from './engine';
 export {
   AddElementCommand, MoveElementCommand, DeleteElementCommand, BatchMoveCommand,
   AddAnimationCommand, RemoveAnimationCommand, UpdateAnimationCommand, ReorderAnimationsCommand,

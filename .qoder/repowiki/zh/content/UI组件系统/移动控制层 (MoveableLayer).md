@@ -10,6 +10,7 @@
 - [commands.ts](file://src/engine/commands.ts)
 - [history.ts](file://src/engine/history.ts)
 - [snapEngine.ts](file://src/engine/snapEngine.ts)
+- [useEngineSnapshot.ts](file://src/hooks/useEngineSnapshot.ts)
 - [index.tsx](file://src/renderer/index.tsx)
 - [index.ts](file://src/types/index.ts)
 - [package.json](file://package.json)
@@ -38,7 +39,7 @@
 - 与 Canvas 组件的坐标转换与事件处理
 
 ## 项目结构
-移动控制层位于组件层，与引擎层、渲染层协同工作，形成“选择-控制-执行-回显”的闭环。
+移动控制层位于组件层，与引擎层、渲染层协同工作，形成"选择-控制-执行-回显"的闭环。
 
 ```mermaid
 graph TB
@@ -74,23 +75,24 @@ MoveableLayer --> Types
 
 图表来源
 - [Canvas.tsx:1-191](file://src/components/Canvas.tsx#L1-L191)
-- [MoveableLayer.tsx:1-189](file://src/components/MoveableLayer.tsx#L1-L189)
+- [MoveableLayer.tsx:1-211](file://src/components/MoveableLayer.tsx#L1-L211)
 - [GuidesLayer.tsx:1-66](file://src/components/GuidesLayer.tsx#L1-L66)
 - [engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
 - [scene.ts:1-273](file://src/engine/scene.ts#L1-L273)
 - [history.ts:1-45](file://src/engine/history.ts#L1-L45)
-- [commands.ts:1-280](file://src/engine/commands.ts#L1-L280)
+- [commands.ts:1-312](file://src/engine/commands.ts#L1-L312)
 - [snapEngine.ts:1-259](file://src/engine/snapEngine.ts#L1-L259)
+- [useEngineSnapshot.ts:1-13](file://src/hooks/useEngineSnapshot.ts#L1-L13)
 - [index.tsx:1-314](file://src/renderer/index.tsx#L1-L314)
 - [index.ts:1-159](file://src/types/index.ts#L1-L159)
 
 章节来源
 - [Canvas.tsx:1-191](file://src/components/Canvas.tsx#L1-L191)
-- [MoveableLayer.tsx:1-189](file://src/components/MoveableLayer.tsx#L1-L189)
+- [MoveableLayer.tsx:1-211](file://src/components/MoveableLayer.tsx#L1-L211)
 - [engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
 
 ## 核心组件
-- MoveableLayer：基于 react-moveable 的可编辑控制层，负责拖拽、缩放、旋转的实时反馈与最终命令提交；集成 snapEngine 实现吸附与对齐辅助线。
+- MoveableLayer：基于 react-moveable 的可编辑控制层，负责拖拽、缩放、旋转的实时反馈与最终命令提交；集成 snapEngine 实现吸附与对齐辅助线；支持批处理优化的多元素变换。
 - Canvas：承载页面画布与元素渲染，负责点击取消选择、拖放新增元素、事件穿透到 Moveable 控制器。
 - GuidesLayer：在 Canvas 上绘制吸附/对齐辅助线，区分边对齐、中心对齐、等间距三种类型。
 - Engine/Scene/History/Commands：引擎与命令系统，统一管理场景数据、命令执行与撤销重做。
@@ -98,17 +100,17 @@ MoveableLayer --> Types
 - Types：统一的数据模型与命令接口定义。
 
 章节来源
-- [MoveableLayer.tsx:1-189](file://src/components/MoveableLayer.tsx#L1-L189)
+- [MoveableLayer.tsx:1-211](file://src/components/MoveableLayer.tsx#L1-L211)
 - [GuidesLayer.tsx:1-66](file://src/components/GuidesLayer.tsx#L1-L66)
 - [engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
 - [scene.ts:1-273](file://src/engine/scene.ts#L1-L273)
 - [history.ts:1-45](file://src/engine/history.ts#L1-L45)
-- [commands.ts:1-280](file://src/engine/commands.ts#L1-L280)
+- [commands.ts:1-312](file://src/engine/commands.ts#L1-L312)
 - [index.tsx:1-314](file://src/renderer/index.tsx#L1-L314)
 - [index.ts:1-159](file://src/types/index.ts#L1-L159)
 
 ## 架构总览
-移动控制层通过 React 组件与引擎层解耦，使用命令模式将用户交互转化为可撤销的历史记录。吸附与对齐由独立的 snapEngine 提供，保证变换精度与视觉反馈一致。
+移动控制层通过 React 组件与引擎层解耦，使用命令模式将用户交互转化为可撤销的历史记录。吸附与对齐由独立的 snapEngine 提供，保证变换精度与视觉反馈一致。新增的批处理机制显著提升了多元素变换的性能表现。
 
 ```mermaid
 sequenceDiagram
@@ -122,10 +124,11 @@ participant G as "GuidesLayer"
 U->>C : 拖拽/缩放/旋转元素
 C-->>ML : 传递容器引用与版本号
 ML->>ML : onDrag/onResize/onRotate 回调
-ML->>SE : 计算吸附偏移与辅助线
+ML->>SE : 计算吸附偏移与辅助线视口裁剪
 SE-->>ML : 返回 snapped(x,y) 与 guides
 ML->>G : 更新 guides 列表
-ML->>E : 执行 MoveElementCommand
+ML->>ML : queueMove 批处理调度
+ML->>E : 执行 MoveElementCommand 或 BatchMoveCommand
 E->>S : 更新元素属性
 S-->>E : 场景状态更新
 E-->>ML : 历史入栈
@@ -134,7 +137,10 @@ C-->>U : 重新渲染画布
 ```
 
 图表来源
-- [MoveableLayer.tsx:44-184](file://src/components/MoveableLayer.tsx#L44-L184)
+- [MoveableLayer.tsx:54-68](file://src/components/MoveableLayer.tsx#L54-L68)
+- [MoveableLayer.tsx:120-141](file://src/components/MoveableLayer.tsx#L120-L141)
+- [MoveableLayer.tsx:154-159](file://src/components/MoveableLayer.tsx#L154-L159)
+- [MoveableLayer.tsx:179-205](file://src/components/MoveableLayer.tsx#L179-L205)
 - [snapEngine.ts:242-259](file://src/engine/snapEngine.ts#L242-L259)
 - [engine.ts:29-32](file://src/engine/engine.ts#L29-L32)
 - [scene.ts:108-135](file://src/engine/scene.ts#L108-L135)
@@ -146,7 +152,7 @@ C-->>U : 重新渲染画布
 - 功能职责
   - 将选中元素映射为 react-moveable 的 target，启用拖拽、旋转、缩放能力
   - 在拖拽/缩放/旋转过程中，实时计算吸附偏移与对齐辅助线，并通过 GuidesLayer 渲染
-  - 在结束时提交 MoveElementCommand，写入场景并触发刷新
+  - 在结束时提交 MoveElementCommand 或 BatchMoveCommand，写入场景并触发刷新
 - 关键交互
   - onDragStart/onDrag/onDragEnd：记录起始位置，计算吸附偏移，预应用最终位置以避免视觉跳变，提交命令
   - onRotateStart/onRotate/onRotateEnd：记录起始角度，实时应用 transform，结束时提交命令
@@ -156,29 +162,34 @@ C-->>U : 重新渲染画布
   - 通过 ref 存储每次变换的起始状态，确保吸附与命令提交的一致性
 - 版本同步
   - 通过 version prop 驱动 useEffect 调用 updateRect，使 Moveable 与引擎状态保持一致
+- **批处理优化**：新增 queueMove 函数，使用微任务队列合并多个变换操作，提升多元素变换性能
 
 ```mermaid
 flowchart TD
 Start(["开始拖拽"]) --> GetStart["记录起始位置/尺寸/角度"]
 GetStart --> OnDrag["onDrag 回调"]
-OnDrag --> ComputeSnap["调用 snapEngine 计算吸附偏移"]
+OnDrag --> ViewportCulling["视口裁剪：筛选附近矩形"]
+ViewportCulling --> ComputeSnap["调用 snapEngine 计算吸附偏移"]
 ComputeSnap --> ApplyTemp["预应用 transform/尺寸/位置"]
 ApplyTemp --> UpdateGuides["更新 guides 列表"]
-UpdateGuides --> DragEnd{"拖拽结束？"}
-DragEnd --> |否| OnDrag
-DragEnd --> |是| Commit["提交 MoveElementCommand"]
-Commit --> Refresh["触发 onRefresh 并清理状态"]
+UpdateGuides --> QueueMove["queueMove 批处理调度"]
+QueueMove --> BatchCheck{"批处理队列长度"}
+BatchCheck --> |1| SingleCommand["执行 MoveElementCommand"]
+BatchCheck --> |>1| BatchCommand["执行 BatchMoveCommand"]
+SingleCommand --> Refresh["触发 onRefresh 并清理状态"]
+BatchCommand --> Refresh
 Refresh --> End(["结束"])
 ```
 
 图表来源
-- [MoveableLayer.tsx:54-111](file://src/components/MoveableLayer.tsx#L54-L111)
-- [MoveableLayer.tsx:119-134](file://src/components/MoveableLayer.tsx#L119-L134)
-- [MoveableLayer.tsx:147-183](file://src/components/MoveableLayer.tsx#L147-L183)
+- [MoveableLayer.tsx:54-68](file://src/components/MoveableLayer.tsx#L54-L68)
+- [MoveableLayer.tsx:93-101](file://src/components/MoveableLayer.tsx#L93-L101)
+- [MoveableLayer.tsx:120-141](file://src/components/MoveableLayer.tsx#L120-L141)
+- [MoveableLayer.tsx:179-205](file://src/components/MoveableLayer.tsx#L179-L205)
 
 章节来源
 - [MoveableLayer.tsx:15-35](file://src/components/MoveableLayer.tsx#L15-L35)
-- [MoveableLayer.tsx:44-184](file://src/components/MoveableLayer.tsx#L44-L184)
+- [MoveableLayer.tsx:44-211](file://src/components/MoveableLayer.tsx#L44-L211)
 
 ### GuidesLayer 组件
 - 功能职责
@@ -251,6 +262,7 @@ end
 - Scene：管理文档、页面、元素、动画等数据，提供增删改查与父子关系维护
 - History：维护撤销/重做栈，支持清空与状态查询
 - MoveElementCommand：记录元素变换前的状态，执行时更新元素属性，undo 时回滚
+- **BatchMoveCommand**：**新增** 批量移动命令，支持同时更新多个元素的状态，显著提升多元素变换性能
 
 ```mermaid
 classDiagram
@@ -275,10 +287,17 @@ class MoveElementCommand {
 +execute()
 +undo()
 }
+class BatchMoveCommand {
++constructor(moves)
++execute()
++undo()
+}
 Engine --> Scene : "组合"
 Engine --> History : "组合"
 Engine --> MoveElementCommand : "执行"
+Engine --> BatchMoveCommand : "执行"
 Scene --> MoveElementCommand : "被命令修改"
+Scene --> BatchMoveCommand : "被命令修改"
 ```
 
 图表来源
@@ -286,12 +305,13 @@ Scene --> MoveElementCommand : "被命令修改"
 - [scene.ts:108-135](file://src/engine/scene.ts#L108-L135)
 - [history.ts:3-44](file://src/engine/history.ts#L3-L44)
 - [commands.ts:20-44](file://src/engine/commands.ts#L20-L44)
+- [commands.ts:70-100](file://src/engine/commands.ts#L70-L100)
 
 章节来源
 - [engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
 - [scene.ts:1-273](file://src/engine/scene.ts#L1-L273)
 - [history.ts:1-45](file://src/engine/history.ts#L1-L45)
-- [commands.ts:1-280](file://src/engine/commands.ts#L1-L280)
+- [commands.ts:1-312](file://src/engine/commands.ts#L1-L312)
 
 ### 吸附与对齐算法（snapEngine）
 - 输入输出
@@ -304,21 +324,23 @@ Scene --> MoveElementCommand : "被命令修改"
 - 辅助线类型
   - kind：edge/center/spacing
   - type：horizontal/vertical
-- 性能特性
+- **性能优化**
+  - **视口裁剪**：只对距离在500px范围内的矩形进行吸附计算，大幅减少计算量
   - 对于等间距检查，按轴排序后 O(n) 遍历相邻矩形
   - dedupSnapLines 去重，限制最多两条辅助线
 
 ```mermaid
 flowchart TD
-A["输入: 当前矩形, 其他矩形, 画布尺寸, 阈值"] --> B["按轴分解: X/Y"]
-B --> C["构建参考线: 边/中心 + 画布中心/边缘"]
-C --> D{"中心对齐匹配?"}
-D --> |是| E["返回中心对齐偏移与辅助线"]
-D --> |否| F{"边对齐匹配?"}
-F --> |是| G["返回边对齐偏移与辅助线"]
-F --> |否| H{"等间距匹配?"}
-H --> |是| I["返回等间距偏移与辅助线(最多2条)"]
-H --> |否| J["返回 0 偏移与空辅助线"]
+A["输入: 当前矩形, 其他矩形, 画布尺寸, 阈值"] --> B["视口裁剪: 筛选500px范围内的矩形"]
+B --> C["按轴分解: X/Y"]
+C --> D["构建参考线: 边/中心 + 画布中心/边缘"]
+D --> E{"中心对齐匹配?"}
+E --> |是| F["返回中心对齐偏移与辅助线"]
+E --> |否| G{"边对齐匹配?"}
+G --> |是| H["返回边对齐偏移与辅助线"]
+G --> |否| I{"等间距匹配?"}
+I --> |是| J["返回等间距偏移与辅助线(最多2条)"]
+I --> |否| K["返回 0 偏移与空辅助线"]
 ```
 
 图表来源
@@ -348,7 +370,7 @@ H --> |否| J["返回 0 偏移与空辅助线"]
   - react-moveable：提供拖拽/缩放/旋转控制与控制点渲染
   - gsap：动画适配（在动画模块中使用）
 - 内部依赖
-  - MoveableLayer 依赖 Engine、snapEngine、GuidesLayer
+  - MoveableLayer 依赖 Engine、snapEngine、GuidesLayer、useEngineSnapshot
   - Engine 依赖 Scene、History、Timeline
   - Scene 依赖 types 定义的 Element/Page/Document 结构
   - Renderer 依赖 types 定义的 Element 类型与渲染函数
@@ -361,6 +383,7 @@ ML["MoveableLayer.tsx"] --> RM
 ML --> SE["snapEngine.ts"]
 ML --> G["GuidesLayer.tsx"]
 ML --> E["engine.ts"]
+ML --> H["useEngineSnapshot.ts"]
 E --> S["scene.ts"]
 E --> H["history.ts"]
 E --> Cmd["commands.ts"]
@@ -378,28 +401,40 @@ R["renderer/index.tsx"] --> T
 - [commands.ts:1](file://src/engine/commands.ts#L1)
 - [index.tsx:1-3](file://src/renderer/index.tsx#L1-L3)
 - [index.ts:1](file://src/types/index.ts#L1)
+- [useEngineSnapshot.ts:1-13](file://src/hooks/useEngineSnapshot.ts#L1-L13)
 
 章节来源
 - [package.json:1-34](file://package.json#L1-L34)
-- [MoveableLayer.tsx:1-189](file://src/components/MoveableLayer.tsx#L1-L189)
+- [MoveableLayer.tsx:1-211](file://src/components/MoveableLayer.tsx#L1-L211)
 - [engine.ts:1-54](file://src/engine/engine.ts#L1-L54)
 
 ## 性能考量
-- 吸附算法
-  - 等间距检查仅遍历相邻矩形，时间复杂度 O(n)，适合多元素场景
-  - 参考线去重与限制辅助线数量，减少渲染压力
-- DOM 更新
+- **批处理优化**
+  - 新增 queueMove 函数，使用微任务队列合并多个变换操作
+  - 当队列中只有一个元素时执行 MoveElementCommand，多个元素时执行 BatchMoveCommand
+  - 显著减少命令执行次数，提升多元素变换性能
+- **空间优化**
+  - 视口裁剪：只对距离在500px范围内的矩形进行吸附计算
+  - 预计算其他矩形：在 useEffect 中缓存页面所有元素的矩形信息
+  - 限制等间距辅助线数量：最多返回2条辅助线
+- **DOM 更新**
   - 在拖拽/缩放/旋转过程中仅修改 transform/left/top/style，避免频繁重排
   - 结束时一次性提交命令，降低多次渲染成本
-- 版本同步
-  - 通过 version 驱动 updateRect，避免不必要的重绘
-- 命令批处理
-  - MoveElementCommand 记录前后状态，支持精确撤销/重做
+- **版本同步**
+  - 通过 useEngineSnapshot 钩子驱动 updateRect，避免不必要的重绘
+- **内存优化**
+  - 使用 useRef 缓存吸附结果和起始状态，避免重复计算
+  - 批处理队列在微任务完成后自动清理
+
+**更新** 新增批处理能力和空间优化机制，显著提升多元素变换性能
 
 章节来源
+- [MoveableLayer.tsx:54-68](file://src/components/MoveableLayer.tsx#L54-L68)
+- [MoveableLayer.tsx:93-101](file://src/components/MoveableLayer.tsx#L93-L101)
+- [MoveableLayer.tsx:31-33](file://src/components/MoveableLayer.tsx#L31-L33)
+- [commands.ts:70-100](file://src/engine/commands.ts#L70-L100)
 - [snapEngine.ts:77-156](file://src/engine/snapEngine.ts#L77-L156)
-- [MoveableLayer.tsx:32-35](file://src/components/MoveableLayer.tsx#L32-L35)
-- [commands.ts:20-44](file://src/engine/commands.ts#L20-L44)
+- [useEngineSnapshot.ts:4-12](file://src/hooks/useEngineSnapshot.ts#L4-L12)
 
 ## 故障排查指南
 - 无法拖拽/缩放/旋转
@@ -413,16 +448,22 @@ R["renderer/index.tsx"] --> T
   - 检查 snapEngine 的阈值与参考对象集合
 - 撤销/重做无效
   - 确认执行了 engine.execute(command) 并将命令入栈
-  - 检查 MoveElementCommand 的 before 状态是否正确记录
+  - 检查 MoveElementCommand/BatchMoveCommand 的 before 状态是否正确记录
+- **批处理问题**
+  - 检查 queueMove 函数是否正确收集变换操作
+  - 确认批处理队列在微任务中正确执行
+  - 验证 BatchMoveCommand 是否正确处理多个元素的更新
 
 章节来源
-- [MoveableLayer.tsx:46-111](file://src/components/MoveableLayer.tsx#L46-L111)
+- [MoveableLayer.tsx:46-211](file://src/components/MoveableLayer.tsx#L46-L211)
 - [GuidesLayer.tsx:19-20](file://src/components/GuidesLayer.tsx#L19-L20)
 - [engine.ts:29-32](file://src/engine/engine.ts#L29-L32)
-- [commands.ts:20-44](file://src/engine/commands.ts#L20-L44)
+- [commands.ts:20-100](file://src/engine/commands.ts#L20-L100)
 
 ## 结论
-MoveableLayer 通过 react-moveable 提供直观的元素变换控制，结合 snapEngine 的吸附与对齐算法，实现了高精度的视觉反馈。配合引擎层的命令系统与历史记录，用户可以进行可靠的批量变换与精确控制。Canvas 作为容器与渲染载体，确保了交互与渲染的一致性。整体设计在功能完整性与性能之间取得良好平衡。
+MoveableLayer 通过 react-moveable 提供直观的元素变换控制，结合 snapEngine 的吸附与对齐算法，实现了高精度的视觉反馈。**新增的批处理机制**显著提升了多元素变换的性能表现，而**空间优化策略**（视口裁剪、预计算缓存）有效减少了计算开销。配合引擎层的命令系统与历史记录，用户可以进行可靠的批量变换与精确控制。Canvas 作为容器与渲染载体，确保了交互与渲染的一致性。整体设计在功能完整性与性能之间取得良好平衡。
 
 ## 附录
 - 关键流程图与类图已在前述章节中给出，建议结合源码路径进一步查阅具体实现细节。
+- **新增功能**：批处理命令（BatchMoveCommand）、视口裁剪优化、微任务队列机制
+- **性能提升**：多元素变换性能提升、内存使用优化、计算复杂度降低
