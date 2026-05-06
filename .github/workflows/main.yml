@@ -25,9 +25,9 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      # 👇👇👇 关键修复：重置为官方源，解决证书过期
-      - name: 设置官方npm源
-        run: pnpm config set registry https://registry.npmjs.org/
+      # ✅ 修复：使用新淘宝镜像（速度最快，不会证书过期）
+      - name: 设置npm镜像
+        run: pnpm config set registry https://registry.npmmirror.com
 
       - name: 安装依赖
         run: pnpm install --frozen-lockfile
