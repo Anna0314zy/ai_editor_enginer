@@ -25,16 +25,20 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      # 👇👇👇 关键修复：重置为官方源，解决证书过期
+      - name: 设置官方npm源
+        run: pnpm config set registry https://registry.npmjs.org/
+
       - name: 安装依赖
         run: pnpm install --frozen-lockfile
 
       - name: 构建前端项目
-        run: pnpm build   # <---- 你的项目打包命令
+        run: pnpm build
 
       - name: 部署到 GitHub Pages
         uses: crazy-max/ghaction-github-pages@v4
         with:
           target_branch: gh-pages
-          build_dir: dist   # <---- 你的打包目录（99%是 dist）
+          build_dir: dist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
