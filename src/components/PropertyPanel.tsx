@@ -315,6 +315,8 @@ function ShapeFields({
   element: ShapeElement;
   onCommit: (updates: Record<string, unknown>) => void;
 }) {
+  const isRoundedRect = element.shapeType === 'rounded-rectangle';
+
   return (
     <Section title="Shape">
       <SelectField
@@ -322,14 +324,25 @@ function ShapeFields({
         value={element.shapeType}
         options={[
           { label: 'Rectangle', value: 'rectangle' },
+          { label: 'Rounded Rectangle', value: 'rounded-rectangle' },
           { label: 'Circle', value: 'circle' },
           { label: 'Triangle', value: 'triangle' },
+          { label: 'Line', value: 'line' },
+          { label: 'Arrow', value: 'arrow' },
+          { label: 'Pentagon', value: 'pentagon' },
+          { label: 'Hexagon', value: 'hexagon' },
+          { label: 'Octagon', value: 'octagon' },
+          { label: 'Star 5', value: 'star-5' },
+          { label: 'Star 6', value: 'star-6' },
         ]}
         onCommit={(v) => onCommit({ shapeType: v as ShapeElement['shapeType'] })}
       />
       <ColorField label="Fill" value={element.fill} onCommit={(v) => onCommit({ fill: v })} />
       <ColorField label="Stroke" value={element.stroke} onCommit={(v) => onCommit({ stroke: v })} />
       <NumberField label="Stroke W" value={element.strokeWidth} min={0} onCommit={(v) => onCommit({ strokeWidth: v })} />
+      {isRoundedRect && (
+        <NumberField label="Radius" value={element.cornerRadius ?? 0} min={0} onCommit={(v) => onCommit({ cornerRadius: v })} />
+      )}
     </Section>
   );
 }

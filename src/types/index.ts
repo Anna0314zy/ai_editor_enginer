@@ -26,10 +26,14 @@ export interface BaseElement {
 
 export interface ShapeElement extends BaseElement {
   type: 'shape';
-  shapeType: 'rectangle' | 'circle' | 'triangle';
+  shapeType: 'rectangle' | 'circle' | 'triangle' | 'rounded-rectangle' | 'line' | 'arrow' | 'polygon' | 'star' | 'pentagon' | 'hexagon' | 'octagon' | 'star-5' | 'star-6';
   fill: string;
   stroke: string;
   strokeWidth: number;
+  cornerRadius?: number;
+  sides?: number;
+  starPoints?: number;
+  starInnerRadius?: number;
 }
 
 export interface TextElement extends BaseElement {

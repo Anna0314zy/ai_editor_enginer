@@ -15,6 +15,13 @@
 - [animation/engine.ts](file://src/animation/engine.ts)
 </cite>
 
+## 更新摘要
+**变更内容**
+- 新增页面背景系统支持，包括纯色、渐变和图片背景类型
+- 更新缩略图预览功能，准确渲染页面背景效果
+- 新增 `getThumbBackgroundStyle` 函数处理背景样式计算
+- 改进页面缩略图渲染逻辑，确保背景与主画布一致
+
 ## 目录
 1. [简介](#简介)
 2. [项目结构](#项目结构)
@@ -29,6 +36,8 @@
 ## 简介
 
 StructurePanel（结构面板）是滑动编辑器中的核心组件之一，负责管理文档的页面和元素结构。该组件提供了完整的页面管理和节点树展示功能，允许用户通过直观的界面操作文档结构，包括页面的增删改查、元素的组织管理以及拖拽排序等高级功能。
+
+**更新** 组件现已集成新的页面背景系统，能够在缩略图预览中准确渲染页面背景效果，确保设计者能够预览真实的背景效果。
 
 该组件采用React函数式组件设计，结合命令模式和引擎系统，实现了响应式的文档结构管理。通过与Canvas组件的紧密协作，StructurePanel确保了页面选择、元素操作和视觉反馈的一致性。
 
@@ -75,7 +84,7 @@ Canvas --> Renderer
 - [engine.ts:7](file://src/engine/engine.ts#L7)
 
 **章节来源**
-- [StructurePanel.tsx:1-400](file://src/components/StructurePanel.tsx#L1-L400)
+- [StructurePanel.tsx:1-420](file://src/components/StructurePanel.tsx#L1-L420)
 - [App.tsx:155-340](file://src/App.tsx#L155-L340)
 
 ## 核心组件
@@ -88,7 +97,7 @@ StructurePanel是一个功能完整的结构管理组件，主要特性包括：
 - **页面管理**：添加、删除页面，切换当前页面
 - **节点管理**：添加、删除节点，控制节点展开/折叠
 - **拖拽排序**：支持页面和节点的拖拽重新排列
-- **缩略图预览**：显示页面内容的缩略图
+- **缩略图预览**：显示页面内容的缩略图，包含背景渲染
 - **实时状态同步**：与引擎系统保持数据一致性
 
 #### 关键属性
@@ -102,6 +111,8 @@ StructurePanel是一个功能完整的结构管理组件，主要特性包括：
 - `id`: 唯一标识符
 - `visible`: 是否可见
 - `indent`: 缩进级别
+
+**更新** 新增页面背景系统支持，包括纯色、渐变和图片背景类型
 
 **章节来源**
 - [StructurePanel.tsx:13-31](file://src/components/StructurePanel.tsx#L13-L31)
@@ -269,14 +280,72 @@ InsertIndex --> SetDragOverIndex[设置拖拽索引]
 - 类型：区分页面和节点
 
 #### 渲染策略
-- 页面项：显示缩略图和名称
+- 页面项：显示缩略图和名称，包含背景渲染
 - 节点项：显示展开/折叠图标和名称
 - 选中状态：高亮显示当前页面
 - 拖拽状态：半透明效果
 
+**更新** 页面缩略图现在包含背景渲染功能
+
 **章节来源**
 - [StructurePanel.tsx:147-167](file://src/components/StructurePanel.tsx#L147-L167)
-- [StructurePanel.tsx:223-386](file://src/components/StructurePanel.tsx#L223-L386)
+- [StructurePanel.tsx:223-406](file://src/components/StructurePanel.tsx#L223-L406)
+
+### 页面背景系统
+
+**新增** 结构面板现在集成了完整的页面背景系统：
+
+#### 背景类型支持
+- **纯色背景** (`PageBackgroundSolid`): 单一颜色填充
+- **渐变背景** (`PageBackgroundGradient`): 线性渐变，支持角度和多色停止点
+- **图片背景** (`PageBackgroundImage`): 图片背景，支持裁剪模式和透明度
+
+#### 背景样式计算
+使用 `getThumbBackgroundStyle` 函数处理背景样式：
+```typescript
+function getThumbBackgroundStyle(background: PageBackground | undefined): React.CSSProperties {
+  if (!background) return { backgroundColor: '#ffffff' };
+  switch (background.type) {
+    case 'solid':
+      return { backgroundColor: background.color };
+    case 'gradient': {
+      const stops = background.stops.map((s) => `${s.color} ${s.offset * 100}%`).join(', ');
+      return { backgroundImage: `linear-gradient(${background.angle}deg, ${stops})` };
+    }
+    case 'image':
+      return {
+        backgroundImage: `url(${background.src})`,
+        backgroundSize: background.fit,
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        opacity: background.opacity,
+      };
+    default:
+      return { backgroundColor: '#ffffff' };
+  }
+}
+```
+
+#### 缩略图背景渲染
+在页面缩略图容器中应用背景样式：
+```typescript
+<div
+  style={{
+    width: THUMB_WIDTH,
+    height: THUMB_HEIGHT,
+    overflow: 'hidden',
+    position: 'relative',
+    ...getThumbBackgroundStyle(doc.pages[proc.id]?.background ?? doc.background),
+    borderRadius: 4,
+    border: '1px solid #e5e7eb',
+  }}
+>
+```
+
+**章节来源**
+- [StructurePanel.tsx:34-54](file://src/components/StructurePanel.tsx#L34-L54)
+- [StructurePanel.tsx:348-364](file://src/components/StructurePanel.tsx#L348-L364)
+- [types/index.ts:72-90](file://src/types/index.ts#L72-L90)
 
 ### 与Canvas组件的联动
 
@@ -295,6 +364,7 @@ InsertIndex --> SetDragOverIndex[设置拖拽索引]
 - Canvas使用renderThumbnail()渲染页面缩略图
 - 缩略图尺寸：160x90像素
 - 按比例缩放960x540画布内容
+- **更新** 现在包含准确的背景渲染
 
 **章节来源**
 - [Canvas.tsx:34-37](file://src/components/Canvas.tsx#L34-L37)
@@ -306,7 +376,6 @@ InsertIndex --> SetDragOverIndex[设置拖拽索引]
 | 属性名 | 类型 | 必需 | 描述 |
 |--------|------|------|------|
 | engine | Engine | 是 | 引擎实例，提供文档操作能力 |
-| onRefresh | () => void | 是 | 刷新回调函数 |
 
 #### 事件回调
 - `onRefresh`: 当文档状态改变时触发UI刷新
@@ -317,6 +386,9 @@ InsertIndex --> SetDragOverIndex[设置拖拽索引]
 - `handleSelectPage(pageId)`: 选择页面
 - `handleDeleteItem(index)`: 删除结构项
 - `toggleNode(nodeId)`: 切换节点展开状态
+- `getThumbBackgroundStyle(background)`: 计算缩略图背景样式
+
+**更新** 新增 `getThumbBackgroundStyle` 方法用于背景样式计算
 
 **章节来源**
 - [StructurePanel.tsx:13-16](file://src/components/StructurePanel.tsx#L13-L16)
@@ -330,7 +402,6 @@ InsertIndex --> SetDragOverIndex[设置拖拽索引]
 classDiagram
 class StructurePanel {
 +engine : Engine
-+onRefresh : Function
 +draggingId : string
 +dragOverIndex : number
 +collapsedNodes : Set
@@ -342,6 +413,7 @@ class StructurePanel {
 +handleDragStart()
 +handleDragOver()
 +handleDrop()
++getThumbBackgroundStyle()
 }
 class Engine {
 +scene : Scene
@@ -417,6 +489,7 @@ StructurePanel --> ReorderStructureItemsCommand : 创建
 - **虚拟滚动**：对于大量页面和节点的情况，可以考虑实现虚拟滚动
 - **状态最小化**：仅在必要时更新状态，避免不必要的重渲染
 - **事件防抖**：拖拽事件处理使用useCallback优化
+- **背景样式缓存**：使用memo化优化背景样式计算
 
 ### 内存管理
 - **Set数据结构**：使用Set存储折叠状态，提供O(1)查找性能
@@ -462,24 +535,44 @@ StructurePanel --> ReorderStructureItemsCommand : 创建
 - renderThumbnail()函数问题
 - 元素渲染配置错误
 - 缩放比例计算错误
+- **更新** 背景样式计算错误
 
 **解决步骤**：
 1. 检查renderThumbnail()函数的元素类型判断
 2. 验证缩略图尺寸常量定义
 3. 确认transform缩放计算
+4. **更新** 检查getThumbBackgroundStyle函数的背景类型处理
+
+#### 背景渲染问题
+**症状**：页面背景在缩略图中显示不正确
+**可能原因**：
+- 背景类型判断错误
+- 渐变背景停止点格式错误
+- 图片背景路径无效
+- 背景透明度计算错误
+
+**解决步骤**：
+1. 验证PageBackground接口的类型字段
+2. 检查渐变背景的stops数组格式
+3. 确认图片背景的src路径有效
+4. 验证opacity值在0-1范围内
 
 **章节来源**
 - [StructurePanel.tsx:82-91](file://src/components/StructurePanel.tsx#L82-L91)
 - [StructurePanel.tsx:100-145](file://src/components/StructurePanel.tsx#L100-L145)
 - [renderer/index.tsx:300-313](file://src/renderer/index.tsx#L300-L313)
+- [StructurePanel.tsx:34-54](file://src/components/StructurePanel.tsx#L34-L54)
 
 ## 结论
 
 StructurePanel组件是一个设计精良的结构管理组件，它成功地将复杂的文档结构管理功能封装在一个易于使用的界面中。通过采用命令模式和引擎系统，组件实现了数据驱动的状态管理和可撤销的操作能力。
 
+**更新** 组件现已集成完整的页面背景系统，能够在缩略图预览中准确渲染页面背景效果，确保设计者能够预览真实的背景效果。这一更新显著提升了用户体验，使结构面板与主画布的视觉效果保持一致。
+
 组件的主要优势包括：
 - **直观的用户界面**：清晰的页面和节点层次结构
 - **完整的功能覆盖**：支持所有必要的结构管理操作
+- **强大的背景系统**：支持纯色、渐变和图片背景类型
 - **良好的性能表现**：优化的渲染和状态管理
 - **强健的错误处理**：完善的边界条件检查
 
@@ -488,5 +581,6 @@ StructurePanel组件是一个设计精良的结构管理组件，它成功地将
 - 添加批量操作支持
 - 优化大量数据的渲染性能
 - 增加键盘快捷键支持
+- **新增** 支持更多背景效果类型
 
 该组件为整个滑动编辑器提供了坚实的基础，确保了用户体验的一致性和数据的完整性。

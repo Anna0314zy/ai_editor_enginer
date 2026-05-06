@@ -36,6 +36,16 @@ function uid(): string {
   return `el-${Date.now()}-${uidCounter++}`;
 }
 
+function defaultImageDataUri(): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="150" viewBox="0 0 200 150">
+    <rect width="200" height="150" fill="#60a5fa"/>
+    <circle cx="160" cy="40" r="22" fill="#fbbf24"/>
+    <polygon points="0,150 60,85 110,150" fill="#1d4ed8"/>
+    <polygon points="80,150 140,70 200,150" fill="#1e3a8a"/>
+  </svg>`;
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
 interface CanvasProps {
   engine: Engine;
   animationEngine: AnimationEngine;
@@ -214,6 +224,10 @@ function createElement(
         fill: '#3b82f6',
         stroke: '#1d4ed8',
         strokeWidth: 2,
+        cornerRadius: shapeType === 'rounded-rectangle' ? 16 : undefined,
+        sides: shapeType === 'polygon' ? 6 : undefined,
+        starPoints: shapeType === 'star' ? 5 : undefined,
+        starInnerRadius: shapeType === 'star' ? 0.5 : undefined,
       } as ShapeElement;
 
     case 'text':
@@ -237,8 +251,8 @@ function createElement(
         name: 'Image',
         width: 200,
         height: 150,
-        src: 'https://pics3.baidu.com/feed/d788d43f8794a4c218c5e6387507a6daaf6e39c5.jpeg@f_auto?token=e16daccc9973446fd67c78e05b0dfd94',
-        objectFit: 'cover',
+        src: 'https://gips3.baidu.com/it/u=100751361,1567855012&fm=3028&app=3028&f=JPEG&fmt=auto?w=960&h=1280',
+        objectFit: 'contain',
       } as ImageElement;
 
     default:
