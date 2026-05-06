@@ -367,3 +367,19 @@ export class ReorderStructureItemsCommand implements Command {
     this.scene.reorderStructureItems(this.beforeOrder);
   }
 }
+
+export class CompositeCommand implements Command {
+  constructor(private commands: Command[]) {}
+
+  execute(): void {
+    for (const command of this.commands) {
+      command.execute();
+    }
+  }
+
+  undo(): void {
+    for (let i = this.commands.length - 1; i >= 0; i--) {
+      this.commands[i].undo();
+    }
+  }
+}

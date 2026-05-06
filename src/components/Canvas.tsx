@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, Fragment } from 'react';
 import type { DragEvent } from 'react';
 import type { Engine } from '../engine';
 import { AddElementCommand } from '../engine';
@@ -34,16 +34,6 @@ function getBackgroundStyle(background: PageBackground | undefined): React.CSSPr
 let uidCounter = 0;
 function uid(): string {
   return `el-${Date.now()}-${uidCounter++}`;
-}
-
-function defaultImageDataUri(): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="150" viewBox="0 0 200 150">
-    <rect width="200" height="150" fill="#60a5fa"/>
-    <circle cx="160" cy="40" r="22" fill="#fbbf24"/>
-    <polygon points="0,150 60,85 110,150" fill="#1d4ed8"/>
-    <polygon points="80,150 140,70 200,150" fill="#1e3a8a"/>
-  </svg>`;
-  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
 }
 
 interface CanvasProps {
@@ -93,7 +83,7 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
 
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      const element = createElement(data.type, x, y, data.shapeType);
+      const element = createElement(engine, data.type, x, y, data.shapeType);
 
       engine.execute(new AddElementCommand(engine.scene, currentPageId, element));
       selectionStore.select(element.id);
@@ -182,12 +172,15 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
           );
         })()}
         {/* Elements */}
-        {elements.map((el) =>
-          renderElement(el, {
-            onClick: handleElementClick,
-            isSelected: selectedIds.includes(el.id),
-          })
-        )}
+        {elements.map((el) => (
+          <Fragment key={el.id}>
+            {renderElement(el, {
+              onClick: handleElementClick,
+              isSelected: selectedIds.includes(el.id),
+            })}
+          </Fragment>
+        ))}
+
         <MoveableLayer engine={engine} containerRef={slideRef} />
       </div>
     </div>
@@ -195,6 +188,7 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
 }
 
 function createElement(
+  engine: Engine,
   type: string,
   x: number,
   y: number,
@@ -255,7 +249,12 @@ function createElement(
         objectFit: 'contain',
       } as ImageElement;
 
-    default:
+    default: {
+      const descriptor = engine.pluginRegistry.getComponent(type);
+      if (descriptor) {
+        return descriptor.createDefaultElement(x, y);
+      }
       throw new Error(`Unknown element type: ${type}`);
+    }
   }
 }

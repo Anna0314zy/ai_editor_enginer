@@ -1,10 +1,65 @@
-import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
+import { useEffect, useCallback, useMemo, useRef, useState, isValidElement, cloneElement } from 'react';
 import type { AnimationEngine } from '../animation';
-import { AnimationScheduler } from '../animation';
+import { AnimationScheduler, buildClickSteps, buildKeyframes } from '../animation';
 import { renderElement } from '../renderer';
-import { useStores, useSceneStore, useAnimationStore } from '../store';
+import { useStores, useSceneStore } from '../store';
 import { PAGE_DEFAULT_WIDTH, PAGE_DEFAULT_HEIGHT } from '../types';
-import type { PageBackground } from '../types';
+import type { PageBackground, Element, AnimationConfig } from '../types';
+
+/**
+ * 计算元素在预览模式下的初始样式。
+ * 对于有入场动画且尚未执行的元素，应用动画第一帧的状态作为初始 CSS，
+ * 确保预览时元素"从无到有"的演示效果。
+ */
+function getElementPreviewStyle(
+  element: Element,
+  steps: ReturnType<typeof buildClickSteps>,
+  currentStepIndex: number
+): React.CSSProperties {
+  // 找到该元素的第一个 enter 动画
+  let enterAnim: AnimationConfig | null = null;
+  let enterStepIndex = -1;
+
+  for (let i = 0; i < steps.length; i++) {
+    for (const batch of steps[i].batches) {
+      for (const anim of batch.animations) {
+        if (anim.elementId === element.id && anim.type === 'enter') {
+          enterAnim = anim;
+          enterStepIndex = i;
+          break;
+        }
+      }
+      if (enterAnim) break;
+    }
+    if (enterAnim) break;
+  }
+
+  // 没有 enter 动画，或 enter 动画已经执行过 → 不添加额外样式
+  if (!enterAnim || currentStepIndex >= enterStepIndex) {
+    return {};
+  }
+
+  // enter 动画尚未执行 → 应用动画第一帧作为初始样式
+  const keyframes = buildKeyframes(enterAnim);
+  if (keyframes.length === 0) {
+    return { opacity: 0, pointerEvents: 'none' };
+  }
+
+  const firstFrame = keyframes[0];
+  const style: React.CSSProperties = {};
+
+  for (const [key, value] of Object.entries(firstFrame)) {
+    if (key === 'offset') continue;
+    if (value !== undefined) {
+      (style as Record<string, unknown>)[key] = value;
+    }
+  }
+
+  // 禁止交互，避免隐藏元素阻挡点击
+  style.pointerEvents = 'none';
+
+  return style;
+}
 
 function getBackgroundStyle(background: PageBackground | undefined): React.CSSProperties {
   if (!background) return { backgroundColor: '#ffffff' };
@@ -34,9 +89,8 @@ interface PreviewModalProps {
 }
 
 export default function PreviewModal({ animationEngine, onClose }: PreviewModalProps) {
-  const { sceneStore, animationStore } = useStores();
+  const { sceneStore } = useStores();
   const sceneSnapshot = useSceneStore(sceneStore);
-  const animSnapshot = useAnimationStore(animationStore);
   const slideRef = useRef<HTMLDivElement>(null);
 
   // Derive ordered page list from structureItems (preview-local ordering)
@@ -51,6 +105,12 @@ export default function PreviewModal({ animationEngine, onClose }: PreviewModalP
   const elements = sceneStore.getPageElements(previewPageId);
 
   const scheduler = useMemo(() => new AnimationScheduler(animationEngine), [animationEngine]);
+
+  // 计算当前页面的动画 steps（用于判断元素初始可见性）
+  const steps = useMemo(() => {
+    const anims = sceneStore.getPageAnimations(previewPageId).filter((a) => a.enable);
+    return buildClickSteps(anims);
+  }, [previewPageId, sceneStore]);
 
   // Track step progress for UI re-rendering
   const [stepInfo, setStepInfo] = useState({ current: 0, total: 0 });
@@ -254,11 +314,21 @@ export default function PreviewModal({ animationEngine, onClose }: PreviewModalP
             ...getBackgroundStyle(sceneSnapshot.document.pages[previewPageId]?.background ?? sceneSnapshot.document.background),
           }}
         />
-        {elements.map((el) =>
-          renderElement(el, {
+        {elements.map((el) => {
+          const previewStyle = getElementPreviewStyle(el, steps, stepInfo.current - 1);
+          const node = renderElement(el, {
             onClick: () => {}, // No element-specific triggers in preview
-          })
-        )}
+          });
+
+          if (!isValidElement(node) || Object.keys(previewStyle).length === 0) {
+            return node;
+          }
+
+          const existingStyle = (node.props as Record<string, unknown>).style || {};
+          return cloneElement(node, {
+            style: { ...existingStyle, ...previewStyle },
+          } as Record<string, unknown>);
+        })}
       </div>
 
       {/* Page navigation */}

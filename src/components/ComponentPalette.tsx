@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { DragEvent, ReactNode } from 'react';
+import type { Engine } from '../engine';
 
 interface ShapeItem {
   label: string;
@@ -48,9 +49,9 @@ const shapeGroups: ShapeGroup[] = [
 
 interface PaletteItem {
   label: string;
-  type: 'shape' | 'text' | 'image';
+  type: string;
   shapeType?: string;
-  icon: string;
+  icon: ReactNode;
 }
 
 const nonShapeItems: PaletteItem[] = [
@@ -58,8 +59,13 @@ const nonShapeItems: PaletteItem[] = [
   { label: 'Image', type: 'image', icon: '🖼' },
 ];
 
-export default function ComponentPalette() {
+interface ComponentPaletteProps {
+  engine: Engine;
+}
+
+export default function ComponentPalette({ engine }: ComponentPaletteProps) {
   const [shapeOpen, setShapeOpen] = useState(true);
+  const pluginComponents = engine.pluginRegistry.getComponents();
 
   const handleDragStart = (e: DragEvent<HTMLDivElement>, type: string, shapeType?: string): void => {
     const data = JSON.stringify({ type, shapeType });
@@ -186,6 +192,47 @@ export default function ComponentPalette() {
           <span>{item.label}</span>
         </div>
       ))}
+
+      {pluginComponents.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div
+            style={{
+              fontSize: 10,
+              color: '#9ca3af',
+              textTransform: 'uppercase',
+              letterSpacing: 0.5,
+              marginBottom: 6,
+              fontWeight: 600,
+              paddingLeft: 4,
+            }}
+          >
+            Plugins
+          </div>
+          {pluginComponents.map((item) => (
+            <div
+              key={item.type}
+              draggable
+              onDragStart={(e) => handleDragStart(e, item.type)}
+              style={{
+                padding: '10px 12px',
+                backgroundColor: '#ffffff',
+                border: '1px solid #d1d5db',
+                borderRadius: 6,
+                cursor: 'grab',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                fontSize: 13,
+                color: '#4b5563',
+                marginBottom: 8,
+              }}
+            >
+              <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.icon}</span>
+              <span>{item.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

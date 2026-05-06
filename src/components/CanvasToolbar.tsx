@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { DragEvent, ReactNode } from 'react';
+import type { Engine } from '../engine';
 
 interface ShapeItem {
   label: string;
@@ -58,9 +59,14 @@ const nonShapeItems: ToolbarItem[] = [
   { label: 'Image', type: 'image', icon: '🖼' },
 ];
 
-export default function CanvasToolbar() {
+interface CanvasToolbarProps {
+  engine: Engine;
+}
+
+export default function CanvasToolbar({ engine }: CanvasToolbarProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const pluginComponents = engine.pluginRegistry.getComponents();
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -181,6 +187,29 @@ export default function CanvasToolbar() {
           key={item.label}
           draggable
           onDragStart={(e) => handleDragStart(e, item.type, item.shapeType)}
+          style={{
+            padding: '6px 12px',
+            backgroundColor: '#f9fafb',
+            border: '1px solid #d1d5db',
+            borderRadius: 4,
+            cursor: 'grab',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 12,
+            color: '#4b5563',
+          }}
+        >
+          <span style={{ fontSize: 16, width: 20, textAlign: 'center' }}>{item.icon}</span>
+          <span>{item.label}</span>
+        </div>
+      ))}
+
+      {pluginComponents.map((item) => (
+        <div
+          key={item.type}
+          draggable
+          onDragStart={(e) => handleDragStart(e, item.type)}
           style={{
             padding: '6px 12px',
             backgroundColor: '#f9fafb',

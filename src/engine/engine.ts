@@ -3,6 +3,8 @@ import { createMockEditorState } from '../types';
 import { Scene, createScene } from './scene';
 import { History } from './history';
 import { Timeline } from './timeline';
+import { PluginRegistry } from './pluginRegistry';
+import type { EnginePlugin } from './pluginRegistry';
 
 export type EngineTopic = 'scene' | 'editorState' | 'history' | 'all';
 
@@ -16,6 +18,7 @@ export class Engine {
   readonly scene: Scene;
   readonly history: History;
   readonly timeline: Timeline;
+  readonly pluginRegistry: PluginRegistry;
 
   private editorState: EditorState;
   private listeners: Set<() => void>;
@@ -26,6 +29,7 @@ export class Engine {
     this.editorState = createMockEditorState();
     this.history = new History();
     this.timeline = new Timeline();
+    this.pluginRegistry = new PluginRegistry();
     this.listeners = new Set();
     this.topicListeners = new Map();
   }
@@ -120,6 +124,21 @@ export class Engine {
 
   canRedo(): boolean {
     return this.history.canRedo();
+  }
+
+  use(plugin: EnginePlugin): void {
+    this.pluginRegistry.register(plugin);
+    if (plugin.onRegister) {
+      plugin.onRegister(this);
+    }
+  }
+
+  unuse(pluginId: string): void {
+    const plugin = this.pluginRegistry.getPlugin(pluginId);
+    if (plugin?.onUnregister) {
+      plugin.onUnregister(this);
+    }
+    this.pluginRegistry.unregister(pluginId);
   }
 
   // Reserved extension point for future selector-based precise subscriptions.

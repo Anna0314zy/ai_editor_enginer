@@ -7,12 +7,14 @@ import type { AnimationConfig } from './animation';
 // Element Types
 // ============================================================================
 
-export type ElementType = 'shape' | 'text' | 'image' | 'group';
+export type ElementType = 'shape' | 'text' | 'image' | 'group' | string;
 
 export interface BaseElement {
   id: string;
   type: ElementType;
   name: string;
+  /** Element source: 'user' for manually created, 'ai' for AI-generated */
+  source?: 'user' | 'ai';
   x: number;
   y: number;
   width: number;

@@ -19,7 +19,7 @@ export { AnimationStore } from './animationStore';
 export type { AnimationSnapshot } from './animationStore';
 
 export { PluginStore } from './pluginStore';
-export type { PluginSnapshot, Plugin, PluginLifecycle } from './pluginStore';
+export type { PluginSnapshot, Plugin, PluginLifecycle, PanelDescriptor } from './pluginStore';
 
 export {
   useSceneStore,

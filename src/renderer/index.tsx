@@ -1,15 +1,9 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { MouseEvent } from 'react';
 import type { Element, ShapeElement, TextElement, ImageElement } from '../types';
+import type { PluginRegistry, ComponentRenderProps } from '../engine/pluginRegistry';
 
-export interface RenderProps {
-  onClick?: (id: string) => void;
-  onMouseDown?: (e: MouseEvent, id: string) => void;
-  isSelected?: boolean;
-  offsetX?: number;
-  offsetY?: number;
-  rotation?: number;
-}
+export interface RenderProps extends ComponentRenderProps {}
 
 function getPolygonPoints(cx: number, cy: number, radius: number, sides: number): string {
   const points: string[] = [];
@@ -369,6 +363,12 @@ function SelectionOutline(): ReactNode {
   );
 }
 
+let globalRegistry: PluginRegistry | null = null;
+
+export function setPluginRegistry(registry: PluginRegistry | null): void {
+  globalRegistry = registry;
+}
+
 export function renderElement(element: Element, props?: RenderProps): ReactNode {
   switch (element.type) {
     case 'shape':
@@ -379,8 +379,11 @@ export function renderElement(element: Element, props?: RenderProps): ReactNode 
       return renderImage(element, props ?? {});
     case 'group':
       return null;
-    default:
-      return null;
+    default: {
+      const el = element as Element;
+      const descriptor = globalRegistry?.getComponent(el.type);
+      return descriptor?.render(el, props ?? {}) ?? null;
+    }
   }
 }
 
@@ -660,7 +663,10 @@ export function renderThumbnail(element: Element): ReactNode {
       return renderThumbnailImage(element);
     case 'group':
       return null;
-    default:
-      return null;
+    default: {
+      const el = element as Element;
+      const descriptor = globalRegistry?.getComponent(el.type);
+      return descriptor?.renderThumbnail(el) ?? null;
+    }
   }
 }

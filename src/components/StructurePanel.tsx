@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, Fragment } from 'react';
 import type { DragEvent } from 'react';
 import type { Engine } from '../engine';
 import {
@@ -111,7 +111,7 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
     }
   };
 
-  const handleDragStart = (e: DragEvent<HTMLDivElement>, id: string, index: number) => {
+  const handleDragStart = (e: DragEvent<HTMLDivElement>, id: string, _index: number) => {
     setDraggingId(id);
     e.dataTransfer.effectAllowed = 'move';
     const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
@@ -357,9 +357,11 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
                           pointerEvents: 'none',
                         }}
                       >
-                        {Object.values(doc.pages[proc.id]?.elements ?? {}).map((el) =>
-                          renderThumbnail(el)
-                        )}
+                        {Object.values(doc.pages[proc.id]?.elements ?? {}).map((el) => (
+                          <Fragment key={el.id}>
+                            {renderThumbnail(el)}
+                          </Fragment>
+                        ))}
                       </div>
                     </div>
                     <div

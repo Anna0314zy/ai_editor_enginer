@@ -7,6 +7,15 @@ export interface PluginLifecycle {
   onElementSelect?(elementIds: string[]): void;
 }
 
+import type { ComponentType } from 'react';
+import type { Engine } from '../engine';
+
+export interface PanelDescriptor {
+  id: string;
+  label: string;
+  component: ComponentType<{ engine: Engine; animationEngine: unknown }>;
+}
+
 export interface Plugin {
   id: string;
   name: string;
@@ -14,6 +23,7 @@ export interface Plugin {
   enabled: boolean;
   config: Record<string, unknown>;
   lifecycle?: PluginLifecycle;
+  panel?: PanelDescriptor;
 }
 
 export interface PluginSnapshot {

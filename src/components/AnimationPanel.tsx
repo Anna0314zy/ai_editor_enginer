@@ -59,25 +59,6 @@ function needsParams(effect: AnimationEffect): boolean {
   return ['slideIn', 'flyIn', 'slideOut', 'flyOut', 'scale', 'rotateIn', 'rotateOut', 'highlight'].includes(effect);
 }
 
-function getDefaultParams(effect: AnimationEffect): AnimationConfig['params'] {
-  switch (effect) {
-    case 'slideIn':
-    case 'flyIn':
-    case 'slideOut':
-    case 'flyOut':
-      return { direction: 'right', distance: 100 };
-    case 'scale':
-      return { fromScale: 1, toScale: 1.2 };
-    case 'rotateIn':
-    case 'rotateOut':
-      return { fromAngle: 0, toAngle: 360 };
-    case 'highlight':
-      return { brightness: 1.5 };
-    default:
-      return { fromOpacity: 0, toOpacity: 1 };
-  }
-}
-
 function fixStartType(index: number, prev: AnimationConfig | undefined): StartType {
   if (index === 0) return 'click';
   if (prev?.startType === 'click') return 'withPrev';
@@ -553,7 +534,7 @@ export default function AnimationPanel({ engine, animationEngine }: AnimationPan
 
 function SortableAnimationRow({
   anim,
-  index,
+  index: _index,
   stepNumber,
   relation,
   elementName,

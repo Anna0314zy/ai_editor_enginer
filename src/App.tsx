@@ -23,7 +23,14 @@ function App({ engine, animationEngine }: AppProps) {
   const selectionSnapshot = useSelectionStore(selectionStore);
   const historySnapshot = useHistoryStore(historyStore);
   const animSnapshot = useAnimationStore(animationStore);
-  const [rightPanelTab, setRightPanelTab] = useState<'properties' | 'global' | 'animation'>('properties');
+  const pluginPanels = engine.pluginRegistry.getPanels();
+  const allTabs = [
+    { id: 'properties', label: 'Properties' },
+    { id: 'global', label: 'Global' },
+    { id: 'animation', label: 'Animation' },
+    ...pluginPanels.map((p) => ({ id: p.id, label: p.label })),
+  ];
+  const [rightPanelTab, setRightPanelTab] = useState<string>(allTabs[0]?.id ?? 'properties');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [stepScheduler, setStepScheduler] = useState<AnimationScheduler | null>(null);
   const [stepProgress, setStepProgress] = useState({ current: 0, total: 0 });
@@ -145,7 +152,6 @@ function App({ engine, animationEngine }: AppProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [engine, historySnapshot, historyStore, selectionSnapshot, selectionStore, sceneSnapshot.currentPageId]);
 
-  const currentPageId = sceneSnapshot.currentPageId;
   const elementCount = sceneSnapshot.currentPageElements.length;
 
   return (
@@ -274,65 +280,42 @@ function App({ engine, animationEngine }: AppProps) {
       <main style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <StructurePanel engine={engine} />
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <CanvasToolbar />
+          <CanvasToolbar engine={engine} />
           <div style={{ flex: 1, overflow: 'hidden' }}>
             <Canvas engine={engine} animationEngine={animationEngine} />
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', width: 400, borderLeft: '1px solid #e5e7eb', flexShrink: 0 }}>
           <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', backgroundColor: '#ffffff' }}>
-            <button
-              onClick={() => setRightPanelTab('properties')}
-              style={{
-                flex: 1,
-                padding: '10px 0',
-                fontSize: 12,
-                border: 'none',
-                borderBottom: rightPanelTab === 'properties' ? '2px solid #3b82f6' : '2px solid transparent',
-                backgroundColor: 'transparent',
-                color: rightPanelTab === 'properties' ? '#3b82f6' : '#6b7280',
-                cursor: 'pointer',
-                fontWeight: rightPanelTab === 'properties' ? 600 : 400,
-              }}
-            >
-              Properties
-            </button>
-            <button
-              onClick={() => setRightPanelTab('global')}
-              style={{
-                flex: 1,
-                padding: '10px 0',
-                fontSize: 12,
-                border: 'none',
-                borderBottom: rightPanelTab === 'global' ? '2px solid #3b82f6' : '2px solid transparent',
-                backgroundColor: 'transparent',
-                color: rightPanelTab === 'global' ? '#3b82f6' : '#6b7280',
-                cursor: 'pointer',
-                fontWeight: rightPanelTab === 'global' ? 600 : 400,
-              }}
-            >
-              Global
-            </button>
-            <button
-              onClick={() => setRightPanelTab('animation')}
-              style={{
-                flex: 1,
-                padding: '10px 0',
-                fontSize: 12,
-                border: 'none',
-                borderBottom: rightPanelTab === 'animation' ? '2px solid #3b82f6' : '2px solid transparent',
-                backgroundColor: 'transparent',
-                color: rightPanelTab === 'animation' ? '#3b82f6' : '#6b7280',
-                cursor: 'pointer',
-                fontWeight: rightPanelTab === 'animation' ? 600 : 400,
-              }}
-            >
-              Animation
-            </button>
+            {allTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setRightPanelTab(tab.id)}
+                style={{
+                  flex: 1,
+                  padding: '10px 0',
+                  fontSize: 12,
+                  border: 'none',
+                  borderBottom: rightPanelTab === tab.id ? '2px solid #3b82f6' : '2px solid transparent',
+                  backgroundColor: 'transparent',
+                  color: rightPanelTab === tab.id ? '#3b82f6' : '#6b7280',
+                  cursor: 'pointer',
+                  fontWeight: rightPanelTab === tab.id ? 600 : 400,
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
           {rightPanelTab === 'properties' && <PropertyPanel engine={engine} />}
           {rightPanelTab === 'global' && <GlobalSettingsPanel engine={engine} />}
           {rightPanelTab === 'animation' && <AnimationPanel engine={engine} animationEngine={animationEngine} />}
+          {pluginPanels.map(
+            (panel) =>
+              rightPanelTab === panel.id && (
+                <panel.component key={panel.id} engine={engine} animationEngine={animationEngine} />
+              )
+          )}
         </div>
       </main>
 

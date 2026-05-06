@@ -103,7 +103,23 @@ export default function PropertyPanel({ engine }: PropertyPanelProps) {
         overflowY: 'auto',
       }}
     >
-      <h3 style={{ margin: '0 0 16px', fontSize: 14, color: '#374151' }}>Properties</h3>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h3 style={{ margin: 0, fontSize: 14, color: '#374151' }}>Properties</h3>
+        {element.source === 'ai' && (
+          <span
+            style={{
+              fontSize: 11,
+              padding: '2px 8px',
+              backgroundColor: '#dbeafe',
+              color: '#1e40af',
+              borderRadius: 4,
+              fontWeight: 600,
+            }}
+          >
+            🤖 AI Generated
+          </span>
+        )}
+      </div>
 
       <Section title="Transform">
         <NumberField label="X" value={element.x} onCommit={(v) => commitElement({ x: v })} />

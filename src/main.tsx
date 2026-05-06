@@ -4,8 +4,14 @@ import App from './App.tsx'
 import { StoreProvider } from './store'
 import { createEngine } from './engine'
 import { AnimationEngine, WebAnimationAdapter } from './animation'
+import { aiCoursewarePlugin } from './plugins/aiCourseware'
+import { videoPlugin } from './plugins/videoPlugin'
+import { setPluginRegistry } from './renderer'
 
 const engine = createEngine();
+engine.use(aiCoursewarePlugin);
+engine.use(videoPlugin);
+setPluginRegistry(engine.pluginRegistry);
 if (import.meta.env.NODE_ENV === 'development') {
   (window as any)._engine = engine;
 }

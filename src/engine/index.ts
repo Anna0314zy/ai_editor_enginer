@@ -7,7 +7,7 @@ export { Timeline } from './timeline';
 export { Engine, createEngine } from './engine';
 export type { EngineTopic, SelectorFn, ComparatorFn } from './engine';
 export {
-  AddElementCommand, MoveElementCommand, DeleteElementCommand, BatchMoveCommand,
+  AddElementCommand, MoveElementCommand, DeleteElementCommand, BatchMoveCommand, CompositeCommand,
   AddAnimationCommand, RemoveAnimationCommand, UpdateAnimationCommand, ReorderAnimationsCommand,
   AddPageCommand, RemovePageCommand, UpdatePageCommand,
   UpdateDocumentBackgroundCommand, UpdateDocumentSafeAreaCommand,
@@ -16,3 +16,5 @@ export {
 export { BatchAnimationCommand } from './animationCommands';
 export { snapEngine } from './snapEngine';
 export type { Rect as SnapRect, SnapInput } from './snapEngine';
+export { PluginRegistry } from './pluginRegistry';
+export type { EnginePlugin, PanelDescriptor } from './pluginRegistry';
