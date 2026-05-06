@@ -46,6 +46,7 @@ export default function PropertyPanel({ engine }: PropertyPanelProps) {
           backgroundColor: '#f9fafb',
           padding: 16,
           overflowY: 'auto',
+          boxSizing: 'border-box'
         }}
       >
         <h3 style={{ margin: '0 0 16px', fontSize: 14, color: '#374151' }}>Current Page</h3>
@@ -233,10 +234,9 @@ function TextField({
   return (
     <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#4b5563' }}>
       <span style={{ width: 60, flexShrink: 0 }}>{label}</span>
-      <input
-        type="text"
+      <textarea
         value={local}
-        onChange={(e: ChangeEvent<HTMLInputElement>) => setLocal(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setLocal(e.target.value)}
         onBlur={handleBlur}
         style={{
           flex: 1,
