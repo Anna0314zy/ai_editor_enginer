@@ -15,6 +15,7 @@ function manualChunks(id: string): string | undefined {
 }
 
 export default defineConfig({
+  base: '/ai_editor_enginer/',
   plugins: [react()],
   build: {
     // After splitting vendors, raise slightly so real regressions still surface
