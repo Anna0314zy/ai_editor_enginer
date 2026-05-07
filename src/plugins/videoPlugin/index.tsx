@@ -71,8 +71,7 @@ function render(element: Element, props: ComponentRenderProps): React.ReactNode 
   );
 }
 
-function renderThumbnail(element: Element): React.ReactNode {
-  const el = element as unknown as { src: string };
+function renderThumbnail(_element: Element): React.ReactNode {
   return (
     <div
       style={{

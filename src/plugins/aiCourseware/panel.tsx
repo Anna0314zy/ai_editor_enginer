@@ -1922,7 +1922,7 @@ export default function AICoursewarePanel({ engine }: AICoursewarePanelProps) {
             />
           </label>
           <button
-            onClick={handleGenerate}
+            onClick={() => void handleGenerate('remote', undefined)}
             disabled={loading || !topic.trim()}
             style={{
               padding: '8px 12px',

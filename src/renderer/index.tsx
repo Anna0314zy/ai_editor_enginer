@@ -1,5 +1,4 @@
 import type { CSSProperties, ReactNode } from 'react';
-import type { MouseEvent } from 'react';
 import type { Element, ShapeElement, TextElement, ImageElement } from '../types';
 import type { PluginRegistry, ComponentRenderProps } from '../engine/pluginRegistry';
 
