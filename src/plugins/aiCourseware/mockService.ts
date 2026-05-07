@@ -1,5 +1,5 @@
 import type { Page, TextElement, ShapeElement } from '../../types';
-import type { AICoursewareService } from './types';
+import type { AICoursewareService, GenerateCoursewareOptions } from './types';
 import type { BackendSlide, BackendElement, EditPageResponse, BackendAnimationConfig } from './schema';
 
 function anim(
@@ -67,7 +67,7 @@ function createShapeElement(
 }
 
 export class MockAICoursewareService implements AICoursewareService {
-  async generateCourseware(topic: string): Promise<BackendSlide[]> {
+  async generateCourseware(topic: string, _options?: GenerateCoursewareOptions): Promise<BackendSlide[]> {
     const slides: BackendSlide[] = [
       {
         title: topic,

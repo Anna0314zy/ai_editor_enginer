@@ -1,8 +1,104 @@
 import type { Page } from '../../types';
-import type { AICoursewareService } from './types';
+import type { AICoursewareService, GenerateCoursewareOptions } from './types';
 import type { BackendSlide, EditPageResponse, GenerateCoursewareRequest, EditPageRequest } from './schema';
 
 const DEFAULT_BASE_URL = __AI_COURSEWARE_DEFAULT_BASE_URL__;
+
+/** Set true temporarily to log stream payloads in production builds. */
+const DEBUG_STREAM = import.meta.env.DEV;
+
+function safeJsonPreview(value: unknown, maxChars = 16000): string {
+  try {
+    const s = JSON.stringify(value, null, 2);
+    if (s.length > maxChars) {
+      return `${s.slice(0, maxChars)}\n… (truncated, ${s.length} chars total)`;
+    }
+    return s;
+  } catch {
+    return String(value);
+  }
+}
+
+/** Unwrap common API envelopes until we find slides[] or courseware.slides */
+function extractSlidesFromPayload(payload: unknown, depth = 0): BackendSlide[] | null {
+  if (depth > 8) return null;
+  if (payload == null) return null;
+
+  if (typeof payload === 'string') {
+    const t = payload.trim();
+    if ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'))) {
+      try {
+        return extractSlidesFromPayload(JSON.parse(t), depth + 1);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  if (Array.isArray(payload)) {
+    return payload as BackendSlide[];
+  }
+
+  if (typeof payload !== 'object') return null;
+  const o = payload as Record<string, unknown>;
+
+  const cw = o.courseware;
+  if (cw && typeof cw === 'object') {
+    const c = cw as Record<string, unknown>;
+    if (Array.isArray(c.slides)) return c.slides as BackendSlide[];
+    if (Array.isArray(c.pages)) return c.pages as BackendSlide[];
+  }
+
+  if (Array.isArray(o.slides)) return o.slides as BackendSlide[];
+  if (Array.isArray(o.pages)) return o.pages as BackendSlide[];
+  for (const k of ['items', 'slide_list', 'slideList', 'courseware_list'] as const) {
+    if (Array.isArray(o[k])) return o[k] as BackendSlide[];
+  }
+
+  const nestedKeys = ['data', 'result', 'payload', 'body', 'output', 'content', 'courseware'] as const;
+  for (const key of nestedKeys) {
+    if (key in o && o[key] !== undefined) {
+      const inner = extractSlidesFromPayload(o[key], depth + 1);
+      if (inner !== null) return inner;
+    }
+  }
+
+  return null;
+}
+
+function extractSlidesFromStreamDone(j: Record<string, unknown>): BackendSlide[] {
+  const fromRoot = extractSlidesFromPayload(j);
+  if (fromRoot !== null) return fromRoot;
+
+  if (j.data !== undefined) {
+    const fromData = extractSlidesFromPayload(j.data);
+    if (fromData !== null) return fromData;
+  }
+
+  if (DEBUG_STREAM) {
+    const data = j.data;
+    let dataKeys: string[] | undefined;
+    let nestedDataKeys: string[] | undefined;
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      dataKeys = Object.keys(data as object);
+      const inner = (data as Record<string, unknown>).data;
+      if (inner && typeof inner === 'object' && !Array.isArray(inner)) {
+        nestedDataKeys = Object.keys(inner as object);
+      }
+    }
+    console.warn('[aiCourseware stream] could not find slides — inspect backend `done` payload:', {
+      topKeys: Object.keys(j),
+      type: j.type,
+      dataIsArray: Array.isArray(data),
+      dataKeys,
+      nestedDataKeys,
+      preview: safeJsonPreview(j),
+    });
+  }
+
+  throw new Error('Invalid response: could not find slides');
+}
 
 export class ApiAICoursewareService implements AICoursewareService {
   private baseUrl: string;
@@ -11,8 +107,8 @@ export class ApiAICoursewareService implements AICoursewareService {
     this.baseUrl = (baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, '');
   }
 
-  async generateCourseware(topic: string): Promise<BackendSlide[]> {
-    const url = `${this.baseUrl}/api/v1/courseware/generate`;
+  async generateCourseware(topic: string, options?: GenerateCoursewareOptions): Promise<BackendSlide[]> {
+    const url = `${this.baseUrl}/api/v1/courseware/generate/stream`;
     const body: GenerateCoursewareRequest = { topic };
 
     const res = await fetch(url, {
@@ -25,10 +121,78 @@ export class ApiAICoursewareService implements AICoursewareService {
       throw new Error(`Generate failed: ${res.status} ${res.statusText}`);
     }
 
-    const data = await res.json() as any
+    const reader = res.body?.getReader();
+    if (!reader) {
+      throw new Error('Generate failed: empty response body');
+    }
 
-    console.log('Generated slides:', data);
-    return data.data.courseware.slides as any
+    const decoder = new TextDecoder();
+    let buf = '';
+    let slides: BackendSlide[] | null = null;
+    let streamError: Error | null = null;
+
+    const handlePayload = (json: unknown): void => {
+      if (!json || typeof json !== 'object') return;
+      const j = json as Record<string, unknown>;
+      const type = j.type;
+      if (type === 'node') {
+        const label =
+          typeof j.label === 'string' ? j.label : j.label != null ? String(j.label) : '';
+        options?.onNodeProgress?.(label);
+        return;
+      }
+      if (type === 'done') {
+        slides = extractSlidesFromStreamDone(j);
+        return;
+      }
+      if (type === 'error') {
+        const msg = typeof j.message === 'string' ? j.message : 'Generation failed.';
+        streamError = new Error(msg);
+      }
+    };
+
+    const processCompleteBlocks = (buffer: string): string => {
+      const parts = buffer.split('\n\n');
+      const rest = parts.pop() ?? '';
+      for (const block of parts) {
+        const line = block
+          .trimStart()
+          .split('\n')
+          .find((l) => l.startsWith('data:'));
+        if (!line) continue;
+        const payload = line.slice(5).trim();
+        if (!payload || payload === '[DONE]') continue;
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(payload);
+        } catch {
+          continue;
+        }
+        handlePayload(parsed);
+      }
+      return rest;
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (value) {
+        buf += decoder.decode(value, { stream: true });
+      }
+      buf = processCompleteBlocks(buf);
+      if (streamError) throw streamError;
+      if (done) {
+        if (buf.trim()) {
+          processCompleteBlocks(buf + '\n\n');
+        }
+        if (streamError) throw streamError;
+        break;
+      }
+    }
+
+    if (slides === null) {
+      throw new Error('Stream ended without courseware data.');
+    }
+    return slides;
   //   const data = [
   //     {
   //         "id": "slide-1",

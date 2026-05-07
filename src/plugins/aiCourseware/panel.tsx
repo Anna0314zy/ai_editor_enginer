@@ -1718,10 +1718,12 @@ export default function AICoursewarePanel({ engine }: AICoursewarePanelProps) {
     setMessage('Generating courseware...');
     try {
       let slides = [];
-      if(type === 'default' && data) {
+      if (type === 'default' && data) {
         slides = data;
-      }else {
-        slides = await service.generateCourseware(topic.trim());
+      } else {
+        slides = await service.generateCourseware(topic.trim(), {
+          onNodeProgress: (label) => setMessage(label.trim() || '生成中…'),
+        });
       }
 
       
@@ -1805,6 +1807,12 @@ export default function AICoursewarePanel({ engine }: AICoursewarePanelProps) {
         overflowY: 'auto',
       }}
     >
+      <style>{`
+        @keyframes aicw-stream-bar {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(400%); }
+        }
+      `}</style>
       <h3 style={{ margin: '0 0 16px', fontSize: 14, color: '#374151' }}>AI Assistant</h3>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
@@ -1901,6 +1909,27 @@ export default function AICoursewarePanel({ engine }: AICoursewarePanelProps) {
           >
             {'之前大模型生成的数据'}
           </button>
+          {loading && (
+            <div
+              style={{
+                marginTop: 4,
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: '#e5e7eb',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  width: '28%',
+                  borderRadius: 2,
+                  backgroundColor: '#10b981',
+                  animation: 'aicw-stream-bar 1.1s ease-in-out infinite',
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
 
