@@ -1,21 +1,21 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+/** GitHub Pages project URL subpath. Local root deploy: `VITE_BASE=/ pnpm build`. */
+
 function manualChunks(id: string): string | undefined {
   if (!id.includes('node_modules')) return undefined
-  // Order matters: match specific packages before generic `react`
-  if (id.includes('react-dom')) return 'react-vendor'
+  // Keep react/react-dom in the main graph — splitting them caused @dnd-kit to see React as undefined at runtime.
   if (id.includes('react-moveable') || id.includes('@daybrush')) {
     return 'moveable'
   }
   if (id.includes('@dnd-kit')) return 'dnd-kit'
   if (id.includes('gsap')) return 'gsap'
-  if (/[/\\]react[/\\]/.test(id) || id.includes('scheduler')) return 'react-vendor'
   return undefined
 }
 
 export default defineConfig({
-  base: '/ai_editor_enginer/',
+  base:'/ai_editor_enginer/',
   plugins: [react()],
   build: {
     // After splitting vendors, raise slightly so real regressions still surface
