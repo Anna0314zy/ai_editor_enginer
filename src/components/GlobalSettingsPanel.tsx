@@ -71,7 +71,7 @@ export default function GlobalSettingsPanel({ engine }: GlobalSettingsPanelProps
   const presetValue = getPresetValueForSafeArea(safeArea);
 
   return (
-    <div style={{ width: 400, height: '100%', backgroundColor: '#f9fafb', padding: 16, overflowY: 'auto' }}>
+    <div style={{  height: '100%', backgroundColor: '#f9fafb', padding: 16, overflowY: 'auto' }}>
       <h3 style={{ margin: '0 0 16px', fontSize: 14, color: '#374151' }}>Global Settings</h3>
       <p style={{ margin: '0 0 16px', fontSize: 11, color: '#9ca3af' }}>These settings apply to all pages.</p>
 

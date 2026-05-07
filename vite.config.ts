@@ -14,8 +14,16 @@ function manualChunks(id: string): string | undefined {
   return undefined
 }
 
-export default defineConfig({
+const AI_COURSEWARE_API_DEV = 'http://localhost:8000'
+const AI_COURSEWARE_API_PROD = 'https://web-production-c427b.up.railway.app'
+
+export default defineConfig(({ mode }) => ({
   base:'/ai_editor_enginer/',
+  define: {
+    __AI_COURSEWARE_DEFAULT_BASE_URL__: JSON.stringify(
+      mode === 'production' ? AI_COURSEWARE_API_PROD : AI_COURSEWARE_API_DEV,
+    ),
+  },
   plugins: [react()],
   build: {
     // After splitting vendors, raise slightly so real regressions still surface
@@ -36,4 +44,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

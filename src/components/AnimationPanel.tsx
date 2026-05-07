@@ -341,7 +341,6 @@ export default function AnimationPanel({ engine, animationEngine }: AnimationPan
   return (
     <div
       style={{
-        width: 400,
         height: '100%',
         backgroundColor: '#f9fafb',
         padding: 16,

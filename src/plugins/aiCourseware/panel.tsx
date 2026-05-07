@@ -12,7 +12,7 @@ import type { Page, Element, TextElement, ShapeElement, ImageElement } from '../
 import type { AnimationConfig } from '../../types/animation';
 import { defaultParamsForEffect } from '../../animation';
 import { AddAnimationCommand } from '../../engine';
-import { ApiAICoursewareService, getApiBaseUrl, setApiBaseUrl } from './apiService';
+import { ApiAICoursewareService } from './apiService';
 import type { BackendElement, BackendAnimationConfig } from './schema';
 
 function generateId(): string {
@@ -103,10 +103,7 @@ export default function AICoursewarePanel({ engine }: AICoursewarePanelProps) {
   const [instruction, setInstruction] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [apiBaseUrl, setApiBaseUrlState] = useState(getApiBaseUrl);
-  const [showApiConfig, setShowApiConfig] = useState(false);
-
-  const service = useMemo(() => new ApiAICoursewareService(apiBaseUrl), [apiBaseUrl]);
+  const service = useMemo(() => new ApiAICoursewareService(), []);
   const handleGenerateDefault = useCallback(async () => {
     const data = [
     {
@@ -1802,7 +1799,6 @@ export default function AICoursewarePanel({ engine }: AICoursewarePanelProps) {
   return (
     <div
       style={{
-        width: 400,
         height: '100%',
         backgroundColor: '#f9fafb',
         padding: 16,
@@ -1846,59 +1842,10 @@ export default function AICoursewarePanel({ engine }: AICoursewarePanelProps) {
         </button>
       </div>
 
-      <div style={{ marginBottom: 12 }}>
-        <div
-          onClick={() => setShowApiConfig(!showApiConfig)}
-          style={{
-            fontSize: 11,
-            color: '#6b7280',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '4px 0',
-          }}
-        >
-          <span>API Config ({apiBaseUrl})</span>
-          <span>{showApiConfig ? '▲' : '▼'}</span>
-        </div>
-        {showApiConfig && (
-          <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-            <input
-              type="text"
-              value={apiBaseUrl}
-              onChange={(e) => setApiBaseUrlState(e.target.value)}
-              placeholder="http://localhost:8000"
-              style={{
-                flex: 1,
-                padding: '6px 8px',
-                fontSize: 12,
-                border: '1px solid #d1d5db',
-                borderRadius: 4,
-                backgroundColor: '#ffffff',
-                boxSizing: 'border-box',
-              }}
-            />
-            <button
-              onClick={() => {
-                setApiBaseUrl(apiBaseUrl);
-                setMessage('API base URL saved.');
-              }}
-              style={{
-                padding: '6px 10px',
-                fontSize: 12,
-                border: '1px solid #d1d5db',
-                borderRadius: 4,
-                backgroundColor: '#ffffff',
-                color: '#374151',
-                cursor: 'pointer',
-              }}
-            >
-              Save
-            </button>
-          </div>
-        )}
-      </div>
+      <p style={{ margin: '0 0 12px', fontSize: 11, color: '#6b7280', lineHeight: 1.45 }}>
+        后端 API 基址由 Vite 构建模式决定：开发默认 http://localhost:8000，生产默认
+        https://web-production-c427b.up.railway.app；可在 vite.config.ts 顶部常量修改。
+      </p>
 
       {mode === 'generate' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

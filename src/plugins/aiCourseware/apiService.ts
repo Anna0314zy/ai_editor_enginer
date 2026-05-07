@@ -2,24 +2,13 @@ import type { Page } from '../../types';
 import type { AICoursewareService } from './types';
 import type { BackendSlide, EditPageResponse, GenerateCoursewareRequest, EditPageRequest } from './schema';
 
-const DEFAULT_BASE_URL = 'http://localhost:8000';
-
-function getApiBaseUrl(): string {
-  const stored = localStorage.getItem('ai-courseware-api-base-url');
-  return stored ? stored.replace(/\/$/, '') : DEFAULT_BASE_URL;
-}
-
-function setApiBaseUrl(url: string): void {
-  localStorage.setItem('ai-courseware-api-base-url', url.replace(/\/$/, ''));
-}
-
-export { getApiBaseUrl, setApiBaseUrl };
+const DEFAULT_BASE_URL = __AI_COURSEWARE_DEFAULT_BASE_URL__;
 
 export class ApiAICoursewareService implements AICoursewareService {
   private baseUrl: string;
 
   constructor(baseUrl?: string) {
-    this.baseUrl = (baseUrl ?? getApiBaseUrl()).replace(/\/$/, '');
+    this.baseUrl = (baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, '');
   }
 
   async generateCourseware(topic: string): Promise<BackendSlide[]> {
