@@ -1,4 +1,9 @@
-import type { AnimationConfig, WAAPIKeyframe, AnimationEffect } from '../types/animation';
+import type {
+  AnimationConfig,
+  WAAPIKeyframe,
+  AnimationEffect,
+  SlideDirection,
+} from '../types/animation';
 
 /**
  * Build WAAPI-compatible keyframes from an AnimationConfig.
@@ -6,6 +11,25 @@ import type { AnimationConfig, WAAPIKeyframe, AnimationEffect } from '../types/a
  */
 export function buildKeyframes(config: AnimationConfig): WAAPIKeyframe[] {
   return buildEffectKeyframes(config.effect, config.params);
+}
+
+function normalizeSlideParams(
+  params: AnimationConfig['params'] | null | undefined
+): { direction: SlideDirection; distance: number } {
+  const raw = (params && typeof params === 'object' ? params : {}) as Partial<{
+    direction: string;
+    distance: number;
+  }>;
+  const direction: SlideDirection =
+    raw.direction === 'left' ||
+    raw.direction === 'right' ||
+    raw.direction === 'up' ||
+    raw.direction === 'down'
+      ? raw.direction
+      : 'left';
+  const distance =
+    typeof raw.distance === 'number' && Number.isFinite(raw.distance) ? raw.distance : 60;
+  return { direction, distance };
 }
 
 function buildEffectKeyframes(effect: AnimationEffect, params: AnimationConfig['params']): WAAPIKeyframe[] {
@@ -16,16 +40,16 @@ function buildEffectKeyframes(effect: AnimationEffect, params: AnimationConfig['
     case 'zoomIn':
       return [{ offset: 0, transform: 'scale(0)', opacity: 0 }, { offset: 1, transform: 'scale(1)', opacity: 1 }];
     case 'slideIn': {
-      const p = params as { direction: string; distance: number };
-      const { fromX, fromY } = getSlideOffset(p.direction, p.distance);
+      const { direction, distance } = normalizeSlideParams(params);
+      const { fromX, fromY } = getSlideOffset(direction, distance);
       return [
         { offset: 0, transform: `translate(${fromX}px, ${fromY}px)`, opacity: 0 },
         { offset: 1, transform: 'translate(0px, 0px)', opacity: 1 },
       ];
     }
     case 'flyIn': {
-      const p = params as { direction: string; distance: number };
-      const { fromX, fromY } = getSlideOffset(p.direction, p.distance * 2);
+      const { direction, distance } = normalizeSlideParams(params);
+      const { fromX, fromY } = getSlideOffset(direction, distance * 2);
       return [
         { offset: 0, transform: `translate(${fromX}px, ${fromY}px)`, opacity: 0 },
         { offset: 1, transform: 'translate(0px, 0px)', opacity: 1 },
@@ -43,16 +67,16 @@ function buildEffectKeyframes(effect: AnimationEffect, params: AnimationConfig['
     case 'zoomOut':
       return [{ offset: 0, transform: 'scale(1)', opacity: 1 }, { offset: 1, transform: 'scale(0)', opacity: 0 }];
     case 'slideOut': {
-      const p = params as { direction: string; distance: number };
-      const { fromX, fromY } = getSlideOffset(p.direction, p.distance);
+      const { direction, distance } = normalizeSlideParams(params);
+      const { fromX, fromY } = getSlideOffset(direction, distance);
       return [
         { offset: 0, transform: 'translate(0px, 0px)', opacity: 1 },
         { offset: 1, transform: `translate(${fromX}px, ${fromY}px)`, opacity: 0 },
       ];
     }
     case 'flyOut': {
-      const p = params as { direction: string; distance: number };
-      const { fromX, fromY } = getSlideOffset(p.direction, p.distance * 2);
+      const { direction, distance } = normalizeSlideParams(params);
+      const { fromX, fromY } = getSlideOffset(direction, distance * 2);
       return [
         { offset: 0, transform: 'translate(0px, 0px)', opacity: 1 },
         { offset: 1, transform: `translate(${fromX}px, ${fromY}px)`, opacity: 0 },
@@ -87,10 +111,17 @@ function buildEffectKeyframes(effect: AnimationEffect, params: AnimationConfig['
         { offset: 1, opacity: 1 },
       ];
     case 'scale': {
-      const p = params as { fromScale: number; toScale: number };
+      const raw = (params && typeof params === 'object' ? params : {}) as Partial<{
+        fromScale: number;
+        toScale: number;
+      }>;
+      const fromScale =
+        typeof raw.fromScale === 'number' && Number.isFinite(raw.fromScale) ? raw.fromScale : 1;
+      const toScale =
+        typeof raw.toScale === 'number' && Number.isFinite(raw.toScale) ? raw.toScale : 1.2;
       return [
-        { offset: 0, transform: `scale(${p.fromScale})` },
-        { offset: 1, transform: `scale(${p.toScale})` },
+        { offset: 0, transform: `scale(${fromScale})` },
+        { offset: 1, transform: `scale(${toScale})` },
       ];
     }
     case 'highlight': {
@@ -108,17 +139,16 @@ function buildEffectKeyframes(effect: AnimationEffect, params: AnimationConfig['
   }
 }
 
-function getSlideOffset(direction: string, distance: number): { fromX: number; fromY: number } {
+function getSlideOffset(direction: SlideDirection, distance: number): { fromX: number; fromY: number } {
+  const d = Number.isFinite(distance) ? distance : 60;
   switch (direction) {
     case 'left':
-      return { fromX: -distance, fromY: 0 };
+      return { fromX: -d, fromY: 0 };
     case 'right':
-      return { fromX: distance, fromY: 0 };
+      return { fromX: d, fromY: 0 };
     case 'up':
-      return { fromX: 0, fromY: -distance };
+      return { fromX: 0, fromY: -d };
     case 'down':
-      return { fromX: 0, fromY: distance };
-    default:
-      return { fromX: distance, fromY: 0 };
+      return { fromX: 0, fromY: d };
   }
 }
