@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect, Fragment } from 'react';
+import { useRef, useCallback, useEffect, useLayoutEffect, useState, Fragment } from 'react';
 import type { DragEvent } from 'react';
 import type { Engine } from '../engine';
 import { AddElementCommand } from '../engine';
@@ -41,11 +41,34 @@ interface CanvasProps {
   animationEngine: AnimationEngine;
 }
 
+const VIEWPORT_PADDING = 16;
+
 export default function Canvas({ engine, animationEngine }: CanvasProps) {
   const { sceneStore, selectionStore } = useStores();
   const sceneSnapshot = useSceneStore(sceneStore);
   const selectionSnapshot = useSelectionStore(selectionStore);
+  const containerRef = useRef<HTMLDivElement>(null);
   const slideRef = useRef<HTMLDivElement>(null);
+  const [viewportScale, setViewportScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+
+    const update = (): void => {
+      const { width, height } = el.getBoundingClientRect();
+      const w = width - VIEWPORT_PADDING * 2;
+      const h = height - VIEWPORT_PADDING * 2;
+      if (w <= 0 || h <= 0) return;
+      const next = Math.min(w / PAGE_DEFAULT_WIDTH, h / PAGE_DEFAULT_HEIGHT, 1);
+      setViewportScale(next);
+    };
+
+    update();
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Scope animation DOM queries to the canvas slide container so
   // animations always target the correct element in edit mode.
@@ -79,16 +102,16 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
       }
 
       const rect = slideRef.current?.getBoundingClientRect();
-      if (!rect) return;
+      if (!rect || viewportScale <= 0) return;
 
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = (e.clientX - rect.left) / viewportScale;
+      const y = (e.clientY - rect.top) / viewportScale;
       const element = createElement(engine, data.type, x, y, data.shapeType);
 
       engine.execute(new AddElementCommand(engine.scene, currentPageId, element));
       selectionStore.select(element.id);
     },
-    [engine, currentPageId, selectionStore]
+    [engine, currentPageId, selectionStore, viewportScale]
   );
 
   const handleElementClick = useCallback(
@@ -112,6 +135,7 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
 
   return (
     <div
+      ref={containerRef}
       style={{
         width: '100%',
         height: '100%',
@@ -120,22 +144,34 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
+        boxSizing: 'border-box',
+        padding: VIEWPORT_PADDING,
       }}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
       <div
-        ref={slideRef}
         style={{
-          width: PAGE_DEFAULT_WIDTH,
-          height: PAGE_DEFAULT_HEIGHT,
-          backgroundColor: '#ffffff',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          width: PAGE_DEFAULT_WIDTH * viewportScale,
+          height: PAGE_DEFAULT_HEIGHT * viewportScale,
           position: 'relative',
-          overflow: 'hidden',
+          flexShrink: 0,
         }}
-        onPointerDown={handleCanvasPointerDown}
       >
+        <div
+          ref={slideRef}
+          style={{
+            width: PAGE_DEFAULT_WIDTH,
+            height: PAGE_DEFAULT_HEIGHT,
+            transform: `scale(${viewportScale})`,
+            transformOrigin: 'top left',
+            backgroundColor: '#ffffff',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+          onPointerDown={handleCanvasPointerDown}
+        >
         {/* Background layer */}
         <div
           style={{
@@ -181,7 +217,8 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
           </Fragment>
         ))}
 
-        <MoveableLayer engine={engine} containerRef={slideRef} />
+        <MoveableLayer engine={engine} containerRef={slideRef} zoom={viewportScale} />
+        </div>
       </div>
     </div>
   );

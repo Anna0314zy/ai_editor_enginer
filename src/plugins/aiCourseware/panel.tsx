@@ -1825,17 +1825,20 @@ export default function AICoursewarePanel({ engine }: AICoursewarePanelProps) {
           Generate
         </button>
         <button
-          onClick={() => setMode('edit')}
+          onClick={() => {
+            // setMode('edit')
+          }}
           disabled={mode === 'edit'}
           style={{
             flex: 1,
+            cursor: 'not-allowed',
             padding: '8px 0',
             fontSize: 12,
             border: '1px solid #d1d5db',
             borderRadius: 4,
             backgroundColor: mode === 'edit' ? '#3b82f6' : '#ffffff',
             color: mode === 'edit' ? '#ffffff' : '#374151',
-            cursor: mode === 'edit' ? 'default' : 'pointer',
+            // cursor: mode === 'edit' ? 'default' : 'pointer',
           }}
         >
           Edit Page

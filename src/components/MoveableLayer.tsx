@@ -9,6 +9,8 @@ import GuidesLayer from './GuidesLayer';
 interface MoveableLayerProps {
   engine: Engine;
   containerRef: React.RefObject<HTMLDivElement>;
+  /** Matches CSS scale on the slide so handles align with the viewport. */
+  zoom?: number;
 }
 
 interface CachedRect {
@@ -19,7 +21,7 @@ interface CachedRect {
   height: number;
 }
 
-export default function MoveableLayer({ engine, containerRef }: MoveableLayerProps) {
+export default function MoveableLayer({ engine, containerRef, zoom = 1 }: MoveableLayerProps) {
   const { selectionStore, sceneStore } = useStores();
   const selectionSnapshot = useSelectionStore(selectionStore);
   const sceneSnapshot = useSceneStore(sceneStore);
@@ -51,6 +53,12 @@ export default function MoveableLayer({ engine, containerRef }: MoveableLayerPro
       .map((e) => ({ id: e.id, x: e.x, y: e.y, width: e.width, height: e.height }));
   }, [selectionSnapshot, sceneSnapshot, containerRef]);
 
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      moveableRef.current?.updateRect();
+    });
+  }, [zoom]);
+
   const queueMove = useCallback((id: string, updates: Partial<Omit<Element, 'id' | 'type'>>) => {
     batchRef.current.push({ id, updates });
     if (!batchPromiseRef.current) {
@@ -72,6 +80,7 @@ export default function MoveableLayer({ engine, containerRef }: MoveableLayerPro
       <Moveable
         ref={moveableRef}
         target={targets.length > 0 ? targets : null}
+        zoom={zoom}
         draggable={true}
         rotatable={true}
         resizable={true}
