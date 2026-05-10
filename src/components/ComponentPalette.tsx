@@ -74,91 +74,36 @@ export default function ComponentPalette({ engine }: ComponentPaletteProps) {
   };
 
   return (
-    <div
-      style={{
-        width: 200,
-        height: '100%',
-        borderRight: '1px solid #e5e7eb',
-        backgroundColor: '#f9fafb',
-        padding: 16,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-        userSelect: 'none',
-        overflowY: 'auto',
-      }}
-    >
-      <h3 style={{ margin: '0 0 8px', fontSize: 14, color: '#374151' }}>Components</h3>
+    <div className="w-[200px] h-full border-r border-gray-200 bg-gray-50 p-4 flex flex-col gap-3 select-none overflow-y-auto">
+      <h3 className="m-0 mb-2 text-sm text-gray-700">Components</h3>
 
       <div>
         <div
           onClick={() => setShapeOpen(!shapeOpen)}
-          style={{
-            padding: '10px 12px',
-            backgroundColor: '#ffffff',
-            border: '1px solid #d1d5db',
-            borderRadius: 6,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: 13,
-            color: '#4b5563',
-            fontWeight: 600,
-          }}
+          className="px-3 py-2.5 bg-white border border-gray-300 rounded-md cursor-pointer flex items-center justify-between text-[13px] text-gray-600 font-semibold"
         >
-          <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>▣</span>
+          <span className="flex items-center gap-2.5">
+            <span className="text-lg w-6 text-center">▣</span>
             <span>Shapes</span>
           </span>
-          <span style={{ fontSize: 10, color: '#9ca3af' }}>{shapeOpen ? '▼' : '▶'}</span>
+          <span className="text-[10px] text-gray-400">{shapeOpen ? '▼' : '▶'}</span>
         </div>
 
         {shapeOpen && (
-          <div
-            style={{
-              marginTop: 8,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 10,
-              paddingLeft: 4,
-            }}
-          >
+          <div className="mt-2 flex flex-col gap-2.5 pl-1">
             {shapeGroups.map((group) => (
               <div key={group.label}>
-                <div
-                  style={{
-                    fontSize: 10,
-                    color: '#9ca3af',
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                    marginBottom: 6,
-                    fontWeight: 600,
-                    paddingLeft: 8,
-                  }}
-                >
+                <div className="text-[10px] text-gray-400 uppercase tracking-[0.5px] mb-1.5 font-semibold pl-2">
                   {group.label}
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingLeft: 8 }}>
+                <div className="flex flex-wrap gap-1.5 pl-2">
                   {group.items.map((item) => (
                     <div
                       key={item.label}
                       draggable
                       onDragStart={(e) => handleDragStart(e, 'shape', item.shapeType)}
                       title={item.label}
-                      style={{
-                        width: 36,
-                        height: 36,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: '#ffffff',
-                        border: '1px solid #d1d5db',
-                        borderRadius: 4,
-                        cursor: 'grab',
-                        fontSize: 18,
-                        color: '#4b5563',
-                      }}
+                      className="w-9 h-9 flex items-center justify-center bg-white border border-gray-300 rounded cursor-grab text-lg text-gray-600"
                     >
                       {item.icon}
                     </div>
@@ -175,37 +120,16 @@ export default function ComponentPalette({ engine }: ComponentPaletteProps) {
           key={item.label}
           draggable
           onDragStart={(e) => handleDragStart(e, item.type, item.shapeType)}
-          style={{
-            padding: '10px 12px',
-            backgroundColor: '#ffffff',
-            border: '1px solid #d1d5db',
-            borderRadius: 6,
-            cursor: 'grab',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            fontSize: 13,
-            color: '#4b5563',
-          }}
+          className="px-3 py-2.5 bg-white border border-gray-300 rounded-md cursor-grab flex items-center gap-2.5 text-[13px] text-gray-600"
         >
-          <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.icon}</span>
+          <span className="text-lg w-6 text-center">{item.icon}</span>
           <span>{item.label}</span>
         </div>
       ))}
 
       {pluginComponents.length > 0 && (
-        <div style={{ marginTop: 8 }}>
-          <div
-            style={{
-              fontSize: 10,
-              color: '#9ca3af',
-              textTransform: 'uppercase',
-              letterSpacing: 0.5,
-              marginBottom: 6,
-              fontWeight: 600,
-              paddingLeft: 4,
-            }}
-          >
+        <div className="mt-2">
+          <div className="text-[10px] text-gray-400 uppercase tracking-[0.5px] mb-1.5 font-semibold pl-1">
             Plugins
           </div>
           {pluginComponents.map((item) => (
@@ -213,21 +137,9 @@ export default function ComponentPalette({ engine }: ComponentPaletteProps) {
               key={item.type}
               draggable
               onDragStart={(e) => handleDragStart(e, item.type)}
-              style={{
-                padding: '10px 12px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #d1d5db',
-                borderRadius: 6,
-                cursor: 'grab',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                fontSize: 13,
-                color: '#4b5563',
-                marginBottom: 8,
-              }}
+              className="px-3 py-2.5 bg-white border border-gray-300 rounded-md cursor-grab flex items-center gap-2.5 text-[13px] text-gray-600 mb-2"
             >
-              <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.icon}</span>
+              <span className="text-lg w-6 text-center">{item.icon}</span>
               <span>{item.label}</span>
             </div>
           ))}

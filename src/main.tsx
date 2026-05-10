@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import './index.css'
 import App from './App.tsx'
 import { StoreProvider } from './store'
 import { createEngine } from './engine'
@@ -12,9 +13,7 @@ const engine = createEngine();
 engine.use(aiCoursewarePlugin);
 engine.use(videoPlugin);
 setPluginRegistry(engine.pluginRegistry);
-if (import.meta.env.NODE_ENV === 'development') {
-  (window as any)._engine = engine;
-}
+(window as any)._engine = engine;
 
 const animationEngine = new AnimationEngine(new WebAnimationAdapter());
 

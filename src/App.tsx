@@ -155,19 +155,10 @@ function App({ engine, animationEngine }: AppProps) {
   const elementCount = sceneSnapshot.currentPageElements.length;
 
   return (
-    <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header
-        style={{
-          padding: '12px 24px',
-          borderBottom: '1px solid #e5e7eb',
-          backgroundColor: '#ffffff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <h1 style={{ margin: 0, fontSize: 18, color: '#111827' }}>Slides Editor</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div className="w-screen h-screen flex flex-col">
+      <header className="px-6 py-3 border-b border-gray-200 bg-white flex items-center justify-between">
+        <h1 className="m-0 text-lg text-gray-900">Slides Editor</h1>
+        <div className="flex items-center gap-3">
           <button
             onClick={() => {
               if (historySnapshot.canUndo) {
@@ -175,15 +166,11 @@ function App({ engine, animationEngine }: AppProps) {
               }
             }}
             disabled={!historySnapshot.canUndo}
-            style={{
-              padding: '6px 12px',
-              fontSize: 12,
-              border: '1px solid #d1d5db',
-              borderRadius: 4,
-              backgroundColor: historySnapshot.canUndo ? '#ffffff' : '#f3f4f6',
-              color: historySnapshot.canUndo ? '#374151' : '#9ca3af',
-              cursor: historySnapshot.canUndo ? 'pointer' : 'not-allowed',
-            }}
+            className={`px-3 py-1.5 text-xs border border-gray-300 rounded ${
+              historySnapshot.canUndo
+                ? 'bg-white text-gray-700 cursor-pointer'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
           >
             Undo
           </button>
@@ -194,15 +181,11 @@ function App({ engine, animationEngine }: AppProps) {
               }
             }}
             disabled={!historySnapshot.canRedo}
-            style={{
-              padding: '6px 12px',
-              fontSize: 12,
-              border: '1px solid #d1d5db',
-              borderRadius: 4,
-              backgroundColor: historySnapshot.canRedo ? '#ffffff' : '#f3f4f6',
-              color: historySnapshot.canRedo ? '#374151' : '#9ca3af',
-              cursor: historySnapshot.canRedo ? 'pointer' : 'not-allowed',
-            }}
+            className={`px-3 py-1.5 text-xs border border-gray-300 rounded ${
+              historySnapshot.canRedo
+                ? 'bg-white text-gray-700 cursor-pointer'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
           >
             Redo
           </button>
@@ -210,45 +193,29 @@ function App({ engine, animationEngine }: AppProps) {
             <>
               <button
                 onClick={handleReset}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: 12,
-                  border: '1px solid #d1d5db',
-                  borderRadius: 4,
-                  backgroundColor: '#ffffff',
-                  color: '#374151',
-                  cursor: 'pointer',
-                }}
+                className="px-3 py-1.5 text-xs border border-gray-300 rounded bg-white text-gray-700 cursor-pointer"
               >
                 Reset
               </button>
               <button
                 onClick={handlePreviousStep}
                 disabled={!stepScheduler?.canGoBack()}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: 12,
-                  border: '1px solid #d1d5db',
-                  borderRadius: 4,
-                  backgroundColor: !stepScheduler?.canGoBack() ? '#9ca3af' : '#f59e0b',
-                  color: '#ffffff',
-                  cursor: !stepScheduler?.canGoBack() ? 'not-allowed' : 'pointer',
-                }}
+                className={`px-3 py-1.5 text-xs border border-gray-300 rounded text-white ${
+                  !stepScheduler?.canGoBack()
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-amber-500 cursor-pointer'
+                }`}
               >
                 Previous Step
               </button>
               <button
                 onClick={handleNextStep}
                 disabled={!stepScheduler?.canAdvance()}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: 12,
-                  border: '1px solid #d1d5db',
-                  borderRadius: 4,
-                  backgroundColor: !stepScheduler?.canAdvance() ? '#9ca3af' : '#3b82f6',
-                  color: '#ffffff',
-                  cursor: !stepScheduler?.canAdvance() ? 'not-allowed' : 'pointer',
-                }}
+                className={`px-3 py-1.5 text-xs border border-gray-300 rounded text-white ${
+                  !stepScheduler?.canAdvance()
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-blue-500 cursor-pointer'
+                }`}
               >
                 Next Step ({stepProgress.current}/{stepProgress.total})
               </button>
@@ -259,49 +226,34 @@ function App({ engine, animationEngine }: AppProps) {
               selectionStore.clear();
               setIsPreviewOpen(true);
             }}
-            style={{
-              padding: '6px 12px',
-              fontSize: 12,
-              border: '1px solid #d1d5db',
-              borderRadius: 4,
-              backgroundColor: '#10b981',
-              color: '#ffffff',
-              cursor: 'pointer',
-              marginLeft: 8,
-            }}
+            className="px-3 py-1.5 text-xs border border-gray-300 rounded bg-emerald-500 text-white cursor-pointer ml-2"
           >
             Full Preview
           </button>
-          <div style={{ fontSize: 12, color: '#6b7280', marginLeft: 8 }}>
+          <div className="text-xs text-gray-500 ml-2">
             {elementCount} elements
           </div>
         </div>
       </header>
-      <main style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      <main className="flex-1 flex overflow-hidden">
         <StructurePanel engine={engine} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div className="flex-1 flex flex-col overflow-hidden">
           <CanvasToolbar engine={engine} />
-          <div style={{ flex: 1, overflow: 'hidden' }}>
+          <div className="flex-1 overflow-hidden">
             <Canvas engine={engine} animationEngine={animationEngine} />
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', width: 400, borderLeft: '1px solid #e5e7eb', flexShrink: 0 }}>
-          <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', backgroundColor: '#ffffff' }}>
+        <div className="flex flex-col w-[400px] border-l border-gray-200 shrink-0">
+          <div className="flex border-b border-gray-200 bg-white">
             {allTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setRightPanelTab(tab.id)}
-                style={{
-                  flex: 1,
-                  padding: '10px 0',
-                  fontSize: 12,
-                  border: 'none',
-                  borderBottom: rightPanelTab === tab.id ? '2px solid #3b82f6' : '2px solid transparent',
-                  backgroundColor: 'transparent',
-                  color: rightPanelTab === tab.id ? '#3b82f6' : '#6b7280',
-                  cursor: 'pointer',
-                  fontWeight: rightPanelTab === tab.id ? 600 : 400,
-                }}
+                className={`flex-1 py-2.5 text-xs border-none bg-transparent cursor-pointer ${
+                  rightPanelTab === tab.id
+                    ? 'border-b-2 border-blue-500 text-blue-500 font-semibold'
+                    : 'border-b-2 border-transparent text-gray-500 font-normal'
+                }`}
               >
                 {tab.label}
               </button>

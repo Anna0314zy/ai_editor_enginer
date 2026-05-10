@@ -187,56 +187,23 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
   }
 
   return (
-    <div
-      style={{
-        width: 220,
-        height: '100%',
-        borderRight: '1px solid #e5e7eb',
-        backgroundColor: '#f9fafb',
-        display: 'flex',
-        flexDirection: 'column',
-        userSelect: 'none',
-      }}
-    >
-      <div
-        style={{
-          padding: '12px 16px',
-          borderBottom: '1px solid #e5e7eb',
-          display: 'flex',
-          gap: 8,
-        }}
-      >
+    <div className="w-[220px] h-full border-r border-gray-200 bg-gray-50 flex flex-col select-none">
+      <div className="px-4 py-3 border-b border-gray-200 flex gap-2">
         <button
           onClick={handleAddPage}
-          style={{
-            flex: 1,
-            padding: '6px 0',
-            fontSize: 12,
-            border: '1px solid #d1d5db',
-            borderRadius: 4,
-            backgroundColor: '#ffffff',
-            cursor: 'pointer',
-          }}
+          className="flex-1 py-1.5 text-xs border border-gray-300 rounded bg-white cursor-pointer"
         >
           + Page
         </button>
         <button
           onClick={handleAddNode}
-          style={{
-            flex: 1,
-            padding: '6px 0',
-            fontSize: 12,
-            border: '1px solid #d1d5db',
-            borderRadius: 4,
-            backgroundColor: '#ffffff',
-            cursor: 'pointer',
-          }}
+          className="flex-1 py-1.5 text-xs border border-gray-300 rounded bg-white cursor-pointer"
         >
           + Node
         </button>
       </div>
       <div
-        style={{ flex: 1, overflow: 'auto', padding: '8px 0' }}
+        className="flex-1 overflow-auto py-2"
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
@@ -250,9 +217,8 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
             <div key={`${proc.type}-${proc.id}`}>
               {dragOverIndex === proc.index && draggingId !== null && (
                 <div
+                  className="h-0.5 bg-blue-500"
                   style={{
-                    height: 2,
-                    backgroundColor: '#3b82f6',
                     margin: `2px 8px 2px ${8 + (isPage ? proc.indent : 0)}px`,
                   }}
                 />
@@ -264,56 +230,30 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
                 onClick={() => {
                   if (isPage) handleSelectPage(proc.id);
                 }}
+                className={`p-1.5 rounded ${
+                  isSelected
+                    ? 'bg-blue-100 border border-blue-500'
+                    : isDragging
+                    ? 'bg-gray-100 border border-transparent'
+                    : 'bg-transparent border border-transparent'
+                } ${isPage ? 'cursor-grab' : 'cursor-pointer'} ${isDragging ? 'opacity-50' : 'opacity-100'}`}
                 style={{
                   margin: `0 8px 0 ${8 + proc.indent}px`,
-                  padding: '6px',
-                  borderRadius: 4,
-                  backgroundColor: isSelected ? '#dbeafe' : isDragging ? '#f3f4f6' : 'transparent',
-                  cursor: isPage ? 'grab' : 'pointer',
-                  border: isSelected ? '1px solid #3b82f6' : '1px solid transparent',
-                  opacity: isDragging ? 0.5 : 1,
                 }}
               >
                 {proc.type === 'node' ? (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                      }}
-                    >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
                       <span
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleNode(proc.id);
                         }}
-                        style={{
-                          fontSize: 10,
-                          color: '#6b7280',
-                          cursor: 'pointer',
-                          width: 14,
-                          textAlign: 'center',
-                        }}
+                        className="text-[10px] text-gray-500 cursor-pointer w-3.5 text-center"
                       >
                         {collapsedNodes.has(proc.id) ? '▶' : '▼'}
                       </span>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: '#111827',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                      <span className="text-[13px] font-semibold text-gray-900 overflow-hidden text-ellipsis whitespace-nowrap">
                         {doc.nodes[proc.id]?.name ?? 'Untitled'}
                       </span>
                     </div>
@@ -322,14 +262,7 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
                         e.stopPropagation();
                         handleDeleteItem(proc.index);
                       }}
-                      style={{
-                        border: 'none',
-                        background: 'transparent',
-                        color: '#9ca3af',
-                        cursor: 'pointer',
-                        fontSize: 14,
-                        padding: '0 4px',
-                      }}
+                      className="border-none bg-transparent text-gray-400 cursor-pointer text-sm px-1"
                     >
                       ×
                     </button>
@@ -337,24 +270,20 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
                 ) : (
                   <div>
                     <div
+                      className="overflow-hidden relative rounded border border-gray-200"
                       style={{
                         width: THUMB_WIDTH,
                         height: THUMB_HEIGHT,
-                        overflow: 'hidden',
-                        position: 'relative',
                         ...getThumbBackgroundStyle(doc.pages[proc.id]?.background ?? doc.background),
-                        borderRadius: 4,
-                        border: '1px solid #e5e7eb',
                       }}
                     >
                       <div
+                        className="absolute pointer-events-none"
                         style={{
-                          position: 'absolute',
                           width: CANVAS_WIDTH,
                           height: CANVAS_HEIGHT,
                           transform: `scale(${SCALE})`,
                           transformOrigin: 'top left',
-                          pointerEvents: 'none',
                         }}
                       >
                         {Object.values(doc.pages[proc.id]?.elements ?? {}).map((el) => (
@@ -364,23 +293,8 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
                         ))}
                       </div>
                     </div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginTop: 4,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 12,
-                          color: '#374151',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-xs text-gray-700 overflow-hidden text-ellipsis whitespace-nowrap">
                         {doc.pages[proc.id]?.name ?? 'Untitled'}
                       </span>
                       <button
@@ -388,14 +302,7 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
                           e.stopPropagation();
                           handleDeleteItem(proc.index);
                         }}
-                        style={{
-                          border: 'none',
-                          background: 'transparent',
-                          color: '#9ca3af',
-                          cursor: 'pointer',
-                          fontSize: 12,
-                          padding: '0 2px',
-                        }}
+                        className="border-none bg-transparent text-gray-400 cursor-pointer text-xs px-0.5"
                       >
                         ×
                       </button>
@@ -407,13 +314,7 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
           );
         })}
         {dragOverIndex === doc.structureItems.length && draggingId !== null && (
-          <div
-            style={{
-              height: 2,
-              backgroundColor: '#3b82f6',
-              margin: '2px 8px',
-            }}
-          />
+          <div className="h-0.5 bg-blue-500 mx-2 my-0.5" />
         )}
       </div>
     </div>

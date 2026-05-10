@@ -21,41 +21,25 @@ export default function GuidesLayer({ guides }: GuidesLayerProps) {
 
   return (
     <div
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: 100,
-      }}
+      className="absolute top-0 left-0 w-full h-full pointer-events-none z-[100]"
     >
       {guides.map((guide, index) =>
         guide.type === 'horizontal' ? (
           <div
             key={`h-${guide.kind}-${guide.position}-${index}`}
+            className="absolute left-0 w-full h-px opacity-90"
             style={{
-              position: 'absolute',
               top: guide.position,
-              left: 0,
-              width: '100%',
-              height: 1,
               backgroundColor: guideColor(guide.kind),
-              opacity: 0.9,
             }}
           />
         ) : (
           <div
             key={`v-${guide.kind}-${guide.position}-${index}`}
+            className="absolute top-0 w-px h-full opacity-90"
             style={{
-              position: 'absolute',
               left: guide.position,
-              top: 0,
-              width: 1,
-              height: '100%',
               backgroundColor: guideColor(guide.kind),
-              opacity: 0.9,
             }}
           />
         )

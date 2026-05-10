@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 /** GitHub Pages project URL subpath. Local root deploy: `VITE_BASE=/ pnpm build`. */
 
@@ -24,7 +25,7 @@ export default defineConfig(({ mode }) => ({
       mode === 'production' ? AI_COURSEWARE_API_PROD : AI_COURSEWARE_API_DEV,
     ),
   },
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   build: {
     // After splitting vendors, raise slightly so real regressions still surface
     chunkSizeWarningLimit: 700,

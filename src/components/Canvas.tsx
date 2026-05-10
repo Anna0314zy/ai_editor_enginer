@@ -136,49 +136,33 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
   return (
     <div
       ref={containerRef}
-      style={{
-        width: '100%',
-        height: '100%',
-        backgroundColor: '#e5e7eb',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-        boxSizing: 'border-box',
-        padding: VIEWPORT_PADDING,
-      }}
+      className="w-full h-full bg-gray-200 flex items-center justify-center overflow-hidden box-border"
+      style={{ padding: VIEWPORT_PADDING }}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
       <div
+        className="relative shrink-0"
         style={{
           width: PAGE_DEFAULT_WIDTH * viewportScale,
           height: PAGE_DEFAULT_HEIGHT * viewportScale,
-          position: 'relative',
-          flexShrink: 0,
         }}
       >
         <div
           ref={slideRef}
+          className="bg-white shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1)] relative overflow-hidden"
           style={{
             width: PAGE_DEFAULT_WIDTH,
             height: PAGE_DEFAULT_HEIGHT,
             transform: `scale(${viewportScale})`,
             transformOrigin: 'top left',
-            backgroundColor: '#ffffff',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-            position: 'relative',
-            overflow: 'hidden',
           }}
           onPointerDown={handleCanvasPointerDown}
         >
         {/* Background layer */}
         <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            ...getBackgroundStyle(sceneSnapshot.currentPage?.background ?? sceneSnapshot.document.background),
-          }}
+          className="absolute inset-0"
+          style={getBackgroundStyle(sceneSnapshot.currentPage?.background ?? sceneSnapshot.document.background)}
         />
         {/* Safe area visual guide */}
         {(() => {
@@ -187,21 +171,19 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
           return (
             <>
               {/* Unsafe zone overlays (subtle red tint) */}
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: sa.top, backgroundColor: 'rgba(239, 68, 68, 0.08)', pointerEvents: 'none', zIndex: 1 }} />
-              <div style={{ position: 'absolute', top: sa.top, right: 0, width: sa.right, bottom: sa.bottom, backgroundColor: 'rgba(239, 68, 68, 0.08)', pointerEvents: 'none', zIndex: 1 }} />
-              <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: sa.bottom, backgroundColor: 'rgba(239, 68, 68, 0.08)', pointerEvents: 'none', zIndex: 1 }} />
-              <div style={{ position: 'absolute', top: sa.top, left: 0, width: sa.left, bottom: sa.bottom, backgroundColor: 'rgba(239, 68, 68, 0.08)', pointerEvents: 'none', zIndex: 1 }} />
+              <div className="absolute top-0 left-0 right-0 pointer-events-none z-[1]" style={{ height: sa.top, backgroundColor: 'rgba(239, 68, 68, 0.08)' }} />
+              <div className="absolute right-0 pointer-events-none z-[1]" style={{ top: sa.top, width: sa.right, bottom: sa.bottom, backgroundColor: 'rgba(239, 68, 68, 0.08)' }} />
+              <div className="absolute left-0 right-0 bottom-0 pointer-events-none z-[1]" style={{ height: sa.bottom, backgroundColor: 'rgba(239, 68, 68, 0.08)' }} />
+              <div className="absolute left-0 pointer-events-none z-[1]" style={{ top: sa.top, width: sa.left, bottom: sa.bottom, backgroundColor: 'rgba(239, 68, 68, 0.08)' }} />
               {/* Safe area boundary (dashed blue) */}
               <div
+                className="absolute pointer-events-none z-[2]"
                 style={{
-                  position: 'absolute',
                   top: sa.top,
                   left: sa.left,
                   right: sa.right,
                   bottom: sa.bottom,
                   border: '1px dashed rgba(59, 130, 246, 0.5)',
-                  pointerEvents: 'none',
-                  zIndex: 2,
                 }}
               />
             </>

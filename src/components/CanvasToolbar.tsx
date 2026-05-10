@@ -87,90 +87,32 @@ export default function CanvasToolbar({ engine }: CanvasToolbarProps) {
   };
 
   return (
-    <div
-      style={{
-        height: 48,
-        borderBottom: '1px solid #e5e7eb',
-        backgroundColor: '#ffffff',
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0 16px',
-        gap: 8,
-        flexShrink: 0,
-      }}
-    >
-      <div ref={menuRef} style={{ position: 'relative' }}>
+    <div className="h-12 border-b border-gray-200 bg-white flex items-center px-4 gap-2 shrink-0">
+      <div ref={menuRef} className="relative">
         <button
           onClick={() => setOpen(!open)}
-          style={{
-            padding: '6px 12px',
-            backgroundColor: open ? '#e5e7eb' : '#f9fafb',
-            border: '1px solid #d1d5db',
-            borderRadius: 4,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            fontSize: 12,
-            color: '#4b5563',
-            fontWeight: 600,
-          }}
+          className={`px-3 py-1.5 border border-gray-300 rounded cursor-pointer flex items-center gap-1.5 text-xs text-gray-600 font-semibold ${
+            open ? 'bg-gray-200' : 'bg-gray-50'
+          }`}
         >
           <span>Shapes</span>
-          <span style={{ fontSize: 10 }}>{open ? '▲' : '▼'}</span>
+          <span className="text-[10px]">{open ? '▲' : '▼'}</span>
         </button>
         {open && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 'calc(100% + 4px)',
-              left: 0,
-              zIndex: 100,
-              backgroundColor: '#ffffff',
-              border: '1px solid #d1d5db',
-              borderRadius: 6,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              padding: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 12,
-              minWidth: 200,
-            }}
-          >
+          <div className="absolute top-[calc(100%+4px)] left-0 z-[100] bg-white border border-gray-300 rounded-md shadow-[0_4px_12px_rgba(0,0,0,0.15)] p-3 flex flex-col gap-3 min-w-[200px]">
             {shapeGroups.map((group) => (
               <div key={group.label}>
-                <div
-                  style={{
-                    fontSize: 10,
-                    color: '#9ca3af',
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                    marginBottom: 6,
-                    fontWeight: 600,
-                  }}
-                >
+                <div className="text-[10px] text-gray-400 uppercase tracking-[0.5px] mb-1.5 font-semibold">
                   {group.label}
                 </div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <div className="flex gap-1.5 flex-wrap">
                   {group.items.map((item) => (
                     <div
                       key={item.label}
                       draggable
                       onDragStart={(e) => handleDragStart(e, 'shape', item.shapeType)}
                       title={item.label}
-                      style={{
-                        width: 36,
-                        height: 36,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: '#f9fafb',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: 4,
-                        cursor: 'grab',
-                        fontSize: 18,
-                        color: '#4b5563',
-                      }}
+                      className="w-9 h-9 flex items-center justify-center bg-gray-50 border border-gray-200 rounded cursor-grab text-lg text-gray-600"
                     >
                       {item.icon}
                     </div>
@@ -187,20 +129,9 @@ export default function CanvasToolbar({ engine }: CanvasToolbarProps) {
           key={item.label}
           draggable
           onDragStart={(e) => handleDragStart(e, item.type, item.shapeType)}
-          style={{
-            padding: '6px 12px',
-            backgroundColor: '#f9fafb',
-            border: '1px solid #d1d5db',
-            borderRadius: 4,
-            cursor: 'grab',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            fontSize: 12,
-            color: '#4b5563',
-          }}
+          className="px-3 py-1.5 bg-gray-50 border border-gray-300 rounded cursor-grab flex items-center gap-1.5 text-xs text-gray-600"
         >
-          <span style={{ fontSize: 16, width: 20, textAlign: 'center' }}>{item.icon}</span>
+          <span className="text-base w-5 text-center">{item.icon}</span>
           <span>{item.label}</span>
         </div>
       ))}
@@ -210,20 +141,9 @@ export default function CanvasToolbar({ engine }: CanvasToolbarProps) {
           key={item.type}
           draggable
           onDragStart={(e) => handleDragStart(e, item.type)}
-          style={{
-            padding: '6px 12px',
-            backgroundColor: '#f9fafb',
-            border: '1px solid #d1d5db',
-            borderRadius: 4,
-            cursor: 'grab',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            fontSize: 12,
-            color: '#4b5563',
-          }}
+          className="px-3 py-1.5 bg-gray-50 border border-gray-300 rounded cursor-grab flex items-center gap-1.5 text-xs text-gray-600"
         >
-          <span style={{ fontSize: 16, width: 20, textAlign: 'center' }}>{item.icon}</span>
+          <span className="text-base w-5 text-center">{item.icon}</span>
           <span>{item.label}</span>
         </div>
       ))}

@@ -71,9 +71,9 @@ export default function GlobalSettingsPanel({ engine }: GlobalSettingsPanelProps
   const presetValue = getPresetValueForSafeArea(safeArea);
 
   return (
-    <div style={{  height: '100%', backgroundColor: '#f9fafb', padding: 16, overflowY: 'auto' }}>
-      <h3 style={{ margin: '0 0 16px', fontSize: 14, color: '#374151' }}>Global Settings</h3>
-      <p style={{ margin: '0 0 16px', fontSize: 11, color: '#9ca3af' }}>These settings apply to all pages.</p>
+    <div className="h-full bg-gray-50 p-4 overflow-y-auto">
+      <h3 className="m-0 mb-4 text-sm text-gray-700">Global Settings</h3>
+      <p className="m-0 mb-4 text-[11px] text-gray-400">These settings apply to all pages.</p>
 
       <Section title="Background">
         <SelectField
@@ -161,11 +161,11 @@ export default function GlobalSettingsPanel({ engine }: GlobalSettingsPanelProps
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 20 }}>
-      <h4 style={{ margin: '0 0 10px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+    <div className="mb-5">
+      <h4 className="m-0 mb-2.5 text-xs text-gray-500 uppercase tracking-[0.5px]">
         {title}
       </h4>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{children}</div>
+      <div className="flex flex-col gap-2.5">{children}</div>
     </div>
   );
 }
@@ -201,8 +201,8 @@ function NumberField({
   };
 
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#4b5563' }}>
-      <span style={{ width: 60, flexShrink: 0 }}>{label}</span>
+    <label className="flex items-center gap-2 text-xs text-gray-600">
+      <span className="w-[60px] shrink-0">{label}</span>
       <input
         type="number"
         value={local}
@@ -211,14 +211,7 @@ function NumberField({
         step={step}
         onChange={(e: ChangeEvent<HTMLInputElement>) => setLocal(e.target.value)}
         onBlur={handleBlur}
-        style={{
-          flex: 1,
-          padding: '4px 8px',
-          border: '1px solid #d1d5db',
-          borderRadius: 4,
-          fontSize: 12,
-          backgroundColor: '#ffffff',
-        }}
+        className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs bg-white"
       />
     </label>
   );
@@ -244,21 +237,14 @@ function TextField({
   };
 
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#4b5563' }}>
-      <span style={{ width: 60, flexShrink: 0 }}>{label}</span>
+    <label className="flex items-center gap-2 text-xs text-gray-600">
+      <span className="w-[60px] shrink-0">{label}</span>
       <input
         type="text"
         value={local}
         onChange={(e: ChangeEvent<HTMLInputElement>) => setLocal(e.target.value)}
         onBlur={handleBlur}
-        style={{
-          flex: 1,
-          padding: '4px 8px',
-          border: '1px solid #d1d5db',
-          borderRadius: 4,
-          fontSize: 12,
-          backgroundColor: '#ffffff',
-        }}
+        className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs bg-white"
       />
     </label>
   );
@@ -274,27 +260,20 @@ function ColorField({
   onCommit: (v: string) => void;
 }) {
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#4b5563' }}>
-      <span style={{ width: 60, flexShrink: 0 }}>{label}</span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
+    <label className="flex items-center gap-2 text-xs text-gray-600">
+      <span className="w-[60px] shrink-0">{label}</span>
+      <div className="flex items-center gap-1.5 flex-1">
         <input
           type="color"
           value={value}
           onChange={(e: ChangeEvent<HTMLInputElement>) => onCommit(e.target.value)}
-          style={{ width: 28, height: 28, padding: 0, border: '1px solid #d1d5db', borderRadius: 4, cursor: 'pointer' }}
+          className="w-7 h-7 p-0 border border-gray-300 rounded cursor-pointer"
         />
         <input
           type="text"
           value={value}
           onChange={(e: ChangeEvent<HTMLInputElement>) => onCommit(e.target.value)}
-          style={{
-            flex: 1,
-            padding: '4px 8px',
-            border: '1px solid #d1d5db',
-            borderRadius: 4,
-            fontSize: 12,
-            backgroundColor: '#ffffff',
-          }}
+          className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs bg-white"
         />
       </div>
     </label>
@@ -313,19 +292,12 @@ function SelectField({
   onCommit: (v: string) => void;
 }) {
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#4b5563' }}>
-      <span style={{ width: 60, flexShrink: 0 }}>{label}</span>
+    <label className="flex items-center gap-2 text-xs text-gray-600">
+      <span className="w-[60px] shrink-0">{label}</span>
       <select
         value={value}
         onChange={(e: ChangeEvent<HTMLSelectElement>) => onCommit(e.target.value)}
-        style={{
-          flex: 1,
-          padding: '4px 8px',
-          border: '1px solid #d1d5db',
-          borderRadius: 4,
-          fontSize: 12,
-          backgroundColor: '#ffffff',
-        }}
+        className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs bg-white"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>

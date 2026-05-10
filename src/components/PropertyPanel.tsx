@@ -39,34 +39,15 @@ export default function PropertyPanel({ engine }: PropertyPanelProps) {
     const hasCustomBg = currentPage.background !== undefined;
     const bg: PageBackground = currentPage.background ?? documentBg;
     return (
-      <div
-        style={{
-          width: 400,
-          height: '100%',
-          backgroundColor: '#f9fafb',
-          padding: 16,
-          overflowY: 'auto',
-          boxSizing: 'border-box'
-        }}
-      >
-        <h3 style={{ margin: '0 0 16px', fontSize: 14, color: '#374151' }}>Current Page</h3>
+      <div className="w-[400px] h-full bg-gray-50 p-4 overflow-y-auto box-border">
+        <h3 className="m-0 mb-4 text-sm text-gray-700">Current Page</h3>
 
         <Section title="General">
           <TextField label="Name" value={currentPage.name} onCommit={(v) => commitPage({ name: v })} />
         </Section>
 
         <Section title="Background">
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              fontSize: 12,
-              color: '#4b5563',
-              marginBottom: 10,
-              cursor: 'pointer',
-            }}
-          >
+          <label className="flex items-center gap-2 text-xs text-gray-600 mb-2.5 cursor-pointer">
             <input
               type="checkbox"
               checked={hasCustomBg}
@@ -77,7 +58,7 @@ export default function PropertyPanel({ engine }: PropertyPanelProps) {
                   commitPage({ background: undefined });
                 }
               }}
-              style={{ cursor: 'pointer' }}
+              className="cursor-pointer"
             />
             Custom background
           </label>
@@ -85,7 +66,7 @@ export default function PropertyPanel({ engine }: PropertyPanelProps) {
           {hasCustomBg ? (
             <PageBackgroundEditor background={bg} onCommit={(bg) => commitPage({ background: bg })} />
           ) : (
-            <div style={{ fontSize: 12, color: '#9ca3af' }}>Using global background</div>
+            <div className="text-xs text-gray-400">Using global background</div>
           )}
         </Section>
       </div>
@@ -95,28 +76,11 @@ export default function PropertyPanel({ engine }: PropertyPanelProps) {
   if (!element) return null;
 
   return (
-    <div
-      style={{
-        width: 400,
-        height: '100%',
-        backgroundColor: '#f9fafb',
-        padding: 16,
-        overflowY: 'auto',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h3 style={{ margin: 0, fontSize: 14, color: '#374151' }}>Properties</h3>
+    <div className="w-[400px] h-full bg-gray-50 p-4 overflow-y-auto">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="m-0 text-sm text-gray-700">Properties</h3>
         {element.source === 'ai' && (
-          <span
-            style={{
-              fontSize: 11,
-              padding: '2px 8px',
-              backgroundColor: '#dbeafe',
-              color: '#1e40af',
-              borderRadius: 4,
-              fontWeight: 600,
-            }}
-          >
+          <span className="text-[11px] px-2 py-0.5 bg-blue-100 text-blue-800 rounded font-semibold">
             🤖 AI Generated
           </span>
         )}
@@ -149,11 +113,11 @@ export default function PropertyPanel({ engine }: PropertyPanelProps) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 20 }}>
-      <h4 style={{ margin: '0 0 10px', fontSize: 12, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+    <div className="mb-5">
+      <h4 className="m-0 mb-2.5 text-xs text-gray-500 uppercase tracking-[0.5px]">
         {title}
       </h4>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{children}</div>
+      <div className="flex flex-col gap-2.5">{children}</div>
     </div>
   );
 }
@@ -189,8 +153,8 @@ function NumberField({
   };
 
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#4b5563' }}>
-      <span style={{ width: 60, flexShrink: 0 }}>{label}</span>
+    <label className="flex items-center gap-2 text-xs text-gray-600">
+      <span className="w-[60px] shrink-0">{label}</span>
       <input
         type="number"
         value={local}
@@ -199,14 +163,7 @@ function NumberField({
         step={step}
         onChange={(e: ChangeEvent<HTMLInputElement>) => setLocal(e.target.value)}
         onBlur={handleBlur}
-        style={{
-          flex: 1,
-          padding: '4px 8px',
-          border: '1px solid #d1d5db',
-          borderRadius: 4,
-          fontSize: 12,
-          backgroundColor: '#ffffff',
-        }}
+        className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs bg-white"
       />
     </label>
   );
@@ -232,20 +189,13 @@ function TextField({
   };
 
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#4b5563' }}>
-      <span style={{ width: 60, flexShrink: 0 }}>{label}</span>
+    <label className="flex items-center gap-2 text-xs text-gray-600">
+      <span className="w-[60px] shrink-0">{label}</span>
       <textarea
         value={local}
         onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setLocal(e.target.value)}
         onBlur={handleBlur}
-        style={{
-          flex: 1,
-          padding: '4px 8px',
-          border: '1px solid #d1d5db',
-          borderRadius: 4,
-          fontSize: 12,
-          backgroundColor: '#ffffff',
-        }}
+        className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs bg-white"
       />
     </label>
   );
@@ -261,27 +211,20 @@ function ColorField({
   onCommit: (v: string) => void;
 }) {
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#4b5563' }}>
-      <span style={{ width: 60, flexShrink: 0 }}>{label}</span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
+    <label className="flex items-center gap-2 text-xs text-gray-600">
+      <span className="w-[60px] shrink-0">{label}</span>
+      <div className="flex items-center gap-1.5 flex-1">
         <input
           type="color"
           value={value}
           onChange={(e: ChangeEvent<HTMLInputElement>) => onCommit(e.target.value)}
-          style={{ width: 28, height: 28, padding: 0, border: '1px solid #d1d5db', borderRadius: 4, cursor: 'pointer' }}
+          className="w-7 h-7 p-0 border border-gray-300 rounded cursor-pointer"
         />
         <input
           type="text"
           value={value}
           onChange={(e: ChangeEvent<HTMLInputElement>) => onCommit(e.target.value)}
-          style={{
-            flex: 1,
-            padding: '4px 8px',
-            border: '1px solid #d1d5db',
-            borderRadius: 4,
-            fontSize: 12,
-            backgroundColor: '#ffffff',
-          }}
+          className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs bg-white"
         />
       </div>
     </label>
@@ -300,19 +243,12 @@ function SelectField({
   onCommit: (v: string) => void;
 }) {
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#4b5563' }}>
-      <span style={{ width: 60, flexShrink: 0 }}>{label}</span>
+    <label className="flex items-center gap-2 text-xs text-gray-600">
+      <span className="w-[60px] shrink-0">{label}</span>
       <select
         value={value}
         onChange={(e: ChangeEvent<HTMLSelectElement>) => onCommit(e.target.value)}
-        style={{
-          flex: 1,
-          padding: '4px 8px',
-          border: '1px solid #d1d5db',
-          borderRadius: 4,
-          fontSize: 12,
-          backgroundColor: '#ffffff',
-        }}
+        className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs bg-white"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -440,7 +376,7 @@ function PageBackgroundEditor({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div className="flex flex-col gap-2.5">
       <SelectField
         label="Type"
         value={background.type}
