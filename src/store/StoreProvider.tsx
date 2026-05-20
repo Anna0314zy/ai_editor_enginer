@@ -6,14 +6,17 @@ import { EditorUIStore } from './editorUIStore';
 import { HistoryStore } from './historyStore';
 import { AnimationStore } from './animationStore';
 import { PluginStore } from './pluginStore';
+import { TimelineStore } from './timelineStore';
 
 export interface StoreContextValue {
+  engine: Engine;
   sceneStore: SceneStore;
   selectionStore: SelectionStore;
   editorUIStore: EditorUIStore;
   historyStore: HistoryStore;
   animationStore: AnimationStore;
   pluginStore: PluginStore;
+  timelineStore: TimelineStore;
 }
 
 const StoreContext = createContext<StoreContextValue | null>(null);
@@ -26,14 +29,16 @@ export interface StoreProviderProps {
 export function StoreProvider({ engine, children }: StoreProviderProps) {
   const stores = useMemo<StoreContextValue>(
     () => ({
+      engine,
       sceneStore: new SceneStore(engine),
       selectionStore: new SelectionStore(engine),
       editorUIStore: new EditorUIStore(engine),
       historyStore: new HistoryStore(engine),
       animationStore: new AnimationStore(engine),
       pluginStore: new PluginStore(),
+      timelineStore: new TimelineStore(engine.timeline),
     }),
-    [engine]
+    [engine],
   );
 
   return <StoreContext.Provider value={stores}>{children}</StoreContext.Provider>;

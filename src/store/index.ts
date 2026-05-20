@@ -21,6 +21,9 @@ export type { AnimationSnapshot } from './animationStore';
 export { PluginStore } from './pluginStore';
 export type { PluginSnapshot, Plugin, PluginLifecycle, PanelDescriptor } from './pluginStore';
 
+export { TimelineStore } from './timelineStore';
+export type { TimelineSnapshot } from './timelineStore';
+
 export {
   useSceneStore,
   useSelectionStore,
@@ -28,6 +31,7 @@ export {
   useHistoryStore,
   useAnimationStore,
   usePluginStore,
+  useTimelineStore,
 } from './hooks';
 
 export { StoreProvider, useStores } from './StoreProvider';

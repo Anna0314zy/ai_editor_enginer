@@ -1,23 +1,28 @@
 import type { Command, Document, EditorState, PageBackground, SafeArea } from '../types';
 import { createMockEditorState } from '../types';
-import { Scene, createScene } from './scene';
+import type { Scene } from './scene';
+import { createScene } from './scene';
 import { History } from './history';
-import { Timeline } from './timeline';
+import { Timeline } from './timeline/index';
+import { RenderScheduler } from './renderScheduler';
+import { ResourceManager } from '../media/resourceManager';
 import { PluginRegistry } from './pluginRegistry';
 import type { EnginePlugin } from './pluginRegistry';
 
 export type EngineTopic = 'scene' | 'editorState' | 'history' | 'all';
 
 // Reserved types for future selector-based precise subscriptions.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 export type SelectorFn<T> = (engine: Engine) => T;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 export type ComparatorFn<T> = (a: T, b: T) => boolean;
 
 export class Engine {
   readonly scene: Scene;
   readonly history: History;
   readonly timeline: Timeline;
+  readonly renderScheduler: RenderScheduler;
+  readonly resourceManager: ResourceManager;
   readonly pluginRegistry: PluginRegistry;
 
   private editorState: EditorState;
@@ -29,6 +34,8 @@ export class Engine {
     this.editorState = createMockEditorState();
     this.history = new History();
     this.timeline = new Timeline();
+    this.renderScheduler = new RenderScheduler(this.timeline);
+    this.resourceManager = new ResourceManager();
     this.pluginRegistry = new PluginRegistry();
     this.listeners = new Set();
     this.topicListeners = new Map();

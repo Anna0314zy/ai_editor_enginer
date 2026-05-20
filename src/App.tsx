@@ -1,9 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { Engine } from './engine';
 import { DeleteElementCommand } from './engine';
 import type { AnimationEngine } from './animation';
 import { AnimationScheduler } from './animation';
-import { useStores, useSceneStore, useSelectionStore, useHistoryStore, useAnimationStore } from './store';
+import {
+  useStores,
+  useSceneStore,
+  useSelectionStore,
+  useHistoryStore,
+  useAnimationStore,
+} from './store';
 import StructurePanel from './components/StructurePanel';
 import CanvasToolbar from './components/CanvasToolbar';
 import Canvas from './components/Canvas';
@@ -11,6 +18,7 @@ import PropertyPanel from './components/PropertyPanel';
 import GlobalSettingsPanel from './components/GlobalSettingsPanel';
 import AnimationPanel from './components/AnimationPanel';
 import PreviewModal from './components/PreviewModal';
+// import TimelinePanel from './components/TimelinePanel/TimelinePanel';
 
 interface AppProps {
   engine: Engine;
@@ -23,6 +31,7 @@ function App({ engine, animationEngine }: AppProps) {
   const selectionSnapshot = useSelectionStore(selectionStore);
   const historySnapshot = useHistoryStore(historyStore);
   const animSnapshot = useAnimationStore(animationStore);
+  const navigate = useNavigate();
   const pluginPanels = engine.pluginRegistry.getPanels();
   const allTabs = [
     { id: 'properties', label: 'Properties' },
@@ -141,7 +150,13 @@ function App({ engine, animationEngine }: AppProps) {
         if (!isEditing) {
           if (selectionSnapshot.selectedIds.length > 0) {
             e.preventDefault();
-            engine.execute(new DeleteElementCommand(engine.scene, selectionSnapshot.selectedIds[0], sceneSnapshot.currentPageId));
+            engine.execute(
+              new DeleteElementCommand(
+                engine.scene,
+                selectionSnapshot.selectedIds[0],
+                sceneSnapshot.currentPageId,
+              ),
+            );
             selectionStore.clear();
           }
         }
@@ -150,14 +165,29 @@ function App({ engine, animationEngine }: AppProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [engine, historySnapshot, historyStore, selectionSnapshot, selectionStore, sceneSnapshot.currentPageId]);
+  }, [
+    engine,
+    historySnapshot,
+    historyStore,
+    selectionSnapshot,
+    selectionStore,
+    sceneSnapshot.currentPageId,
+  ]);
 
   const elementCount = sceneSnapshot.currentPageElements.length;
 
   return (
     <div className="w-screen h-screen flex flex-col">
       <header className="px-6 py-3 border-b border-gray-200 bg-white flex items-center justify-between">
-        <h1 className="m-0 text-lg text-gray-900">Slides Editor</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="m-0 text-lg text-gray-900">Slides Editor</h1>
+          <button
+            onClick={() => navigate('/ai_editor_enginer/video')}
+            className="px-3 py-1.5 text-xs border border-blue-500 text-blue-600 rounded bg-white hover:bg-blue-50 cursor-pointer"
+          >
+            进入音视频编辑 →
+          </button>
+        </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
@@ -230,12 +260,12 @@ function App({ engine, animationEngine }: AppProps) {
           >
             Full Preview
           </button>
-          <div className="text-xs text-gray-500 ml-2">
-            {elementCount} elements
-          </div>
+          <div className="text-xs text-gray-500 ml-2">{elementCount} elements</div>
         </div>
       </header>
-      <main className="flex-1 flex overflow-hidden">
+
+      {/* Upper area: panels + canvas */}
+      <main className="flex-1 flex overflow-hidden min-h-0">
         <StructurePanel engine={engine} />
         <div className="flex-1 flex flex-col overflow-hidden">
           <CanvasToolbar engine={engine} />
@@ -261,21 +291,23 @@ function App({ engine, animationEngine }: AppProps) {
           </div>
           {rightPanelTab === 'properties' && <PropertyPanel engine={engine} />}
           {rightPanelTab === 'global' && <GlobalSettingsPanel engine={engine} />}
-          {rightPanelTab === 'animation' && <AnimationPanel engine={engine} animationEngine={animationEngine} />}
+          {rightPanelTab === 'animation' && (
+            <AnimationPanel engine={engine} animationEngine={animationEngine} />
+          )}
           {pluginPanels.map(
             (panel) =>
               rightPanelTab === panel.id && (
                 <panel.component key={panel.id} engine={engine} animationEngine={animationEngine} />
-              )
+              ),
           )}
         </div>
       </main>
 
+      {/* Bottom: Timeline Panel */}
+      {/* <TimelinePanel /> */}
+
       {isPreviewOpen && (
-        <PreviewModal
-          animationEngine={animationEngine}
-          onClose={() => setIsPreviewOpen(false)}
-        />
+        <PreviewModal animationEngine={animationEngine} onClose={() => setIsPreviewOpen(false)} />
       )}
     </div>
   );
