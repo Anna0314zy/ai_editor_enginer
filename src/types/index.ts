@@ -28,7 +28,20 @@ export interface BaseElement {
 
 export interface ShapeElement extends BaseElement {
   type: 'shape';
-  shapeType: 'rectangle' | 'circle' | 'triangle' | 'rounded-rectangle' | 'line' | 'arrow' | 'polygon' | 'star' | 'pentagon' | 'hexagon' | 'octagon' | 'star-5' | 'star-6';
+  shapeType:
+    | 'rectangle'
+    | 'circle'
+    | 'triangle'
+    | 'rounded-rectangle'
+    | 'line'
+    | 'arrow'
+    | 'polygon'
+    | 'star'
+    | 'pentagon'
+    | 'hexagon'
+    | 'octagon'
+    | 'star-5'
+    | 'star-6';
   fill: string;
   stroke: string;
   strokeWidth: number;
@@ -63,9 +76,7 @@ export type Element = ShapeElement | TextElement | ImageElement | GroupElement;
 // Document, Node, Page & Structure Types
 // ============================================================================
 
-export type StructureItem =
-  | { type: 'node'; id: string }
-  | { type: 'page'; id: string };
+export type StructureItem = { type: 'node'; id: string } | { type: 'page'; id: string };
 
 export interface Node {
   id: string;
@@ -102,9 +113,25 @@ export interface SafeArea {
   left: number;
 }
 
+export type PageKind = 'normal' | 'video';
+
+export interface VideoPageConfig {
+  /** 视频源：可为 http(s) URL 或 blob: URL */
+  src: string;
+  /** 视频时长（秒），由 loadedmetadata 写回 */
+  duration?: number;
+  autoplay?: boolean;
+  muted?: boolean;
+  loop?: boolean;
+}
+
 export interface Page {
   id: string;
   name: string;
+  /** 页面类型，默认 'normal'。'video' 表示视频页 */
+  kind?: PageKind;
+  /** 视频页配置，仅当 kind === 'video' 时使用 */
+  video?: VideoPageConfig;
   background?: PageBackground;
   elements: Record<string, Element>;
   animations: Record<string, AnimationConfig>;

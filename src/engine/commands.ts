@@ -1,11 +1,22 @@
-import type { Command, Element, AnimationConfig, Page, Node, StructureItem, SafeArea, PageBackground } from '../types';
+import type {
+  Command,
+  Element,
+  AnimationConfig,
+  Page,
+  PageKind,
+  VideoPageConfig,
+  Node,
+  StructureItem,
+  SafeArea,
+  PageBackground,
+} from '../types';
 import type { Scene } from './scene';
 
 export class AddElementCommand implements Command {
   constructor(
     private scene: Scene,
     private pageId: string,
-    private element: Element
+    private element: Element,
   ) {}
 
   execute(): void {
@@ -23,13 +34,15 @@ export class MoveElementCommand implements Command {
   constructor(
     private scene: Scene,
     private elementId: string,
-    private updates: Partial<Omit<Element, 'id' | 'type'>>
+    private updates: Partial<Omit<Element, 'id' | 'type'>>,
   ) {
     const el = this.scene.getElement(this.elementId);
     this.before = {};
     if (el) {
       for (const key of Object.keys(this.updates) as Array<keyof typeof this.updates>) {
-        (this.before as Record<string, unknown>)[key] = (el as unknown as Record<string, unknown>)[key];
+        (this.before as Record<string, unknown>)[key] = (el as unknown as Record<string, unknown>)[
+          key
+        ];
       }
     }
   }
@@ -50,7 +63,7 @@ export class DeleteElementCommand implements Command {
   constructor(
     private scene: Scene,
     private elementId: string,
-    pageId: string
+    pageId: string,
   ) {
     this.deletedElement = this.scene.getElement(this.elementId);
     this.pageId = pageId;
@@ -72,7 +85,7 @@ export class BatchMoveCommand implements Command {
 
   constructor(
     private scene: Scene,
-    private moves: { id: string; updates: Partial<Omit<Element, 'id' | 'type'>> }[]
+    private moves: { id: string; updates: Partial<Omit<Element, 'id' | 'type'>> }[],
   ) {
     this.befores = new Map();
     for (const move of moves) {
@@ -107,7 +120,7 @@ export class AddAnimationCommand implements Command {
   constructor(
     private scene: Scene,
     private pageId: string,
-    private config: AnimationConfig
+    private config: AnimationConfig,
   ) {}
 
   execute(): void {
@@ -123,7 +136,10 @@ export class RemoveAnimationCommand implements Command {
   private removedConfig: AnimationConfig | undefined;
   private pageId: string = '';
 
-  constructor(private scene: Scene, private configId: string) {
+  constructor(
+    private scene: Scene,
+    private configId: string,
+  ) {
     for (const page of Object.values(scene.getDocument().pages)) {
       const config = page.animations[configId];
       if (config) {
@@ -150,13 +166,15 @@ export class UpdateAnimationCommand implements Command {
   constructor(
     private scene: Scene,
     private configId: string,
-    private updates: Partial<AnimationConfig>
+    private updates: Partial<AnimationConfig>,
   ) {
     const existing = scene.getAnimation(configId);
     this.before = {};
     if (existing) {
       for (const key of Object.keys(updates) as Array<keyof typeof updates>) {
-        (this.before as Record<string, unknown>)[key] = (existing as unknown as Record<string, unknown>)[key];
+        (this.before as Record<string, unknown>)[key] = (
+          existing as unknown as Record<string, unknown>
+        )[key];
       }
     }
   }
@@ -176,7 +194,7 @@ export class ReorderAnimationsCommand implements Command {
   constructor(
     private scene: Scene,
     private pageId: string,
-    private afterIds: string[]
+    private afterIds: string[],
   ) {
     const page = scene.getDocument().pages[pageId];
     this.beforeIds = page ? Object.keys(page.animations) : [];
@@ -201,13 +219,15 @@ export class UpdatePageCommand implements Command {
   constructor(
     private scene: Scene,
     private pageId: string,
-    private updates: Partial<Omit<Page, 'id'>>
+    private updates: Partial<Omit<Page, 'id'>>,
   ) {
     const page = scene.getPage(pageId);
     this.before = {};
     if (page) {
       for (const key of Object.keys(updates) as Array<keyof typeof updates>) {
-        (this.before as Record<string, unknown>)[key] = (page as unknown as Record<string, unknown>)[key];
+        (this.before as Record<string, unknown>)[key] = (
+          page as unknown as Record<string, unknown>
+        )[key];
       }
     }
   }
@@ -221,10 +241,69 @@ export class UpdatePageCommand implements Command {
   }
 }
 
+export class SetPageKindCommand implements Command {
+  private before: PageKind | undefined;
+
+  constructor(
+    private scene: Scene,
+    private pageId: string,
+    private kind: PageKind,
+  ) {
+    const page = scene.getPage(pageId);
+    this.before = page?.kind;
+  }
+
+  execute(): void {
+    this.scene.updatePage(this.pageId, { kind: this.kind });
+  }
+
+  undo(): void {
+    this.scene.updatePage(this.pageId, { kind: this.before });
+  }
+}
+
+export class UpdatePageVideoCommand implements Command {
+  private before: VideoPageConfig | undefined;
+  private hadVideo: boolean;
+
+  constructor(
+    private scene: Scene,
+    private pageId: string,
+    private patch: Partial<VideoPageConfig>,
+  ) {
+    const page = scene.getPage(pageId);
+    this.hadVideo = !!page?.video;
+    this.before = page?.video ? { ...page.video } : undefined;
+  }
+
+  execute(): void {
+    const page = this.scene.getPage(this.pageId);
+    if (!page) return;
+    const merged: VideoPageConfig = {
+      src: '',
+      ...(page.video ?? {}),
+      ...this.patch,
+    };
+    this.scene.updatePage(this.pageId, { video: merged });
+  }
+
+  undo(): void {
+    if (this.hadVideo) {
+      this.scene.updatePage(this.pageId, { video: this.before });
+    } else {
+      // 原本就没有 video，设为 undefined
+      this.scene.updatePage(this.pageId, { video: undefined });
+    }
+  }
+}
+
 export class UpdateDocumentBackgroundCommand implements Command {
   private before: PageBackground;
 
-  constructor(private scene: Scene, private background: PageBackground) {
+  constructor(
+    private scene: Scene,
+    private background: PageBackground,
+  ) {
     this.before = scene.getDocument().background;
   }
 
@@ -240,7 +319,10 @@ export class UpdateDocumentBackgroundCommand implements Command {
 export class UpdateDocumentSafeAreaCommand implements Command {
   private before: SafeArea;
 
-  constructor(private scene: Scene, private safeArea: SafeArea) {
+  constructor(
+    private scene: Scene,
+    private safeArea: SafeArea,
+  ) {
     this.before = { ...scene.getDocument().safeArea };
   }
 
@@ -259,7 +341,7 @@ export class AddPageCommand implements Command {
   constructor(
     private scene: Scene,
     private page: Page,
-    private setCurrent: boolean = true
+    private setCurrent: boolean = true,
   ) {
     this.prevCurrentPageId = scene.getDocument().currentPageId;
   }
@@ -282,11 +364,14 @@ export class RemovePageCommand implements Command {
   private removedIndex: number;
   private prevCurrentPageId: string;
 
-  constructor(private scene: Scene, private pageId: string) {
+  constructor(
+    private scene: Scene,
+    private pageId: string,
+  ) {
     const doc = scene.getDocument();
     this.removedPage = doc.pages[pageId];
     this.removedIndex = doc.structureItems.findIndex(
-      (item) => item.type === 'page' && item.id === pageId
+      (item) => item.type === 'page' && item.id === pageId,
     );
     this.prevCurrentPageId = doc.currentPageId;
   }
@@ -297,10 +382,7 @@ export class RemovePageCommand implements Command {
 
   undo(): void {
     if (!this.removedPage) return;
-    this.scene.addPage(
-      this.removedPage,
-      this.removedIndex >= 0 ? this.removedIndex : undefined
-    );
+    this.scene.addPage(this.removedPage, this.removedIndex >= 0 ? this.removedIndex : undefined);
     this.scene.setCurrentPageId(this.prevCurrentPageId);
   }
 }
@@ -309,7 +391,7 @@ export class AddNodeCommand implements Command {
   constructor(
     private scene: Scene,
     private node: Node,
-    private targetPageId?: string
+    private targetPageId?: string,
   ) {}
 
   execute(): void {
@@ -325,12 +407,15 @@ export class RemoveNodeCommand implements Command {
   private removedNode: Node | undefined;
   private targetPageId: string | undefined;
 
-  constructor(private scene: Scene, private nodeId: string) {
+  constructor(
+    private scene: Scene,
+    private nodeId: string,
+  ) {
     const doc = scene.getDocument();
     this.removedNode = doc.nodes[nodeId];
 
     const index = doc.structureItems.findIndex(
-      (item) => item.type === 'node' && item.id === nodeId
+      (item) => item.type === 'node' && item.id === nodeId,
     );
     if (index >= 0) {
       for (let i = index + 1; i < doc.structureItems.length; i++) {
@@ -355,7 +440,10 @@ export class RemoveNodeCommand implements Command {
 export class ReorderStructureItemsCommand implements Command {
   private beforeOrder: StructureItem[];
 
-  constructor(private scene: Scene, private afterOrder: StructureItem[]) {
+  constructor(
+    private scene: Scene,
+    private afterOrder: StructureItem[],
+  ) {
     this.beforeOrder = [...scene.getDocument().structureItems];
   }
 

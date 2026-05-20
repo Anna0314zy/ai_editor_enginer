@@ -15,6 +15,14 @@ export class Timeline {
     return this.duration;
   }
 
+  setDuration(duration: number): void {
+    this.duration = Math.max(0, duration);
+    if (this.currentTime > this.duration) {
+      this.currentTime = this.duration;
+    }
+    this.notify();
+  }
+
   isPlaying(): boolean {
     return this.playing;
   }

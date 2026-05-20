@@ -7,11 +7,25 @@ export { Timeline } from './timeline';
 export { Engine, createEngine } from './engine';
 export type { EngineTopic, SelectorFn, ComparatorFn } from './engine';
 export {
-  AddElementCommand, MoveElementCommand, DeleteElementCommand, BatchMoveCommand, CompositeCommand,
-  AddAnimationCommand, RemoveAnimationCommand, UpdateAnimationCommand, ReorderAnimationsCommand,
-  AddPageCommand, RemovePageCommand, UpdatePageCommand,
-  UpdateDocumentBackgroundCommand, UpdateDocumentSafeAreaCommand,
-  AddNodeCommand, RemoveNodeCommand, ReorderStructureItemsCommand,
+  AddElementCommand,
+  MoveElementCommand,
+  DeleteElementCommand,
+  BatchMoveCommand,
+  CompositeCommand,
+  AddAnimationCommand,
+  RemoveAnimationCommand,
+  UpdateAnimationCommand,
+  ReorderAnimationsCommand,
+  AddPageCommand,
+  RemovePageCommand,
+  UpdatePageCommand,
+  SetPageKindCommand,
+  UpdatePageVideoCommand,
+  UpdateDocumentBackgroundCommand,
+  UpdateDocumentSafeAreaCommand,
+  AddNodeCommand,
+  RemoveNodeCommand,
+  ReorderStructureItemsCommand,
 } from './commands';
 export { BatchAnimationCommand } from './animationCommands';
 export { snapEngine } from './snapEngine';

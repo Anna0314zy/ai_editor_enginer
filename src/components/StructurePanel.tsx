@@ -80,7 +80,21 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
         name: `Page ${count}`,
         elements: {},
         animations: {},
-      })
+      }),
+    );
+  };
+
+  const handleAddVideoPage = () => {
+    const newId = `page-${Date.now()}`;
+    const count = Object.keys(doc.pages).length + 1;
+    engine.execute(
+      new AddPageCommand(engine.scene, {
+        id: newId,
+        name: `Video ${count}`,
+        kind: 'video',
+        elements: {},
+        animations: {},
+      }),
     );
   };
 
@@ -92,8 +106,8 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
       new AddNodeCommand(
         engine.scene,
         { id: newId, name: `Section ${Object.keys(doc.nodes).length + 1}` },
-        currentPageId
-      )
+        currentPageId,
+      ),
     );
   };
 
@@ -131,7 +145,7 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
       const insertIndex = e.clientY < midY ? index : index + 1;
       setDragOverIndex(insertIndex);
     },
-    [draggingId, doc.structureItems]
+    [draggingId, doc.structureItems],
   );
 
   const handleDragLeave = () => {
@@ -147,7 +161,7 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
     }
 
     const fromIndex = doc.structureItems.findIndex(
-      (item) => item.type === 'page' && item.id === draggingId
+      (item) => item.type === 'page' && item.id === draggingId,
     );
     if (fromIndex < 0) {
       setDraggingId(null);
@@ -196,17 +210,20 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
           + Page
         </button>
         <button
+          onClick={handleAddVideoPage}
+          className="flex-1 py-1.5 text-xs border border-gray-300 rounded bg-white cursor-pointer"
+          title="新建视频页"
+        >
+          + Video
+        </button>
+        <button
           onClick={handleAddNode}
           className="flex-1 py-1.5 text-xs border border-gray-300 rounded bg-white cursor-pointer"
         >
           + Node
         </button>
       </div>
-      <div
-        className="flex-1 overflow-auto py-2"
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
+      <div className="flex-1 overflow-auto py-2" onDragLeave={handleDragLeave} onDrop={handleDrop}>
         {processed.map((proc) => {
           if (!proc.visible) return null;
           const isPage = proc.type === 'page';
@@ -234,8 +251,8 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
                   isSelected
                     ? 'bg-blue-100 border border-blue-500'
                     : isDragging
-                    ? 'bg-gray-100 border border-transparent'
-                    : 'bg-transparent border border-transparent'
+                      ? 'bg-gray-100 border border-transparent'
+                      : 'bg-transparent border border-transparent'
                 } ${isPage ? 'cursor-grab' : 'cursor-pointer'} ${isDragging ? 'opacity-50' : 'opacity-100'}`}
                 style={{
                   margin: `0 8px 0 ${8 + proc.indent}px`,
@@ -274,27 +291,37 @@ export default function StructurePanel({ engine }: StructurePanelProps) {
                       style={{
                         width: THUMB_WIDTH,
                         height: THUMB_HEIGHT,
-                        ...getThumbBackgroundStyle(doc.pages[proc.id]?.background ?? doc.background),
+                        ...getThumbBackgroundStyle(
+                          doc.pages[proc.id]?.background ?? doc.background,
+                        ),
                       }}
                     >
-                      <div
-                        className="absolute pointer-events-none"
-                        style={{
-                          width: CANVAS_WIDTH,
-                          height: CANVAS_HEIGHT,
-                          transform: `scale(${SCALE})`,
-                          transformOrigin: 'top left',
-                        }}
-                      >
-                        {Object.values(doc.pages[proc.id]?.elements ?? {}).map((el) => (
-                          <Fragment key={el.id}>
-                            {renderThumbnail(el)}
-                          </Fragment>
-                        ))}
-                      </div>
+                      {doc.pages[proc.id]?.kind === 'video' ? (
+                        <div className="absolute inset-0 bg-black flex items-center justify-center text-white text-xs gap-1">
+                          <span>▶</span>
+                          <span className="opacity-80">Video Page</span>
+                        </div>
+                      ) : (
+                        <div
+                          className="absolute pointer-events-none"
+                          style={{
+                            width: CANVAS_WIDTH,
+                            height: CANVAS_HEIGHT,
+                            transform: `scale(${SCALE})`,
+                            transformOrigin: 'top left',
+                          }}
+                        >
+                          {Object.values(doc.pages[proc.id]?.elements ?? {}).map((el) => (
+                            <Fragment key={el.id}>{renderThumbnail(el)}</Fragment>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center justify-between mt-1">
-                      <span className="text-xs text-gray-700 overflow-hidden text-ellipsis whitespace-nowrap">
+                      <span className="text-xs text-gray-700 overflow-hidden text-ellipsis whitespace-nowrap flex items-center gap-1">
+                        {doc.pages[proc.id]?.kind === 'video' && (
+                          <span className="text-blue-500">▶</span>
+                        )}
                         {doc.pages[proc.id]?.name ?? 'Untitled'}
                       </span>
                       <button

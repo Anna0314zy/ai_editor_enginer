@@ -8,6 +8,7 @@ import type { Element, ShapeElement, TextElement, ImageElement, PageBackground }
 import { PAGE_DEFAULT_WIDTH, PAGE_DEFAULT_HEIGHT } from '../types';
 import { useStores, useSceneStore, useSelectionStore } from '../store';
 import MoveableLayer from './MoveableLayer';
+import VideoPagePlayer from './VideoPagePlayer';
 
 function getBackgroundStyle(background: PageBackground | undefined): React.CSSProperties {
   if (!background) return { backgroundColor: '#ffffff' };
@@ -80,8 +81,10 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
   }, [animationEngine]);
 
   const currentPageId = sceneSnapshot.currentPageId;
+  const currentPage = sceneSnapshot.currentPage;
   const elements = sceneSnapshot.currentPageElements;
   const selectedIds = selectionSnapshot.selectedIds;
+  const isVideoPage = currentPage?.kind === 'video';
 
   const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
@@ -91,6 +94,8 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
   const handleDrop = useCallback(
     (e: DragEvent<HTMLDivElement>): void => {
       e.preventDefault();
+      // 视频页不接受元素拖入
+      if (isVideoPage) return;
       const raw = e.dataTransfer.getData('application/json');
       if (!raw) return;
 
@@ -111,14 +116,14 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
       engine.execute(new AddElementCommand(engine.scene, currentPageId, element));
       selectionStore.select(element.id);
     },
-    [engine, currentPageId, selectionStore, viewportScale]
+    [engine, currentPageId, selectionStore, viewportScale, isVideoPage],
   );
 
   const handleElementClick = useCallback(
     (id: string): void => {
       selectionStore.select(id);
     },
-    [selectionStore]
+    [selectionStore],
   );
 
   const handleCanvasPointerDown = useCallback(
@@ -130,7 +135,7 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
         selectionStore.clear();
       }
     },
-    [selectionStore]
+    [selectionStore],
   );
 
   return (
@@ -141,67 +146,102 @@ export default function Canvas({ engine, animationEngine }: CanvasProps) {
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      <div
-        className="relative shrink-0"
-        style={{
-          width: PAGE_DEFAULT_WIDTH * viewportScale,
-          height: PAGE_DEFAULT_HEIGHT * viewportScale,
-        }}
-      >
-        <div
-          ref={slideRef}
-          className="bg-white shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1)] relative overflow-hidden"
-          style={{
-            width: PAGE_DEFAULT_WIDTH,
-            height: PAGE_DEFAULT_HEIGHT,
-            transform: `scale(${viewportScale})`,
-            transformOrigin: 'top left',
-          }}
-          onPointerDown={handleCanvasPointerDown}
-        >
-        {/* Background layer */}
-        <div
-          className="absolute inset-0"
-          style={getBackgroundStyle(sceneSnapshot.currentPage?.background ?? sceneSnapshot.document.background)}
+      {isVideoPage && currentPage ? (
+        <VideoPagePlayer
+          engine={engine}
+          page={currentPage}
+          scale={viewportScale}
+          width={PAGE_DEFAULT_WIDTH}
+          height={PAGE_DEFAULT_HEIGHT}
         />
-        {/* Safe area visual guide */}
-        {(() => {
-          const sa = sceneSnapshot.document.safeArea;
-          if (!sa || (sa.top === 0 && sa.right === 0 && sa.bottom === 0 && sa.left === 0)) return null;
-          return (
-            <>
-              {/* Unsafe zone overlays (subtle red tint) */}
-              <div className="absolute top-0 left-0 right-0 pointer-events-none z-[1]" style={{ height: sa.top, backgroundColor: 'rgba(239, 68, 68, 0.08)' }} />
-              <div className="absolute right-0 pointer-events-none z-[1]" style={{ top: sa.top, width: sa.right, bottom: sa.bottom, backgroundColor: 'rgba(239, 68, 68, 0.08)' }} />
-              <div className="absolute left-0 right-0 bottom-0 pointer-events-none z-[1]" style={{ height: sa.bottom, backgroundColor: 'rgba(239, 68, 68, 0.08)' }} />
-              <div className="absolute left-0 pointer-events-none z-[1]" style={{ top: sa.top, width: sa.left, bottom: sa.bottom, backgroundColor: 'rgba(239, 68, 68, 0.08)' }} />
-              {/* Safe area boundary (dashed blue) */}
-              <div
-                className="absolute pointer-events-none z-[2]"
-                style={{
-                  top: sa.top,
-                  left: sa.left,
-                  right: sa.right,
-                  bottom: sa.bottom,
-                  border: '1px dashed rgba(59, 130, 246, 0.5)',
-                }}
-              />
-            </>
-          );
-        })()}
-        {/* Elements */}
-        {elements.map((el) => (
-          <Fragment key={el.id}>
-            {renderElement(el, {
-              onClick: handleElementClick,
-              isSelected: selectedIds.includes(el.id),
-            })}
-          </Fragment>
-        ))}
+      ) : (
+        <div
+          className="relative shrink-0"
+          style={{
+            width: PAGE_DEFAULT_WIDTH * viewportScale,
+            height: PAGE_DEFAULT_HEIGHT * viewportScale,
+          }}
+        >
+          <div
+            ref={slideRef}
+            className="bg-white shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1)] relative overflow-hidden"
+            style={{
+              width: PAGE_DEFAULT_WIDTH,
+              height: PAGE_DEFAULT_HEIGHT,
+              transform: `scale(${viewportScale})`,
+              transformOrigin: 'top left',
+            }}
+            onPointerDown={handleCanvasPointerDown}
+          >
+            {/* Background layer */}
+            <div
+              className="absolute inset-0"
+              style={getBackgroundStyle(
+                sceneSnapshot.currentPage?.background ?? sceneSnapshot.document.background,
+              )}
+            />
+            {/* Safe area visual guide */}
+            {(() => {
+              const sa = sceneSnapshot.document.safeArea;
+              if (!sa || (sa.top === 0 && sa.right === 0 && sa.bottom === 0 && sa.left === 0))
+                return null;
+              return (
+                <>
+                  {/* Unsafe zone overlays (subtle red tint) */}
+                  <div
+                    className="absolute top-0 left-0 right-0 pointer-events-none z-[1]"
+                    style={{ height: sa.top, backgroundColor: 'rgba(239, 68, 68, 0.08)' }}
+                  />
+                  <div
+                    className="absolute right-0 pointer-events-none z-[1]"
+                    style={{
+                      top: sa.top,
+                      width: sa.right,
+                      bottom: sa.bottom,
+                      backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                    }}
+                  />
+                  <div
+                    className="absolute left-0 right-0 bottom-0 pointer-events-none z-[1]"
+                    style={{ height: sa.bottom, backgroundColor: 'rgba(239, 68, 68, 0.08)' }}
+                  />
+                  <div
+                    className="absolute left-0 pointer-events-none z-[1]"
+                    style={{
+                      top: sa.top,
+                      width: sa.left,
+                      bottom: sa.bottom,
+                      backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                    }}
+                  />
+                  {/* Safe area boundary (dashed blue) */}
+                  <div
+                    className="absolute pointer-events-none z-[2]"
+                    style={{
+                      top: sa.top,
+                      left: sa.left,
+                      right: sa.right,
+                      bottom: sa.bottom,
+                      border: '1px dashed rgba(59, 130, 246, 0.5)',
+                    }}
+                  />
+                </>
+              );
+            })()}
+            {/* Elements */}
+            {elements.map((el) => (
+              <Fragment key={el.id}>
+                {renderElement(el, {
+                  onClick: handleElementClick,
+                  isSelected: selectedIds.includes(el.id),
+                })}
+              </Fragment>
+            ))}
 
-        <MoveableLayer engine={engine} containerRef={slideRef} zoom={viewportScale} />
+            <MoveableLayer engine={engine} containerRef={slideRef} zoom={viewportScale} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -211,7 +251,7 @@ function createElement(
   type: string,
   x: number,
   y: number,
-  shapeType?: string
+  shapeType?: string,
 ): Element {
   const base = {
     id: uid(),
